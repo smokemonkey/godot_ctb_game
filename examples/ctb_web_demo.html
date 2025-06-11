@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CTB系统演示 - 回合制战斗时间管理</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'Simhei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr 350px;
+            gap: 20px;
+            padding: 20px;
+            min-height: 600px;
+        }
+
+        .panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+        }
+
+        .panel h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 8px;
+        }
+
+        .info-text {
+            font-family: 'Courier New', monospace;
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            white-space: pre-line;
+            font-size: 13px;
+            line-height: 1.4;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .scrollable-log {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .control-group {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .control-group h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1em;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin: 5px 0;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.success {
+            background: linear-gradient(135deg, #27ae60 0%, #219a52 100%);
+        }
+
+        .btn.warning {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .input-group label {
+            color: #2c3e50;
+            font-weight: bold;
+            min-width: 80px;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #bdc3c7;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        @media (max-width: 1200px) {
+            .content {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+        }
+
+        .scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: #3498db #2c3e50;
+        }
+
+        .scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .scrollbar::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+
+        .scrollbar::-webkit-scrollbar-thumb {
+            background: #3498db;
+            border-radius: 4px;
+        }
+
+        .scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #2980b9;
+        }
+
+        .info-text, .scrollable-log {
+            scrollbar-width: thin;
+            scrollbar-color: #3498db #2c3e50;
+        }
+
+        .info-text::-webkit-scrollbar, .scrollable-log::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .info-text::-webkit-scrollbar-track, .scrollable-log::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+        }
+
+        .info-text::-webkit-scrollbar-thumb, .scrollable-log::-webkit-scrollbar-thumb {
+            background: #3498db;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏺 CTB系统演示</h1>
+            <p>基于春秋时代的回合制战斗时间管理系统</p>
+        </div>
+
+        <div class="content">
+            <!-- 左侧面板 -->
+            <div>
+                <div class="panel">
+                    <h3>📅 时间信息</h3>
+                    <div class="info-text" id="timeInfo">等待初始化...</div>
+                </div>
+
+                <div class="panel" style="margin-top: 20px;">
+                    <h3>👥 角色信息</h3>
+                    <div class="info-text" id="characterInfo">等待初始化...</div>
+                </div>
+            </div>
+
+            <!-- 中间面板 -->
+            <div>
+                <div class="panel">
+                    <h3>⚔️ CTB状态</h3>
+                    <div class="info-text" id="ctbStatus">等待初始化...</div>
+                </div>
+
+                <div class="panel" style="margin-top: 20px;">
+                    <h3>⏳ 行动队列</h3>
+                    <div class="info-text" id="actionQueue">等待初始化...</div>
+                </div>
+
+                <div class="panel" style="margin-top: 20px;">
+                    <h3>📜 行动历史</h3>
+                    <div class="scrollable-log" id="actionHistory">等待行动...</div>
+                </div>
+            </div>
+
+            <!-- 控制面板 -->
+            <div class="controls">
+                <div class="control-group">
+                    <h4>⚙️ 系统控制</h4>
+                    <button class="btn success" onclick="initializeCTB()">🚀 初始化CTB</button>
+                    <button class="btn" onclick="executeNextAction()">▶️ 执行下个行动</button>
+                    <button class="btn warning" onclick="skipToNext()">⏭️ 跳转时间</button>
+                    <button class="btn danger" onclick="resetCTB()">🔄 重置系统</button>
+                </div>
+
+                <div class="control-group">
+                    <h4>🎛️ 参数调整</h4>
+                    <div class="input-group">
+                        <label>基础因子:</label>
+                        <input type="number" id="factorInput" value="100" min="1" max="1000">
+                        <button class="btn" onclick="changeBaseFactor()" style="width: auto; margin: 0;">设置</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h4>🎮 测试功能</h4>
+                    <button class="btn" onclick="toggleCharacterActive()">🔄 切换角色状态</button>
+                    <button class="btn" onclick="addRandomCharacter()">➕ 添加随机角色</button>
+                </div>
+
+                <div class="control-group">
+                    <h4>📊 系统状态</h4>
+                    <div style="font-size: 12px; color: #7f8c8d;">
+                        <div>系统状态: <span id="systemStatus" style="font-weight: bold;">未初始化</span></div>
+                        <div>角色数量: <span id="characterCount">0</span></div>
+                        <div>行动总数: <span id="actionCount">0</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟的后端数据
+        let gameState = {
+            timeManager: {
+                currentYear: -722,
+                currentMonth: 1,
+                currentDay: 1,
+                currentHour: 0,
+                totalHours: 0
+            },
+            ctbManager: {
+                isInitialized: false,
+                baseFactor: 100,
+                characters: [],
+                actionQueue: [],
+                actionHistory: [],
+                nextActionId: 1
+            }
+        };
+
+        // 测试角色数据 (对应 examples/data/ctb_characters.py 中的基础角色组)
+        const testCharacters = [
+            { id: 1, name: "张三", faction: "蜀国", speed: 5, isActive: true },
+            { id: 2, name: "李四", faction: "魏国", speed: 7, isActive: true },
+            { id: 3, name: "王五", faction: "吴国", speed: 10, isActive: true }
+        ];
+
+        // 更新所有显示
+        function updateAllDisplays() {
+            updateTimeDisplay();
+            updateCTBStatus();
+            updateCharacterInfo();
+            updateActionQueue();
+            updateSystemStatus();
+        }
+
+        // 更新时间显示
+        function updateTimeDisplay() {
+            const tm = gameState.timeManager;
+            const year = Math.abs(tm.currentYear);
+            const era = tm.currentYear < 0 ? "公元前" : "公元";
+            const eraYear = tm.currentYear + 722 + 1;
+            
+            const timeText = `当前时间: ${era}${year}年${tm.currentMonth}月${tm.currentDay}日${tm.currentHour}点
+纪年: 春秋${eraYear}年${tm.currentMonth}月${tm.currentDay}日${tm.currentHour}点
+总计小时: ${tm.totalHours}
+总计天数: ${Math.floor(tm.totalHours / 24)}`;
+            
+            document.getElementById('timeInfo').textContent = timeText;
+        }
+
+        // 更新CTB状态
+        function updateCTBStatus() {
+            const ctb = gameState.ctbManager;
+            const statusText = `系统状态: ${ctb.isInitialized ? '已初始化' : '未初始化'}
+基础因子: ${ctb.baseFactor}
+活跃角色: ${ctb.characters.filter(c => c.isActive).length}/${ctb.characters.length}
+队列长度: ${ctb.actionQueue.length}
+历史记录: ${ctb.actionHistory.length}`;
+            
+            document.getElementById('ctbStatus').textContent = statusText;
+        }
+
+        // 更新角色信息
+        function updateCharacterInfo() {
+            const characters = gameState.ctbManager.characters;
+            let text = "=== 角色列表 ===\n";
+            
+            characters.forEach(char => {
+                const status = char.isActive ? "✓" : "✗";
+                const interval = Math.ceil(gameState.ctbManager.baseFactor / char.speed);
+                text += `${status} ${char.name} (${char.faction})\n`;
+                text += `  速度:${char.speed} 间隔:${interval}天\n`;
+            });
+            
+            document.getElementById('characterInfo').textContent = text;
+        }
+
+        // 更新行动队列
+        function updateActionQueue() {
+            const queue = gameState.ctbManager.actionQueue;
+            let text = "=== 行动队列 ===\n";
+            
+            queue.slice(0, 8).forEach((action, index) => {
+                const timeUntil = action.triggerTime - gameState.timeManager.totalHours;
+                const days = Math.floor(timeUntil / 24);
+                const hours = Math.floor(timeUntil % 24);
+                
+                if (index === 0) {
+                    text += `→ ${action.characterName}\n`;
+                } else {
+                    text += `  ${action.characterName}\n`;
+                }
+                text += `    ${days}天${hours}小时后\n`;
+            });
+            
+            document.getElementById('actionQueue').textContent = text;
+        }
+
+        // 更新系统状态
+        function updateSystemStatus() {
+            const ctb = gameState.ctbManager;
+            document.getElementById('systemStatus').textContent = ctb.isInitialized ? '已初始化' : '未初始化';
+            document.getElementById('characterCount').textContent = ctb.characters.length;
+            document.getElementById('actionCount').textContent = ctb.actionHistory.length;
+        }
+
+        // 添加行动历史记录
+        function addActionLog(message) {
+            const historyDiv = document.getElementById('actionHistory');
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            
+            historyDiv.appendChild(logEntry);
+            historyDiv.scrollTop = historyDiv.scrollHeight;
+            
+            // 保持最新50条记录
+            while (historyDiv.children.length > 50) {
+                historyDiv.removeChild(historyDiv.firstChild);
+            }
+        }
+
+        // CTB系统控制函数
+        function initializeCTB() {
+            gameState.ctbManager.characters = [...testCharacters];
+            gameState.ctbManager.isInitialized = true;
+            gameState.ctbManager.actionQueue = [];
+            
+            // 生成初始行动队列
+            gameState.ctbManager.characters.forEach(char => {
+                if (char.isActive) {
+                    const interval = Math.ceil(gameState.ctbManager.baseFactor / char.speed);
+                    const triggerTime = gameState.timeManager.totalHours + (interval * 24);
+                    
+                    gameState.ctbManager.actionQueue.push({
+                        id: gameState.ctbManager.nextActionId++,
+                        characterId: char.id,
+                        characterName: char.name,
+                        triggerTime: triggerTime,
+                        actionType: 'attack'
+                    });
+                }
+            });
+            
+            // 按触发时间排序
+            gameState.ctbManager.actionQueue.sort((a, b) => a.triggerTime - b.triggerTime);
+            
+            addActionLog("CTB系统已初始化");
+            updateAllDisplays();
+        }
+
+        function executeNextAction() {
+            if (!gameState.ctbManager.isInitialized) {
+                addActionLog("请先初始化CTB系统");
+                return;
+            }
+            
+            const action = gameState.ctbManager.actionQueue.shift();
+            if (!action) {
+                addActionLog("没有待执行的行动");
+                return;
+            }
+            
+            // 推进时间到行动时间
+            gameState.timeManager.totalHours = action.triggerTime;
+            updateTimeFromTotalHours();
+            
+            // 记录行动
+            const tm = gameState.timeManager;
+            const year = Math.abs(tm.currentYear);
+            const era = tm.currentYear < 0 ? "公元前" : "公元";
+            const eraYear = tm.currentYear + 722 + 1;
+            
+            const logMessage = `春秋${eraYear}年${tm.currentMonth}月${tm.currentDay}日${tm.currentHour}点 (${era}${year}年${tm.currentMonth}月${tm.currentDay}日${tm.currentHour}点) - ${action.characterName} 行动`;
+            addActionLog(logMessage);
+            
+            // 添加到历史
+            gameState.ctbManager.actionHistory.push({
+                ...action,
+                executedTime: action.triggerTime,
+                timestamp: Date.now()
+            });
+            
+            // 为该角色安排下次行动
+            const character = gameState.ctbManager.characters.find(c => c.id === action.characterId);
+            if (character && character.isActive) {
+                const interval = Math.ceil(gameState.ctbManager.baseFactor / character.speed);
+                const nextTriggerTime = action.triggerTime + (interval * 24);
+                
+                gameState.ctbManager.actionQueue.push({
+                    id: gameState.ctbManager.nextActionId++,
+                    characterId: character.id,
+                    characterName: character.name,
+                    triggerTime: nextTriggerTime,
+                    actionType: 'attack'
+                });
+                
+                // 重新排序队列
+                gameState.ctbManager.actionQueue.sort((a, b) => a.triggerTime - b.triggerTime);
+            }
+            
+            updateAllDisplays();
+        }
+
+        function skipToNext() {
+            if (!gameState.ctbManager.isInitialized) {
+                addActionLog("请先初始化CTB系统");
+                return;
+            }
+            
+            const nextAction = gameState.ctbManager.actionQueue[0];
+            if (!nextAction) {
+                addActionLog("没有待执行的行动");
+                return;
+            }
+            
+            // 直接跳转时间
+            gameState.timeManager.totalHours = nextAction.triggerTime;
+            updateTimeFromTotalHours();
+            
+            addActionLog(`时间已跳转到 ${nextAction.characterName} 的行动时间`);
+            updateAllDisplays();
+        }
+
+        function changeBaseFactor() {
+            const newFactor = parseInt(document.getElementById('factorInput').value);
+            if (newFactor && newFactor > 0) {
+                gameState.ctbManager.baseFactor = newFactor;
+                addActionLog(`基础因子已修改为: ${newFactor}`);
+                updateAllDisplays();
+            } else {
+                addActionLog("基础因子必须大于0");
+            }
+        }
+
+        function resetCTB() {
+            gameState.ctbManager = {
+                isInitialized: false,
+                baseFactor: 100,
+                characters: [],
+                actionQueue: [],
+                actionHistory: [],
+                nextActionId: 1
+            };
+            
+            document.getElementById('factorInput').value = "100";
+            addActionLog("CTB系统已重置");
+            updateAllDisplays();
+        }
+
+        function toggleCharacterActive() {
+            if (gameState.ctbManager.characters.length > 0) {
+                const char = gameState.ctbManager.characters[0];
+                char.isActive = !char.isActive;
+                const status = char.isActive ? "激活" : "停用";
+                addActionLog(`${char.name} 已${status}`);
+                updateAllDisplays();
+            }
+        }
+
+        function addRandomCharacter() {
+            const names = ["赵六", "孙七", "周八", "吴九", "郑十"];
+            const factions = ["齐国", "楚国", "燕国", "韩国", "赵国"];
+            
+            const randomName = names[Math.floor(Math.random() * names.length)];
+            const randomFaction = factions[Math.floor(Math.random() * factions.length)];
+            const randomSpeed = Math.floor(Math.random() * 8) + 3; // 3-10
+            
+            const newChar = {
+                id: Date.now(),
+                name: randomName,
+                faction: randomFaction,
+                speed: randomSpeed,
+                isActive: true
+            };
+            
+            gameState.ctbManager.characters.push(newChar);
+            addActionLog(`添加角色: ${randomName}(${randomFaction}) 速度:${randomSpeed}`);
+            updateAllDisplays();
+        }
+
+        // 从总小时数更新日期时间
+        function updateTimeFromTotalHours() {
+            const totalHours = gameState.timeManager.totalHours;
+            const totalDays = Math.floor(totalHours / 24);
+            const hours = totalHours % 24;
+            
+            // 简化的日期计算（360天/年，30天/月）
+            const startYear = -722;
+            const years = Math.floor(totalDays / 360);
+            const remainingDays = totalDays % 360;
+            const months = Math.floor(remainingDays / 30);
+            const days = remainingDays % 30;
+            
+            gameState.timeManager.currentYear = startYear + years;
+            gameState.timeManager.currentMonth = months + 1;
+            gameState.timeManager.currentDay = days + 1;
+            gameState.timeManager.currentHour = hours;
+        }
+
+        // 页面加载时初始化显示
+        document.addEventListener('DOMContentLoaded', function() {
+            updateAllDisplays();
+            addActionLog("系统启动完成，请点击'初始化CTB'开始");
+        });
+    </script>
+</body>
+</html> 

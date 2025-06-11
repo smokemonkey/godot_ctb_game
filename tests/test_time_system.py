@@ -165,14 +165,14 @@ class TestCalendar(unittest.TestCase):
         self.time_manager.advance_time(360000, TimeUnit.DAY)  # 推进1000年
         
         date_str = self.calendar.format_date_gregorian()
-        expected_year = -1000 + (360000 // 360)
+        expected_year = -722 + (360000 // 360)
         self.assertIn(f"公元{expected_year}年", date_str)
     
     def test_era_format_without_era(self):
         """测试无纪年时的格式化"""
         date_str = self.calendar.format_date_era()
         # 无纪年时应该回退到公历格式
-        self.assertEqual(date_str, "公元前1000年1月1日")
+        self.assertEqual(date_str, "公元前722年1月1日")
     
     def test_era_format_with_era(self):
         """测试有纪年时的格式化"""
@@ -218,18 +218,18 @@ class TestIntegration(unittest.TestCase):
         calendar = Calendar(time_manager)
         
         # 1. 初始状态检查
-        self.assertEqual(time_manager.current_year, -1000)
+        self.assertEqual(time_manager.current_year, -722)
         
         # 2. 推进到春秋时期
         time_manager.advance_time(200 * 360, TimeUnit.DAY)  # 推进200年
-        self.assertEqual(time_manager.current_year, -800)
+        self.assertEqual(time_manager.current_year, -522)
         
         # 3. 添加春秋纪年
         time_manager.add_era_node("春秋元年")
         
         # 4. 继续推进到战国
         time_manager.advance_time(300 * 360, TimeUnit.DAY)  # 再推进300年
-        self.assertEqual(time_manager.current_year, -500)
+        self.assertEqual(time_manager.current_year, -222)
         
         # 5. 添加战国纪年
         time_manager.add_era_node("战国元年")
@@ -243,7 +243,7 @@ class TestIntegration(unittest.TestCase):
         self.assertIn("战国元年", era_date)
         
         gregorian_date = calendar.format_date_gregorian()
-        self.assertIn("公元前500年", gregorian_date)
+        self.assertIn("公元前222年", gregorian_date)
     
     def test_edge_cases(self):
         """测试边界情况"""
