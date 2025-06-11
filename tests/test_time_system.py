@@ -17,7 +17,7 @@ class TestTimeManager(unittest.TestCase):
     
     def test_initial_state(self):
         """测试初始状态"""
-        self.assertEqual(self.time_manager.current_year, -1000)
+        self.assertEqual(self.time_manager.current_year, -722)
         self.assertEqual(self.time_manager.current_month, 1)
         self.assertEqual(self.time_manager.current_day_in_month, 1)
         self.assertEqual(self.time_manager.current_day_in_year, 1)
@@ -51,7 +51,7 @@ class TestTimeManager(unittest.TestCase):
     def test_advance_full_year(self):
         """测试推进一整年"""
         self.time_manager.advance_time(360, TimeUnit.DAY)
-        self.assertEqual(self.time_manager.current_year, -999)
+        self.assertEqual(self.time_manager.current_year, -721)
         self.assertEqual(self.time_manager.current_day_in_year, 1)
         self.assertEqual(self.time_manager.current_month, 1)
     
@@ -78,13 +78,13 @@ class TestTimeManager(unittest.TestCase):
         # 跳转到当前年第100天
         self.time_manager.set_time_to_day(100)
         self.assertEqual(self.time_manager.current_day_in_year, 100)
-        self.assertEqual(self.time_manager.current_year, -1000)
+        self.assertEqual(self.time_manager.current_year, -722)
         
         # 推进到下一年，再跳转
         self.time_manager.advance_time(365, TimeUnit.DAY)
         self.time_manager.set_time_to_day(50)
         self.assertEqual(self.time_manager.current_day_in_year, 50)
-        self.assertEqual(self.time_manager.current_year, -999)
+        self.assertEqual(self.time_manager.current_year, -721)
     
     def test_set_time_to_hour(self):
         """测试跳转到指定小时"""
@@ -101,7 +101,7 @@ class TestTimeManager(unittest.TestCase):
         current_era = self.time_manager.get_current_era()
         self.assertIsNotNone(current_era)
         self.assertEqual(current_era.name, "开元")
-        self.assertEqual(current_era.start_year, -1000)
+        self.assertEqual(current_era.start_year, -722)
         
         # 推进时间后添加新纪年
         self.time_manager.advance_time(3650, TimeUnit.DAY)  # 约10年
@@ -135,7 +135,7 @@ class TestTimeManager(unittest.TestCase):
         
         info = self.time_manager.get_time_info()
         
-        self.assertEqual(info['year'], -1000)
+        self.assertEqual(info['year'], -722)
         self.assertEqual(info['day_in_year'], 101)
         self.assertEqual(info['hour'], 5)
         self.assertEqual(info['total_hours'], 100 * 24 + 5)
@@ -151,13 +151,13 @@ class TestCalendar(unittest.TestCase):
     
     def test_gregorian_format_bc(self):
         """测试公元前日期格式化"""
-        # 默认公元前1000年
+        # 默认公元前722年（鲁隐公元年）
         date_str = self.calendar.format_date_gregorian()
-        self.assertEqual(date_str, "公元前1000年1月1日")
+        self.assertEqual(date_str, "公元前722年1月1日")
         
         # 带小时显示
         date_str_with_hour = self.calendar.format_date_gregorian(show_hour=True)
-        self.assertEqual(date_str_with_hour, "公元前1000年1月1日0点")
+        self.assertEqual(date_str_with_hour, "公元前722年1月1日0点")
     
     def test_gregorian_format_ad(self):
         """测试公元后日期格式化"""
