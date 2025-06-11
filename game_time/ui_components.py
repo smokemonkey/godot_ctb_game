@@ -1,6 +1,6 @@
 import pygame
 from typing import Callable, Optional
-from font_manager import font_manager
+from .font_manager import font_manager
 
 
 class Button:

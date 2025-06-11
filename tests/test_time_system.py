@@ -1,5 +1,11 @@
 import unittest
-from time_system import TimeManager, Calendar, TimeUnit, EraNode
+import sys
+import os
+
+# 添加父目录到Python路径，以便导入game_time包
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from game_time import TimeManager, Calendar, TimeUnit, EraNode
 
 
 class TestTimeManager(unittest.TestCase):

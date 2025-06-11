@@ -28,36 +28,56 @@
 
 ## 🚀 快速开始
 
-### 安装依赖
+### 方式1: 直接使用（推荐）
 ```bash
+# 克隆仓库
+git clone <repository-url>
+cd pygame-sample
+
 # 创建虚拟环境
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
 # 或 venv\Scripts\activate  # Windows
 
-# 安装pygame
-pip install pygame
+# 安装依赖
+pip install -r requirements.txt
+```
+
+### 方式2: 包安装模式
+```bash
+# 开发模式安装（可编辑）
+pip install -e .
+
+# 或正式安装
+pip install .
 ```
 
 ### 运行演示
 ```bash
-python main.py
+# 方式1: 直接运行演示
+cd examples && python demo.py
+
+# 方式2: 使用包导入方式
+python -c "from examples.demo import main; main()"
 ```
 
 ### 运行测试
 ```bash
-# 使用测试运行器
+# 使用根目录测试运行器（推荐）
 python run_tests.py
 
+# 或使用tests目录的运行器
+cd tests && python run_tests.py
+
 # 或直接运行测试文件
-python test_time_system.py
+cd tests && python test_time_system.py
 ```
 
 ## 📖 基础用法
 
 ### 1. 基本时间操作
 ```python
-from time_system import TimeManager, Calendar
+from game_time import TimeManager, Calendar, TimeUnit
 
 # 创建时间管理器
 time_manager = TimeManager()
@@ -113,14 +133,20 @@ print(status)
 
 ```
 pygame-sample/
-├── time_system.py        # 核心时间管理逻辑
-├── ui_components.py      # UI组件库（Button, InputBox, TextDisplay）
-├── font_manager.py       # 自适应字体管理器
-├── main.py              # 主程序和测试界面
-├── test_time_system.py  # 时间系统测试用例
-├── run_tests.py         # 测试运行器
-├── requirements.txt     # 依赖列表
-└── README.md           # 项目文档
+├── game_time/              # 核心时间系统包
+│   ├── __init__.py        # 包初始化和API导出
+│   ├── time_system.py     # 时间管理核心逻辑
+│   ├── ui_components.py   # UI组件库
+│   └── font_manager.py    # 自适应字体管理器
+├── tests/                 # 测试目录
+│   ├── test_time_system.py # 时间系统测试用例
+│   └── run_tests.py       # 测试运行器
+├── examples/              # 示例代码
+│   └── demo.py           # 演示程序
+├── setup.py              # 包安装配置
+├── run_tests.py          # 根目录测试运行器
+├── requirements.txt      # 依赖列表
+└── README.md            # 项目文档
 ```
 
 ## 🔧 核心API

@@ -1,8 +1,11 @@
 import pygame
 import sys
-from time_system import TimeManager, Calendar, TimeUnit
-from ui_components import Button, TextDisplay, InputBox
-from font_manager import font_manager
+import os
+
+# 添加父目录到Python路径，以便导入game_time包
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from game_time import TimeManager, Calendar, TimeUnit, Button, TextDisplay, InputBox, font_manager
 
 # Initialize pygame
 pygame.init()
