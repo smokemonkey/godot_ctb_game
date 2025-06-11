@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """
 启动本地Web服务器来运行CTB系统Web演示
+
+用法:
+  python examples/start_web_demo.py           # 默认打开两个演示页面
+  python examples/start_web_demo.py ctb       # 只打开CTB演示
+  python examples/start_web_demo.py time      # 只打开时间系统演示  
+  python examples/start_web_demo.py both      # 明确打开两个页面
 """
 
 import http.server
@@ -10,6 +16,7 @@ import os
 import sys
 import subprocess
 import signal
+import argparse
 from pathlib import Path
 
 def kill_port_processes(port=8000):
@@ -38,10 +45,41 @@ def kill_port_processes(port=8000):
     except Exception as e:
         print(f"⚠️  检查端口时出错: {e}")
 
+def parse_arguments():
+    """解析命令行参数"""
+    parser = argparse.ArgumentParser(
+        description="启动游戏时间系统Web演示服务器",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+示例:
+  %(prog)s           # 默认打开两个演示页面
+  %(prog)s ctb       # 只打开CTB演示
+  %(prog)s time      # 只打开时间系统演示
+  %(prog)s both      # 明确打开两个页面
+        """
+    )
+    
+    parser.add_argument(
+        'demo', 
+        nargs='?', 
+        choices=['ctb', 'time', 'both'], 
+        default='both',
+        help='选择要打开的演示页面 (默认: both)'
+    )
+    
+    return parser.parse_args()
+
 def main():
+    # 解析命令行参数
+    args = parse_arguments()
+    
     # 自动处理端口冲突
     print("🔍 检查端口占用情况...")
     kill_port_processes(8000)
+    
+    # 稍等一下确保端口释放
+    import time
+    time.sleep(0.2)
     
     # 获取examples目录路径
     examples_dir = Path(__file__).parent.absolute()
@@ -89,20 +127,27 @@ def main():
             print("  - 修改HTML文件后刷新页面即可看到更新")
             print("=" * 70)
             
-            # 自动打开浏览器（同时打开两个演示页面）
+            # 根据参数打开对应的演示页面
             try:
-                webbrowser.open(ctb_url)
-                print("✅ 已打开CTB演示页面")
-                # 稍微延迟后打开第二个页面，避免浏览器处理冲突
                 import time
-                time.sleep(0.5)
-                webbrowser.open(time_url)
-                print("✅ 已打开时间系统演示页面")
+                
+                if args.demo in ['ctb', 'both']:
+                    webbrowser.open(ctb_url)
+                    print("✅ 已打开CTB演示页面")
+                    
+                if args.demo in ['time', 'both']:
+                    if args.demo == 'both':
+                        time.sleep(0.5)  # 避免浏览器处理冲突
+                    webbrowser.open(time_url)
+                    print("✅ 已打开时间系统演示页面")
+                    
             except Exception as e:
                 print(f"⚠️  无法自动打开浏览器: {e}")
                 print(f"   请手动访问:")
-                print(f"   CTB演示: {ctb_url}")
-                print(f"   时间演示: {time_url}")
+                if args.demo in ['ctb', 'both']:
+                    print(f"   CTB演示: {ctb_url}")
+                if args.demo in ['time', 'both']:
+                    print(f"   时间演示: {time_url}")
             
             print("\n🔄 服务器运行中，等待请求...")
             print("   (按 Ctrl+C 退出)")
