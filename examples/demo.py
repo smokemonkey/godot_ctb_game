@@ -10,6 +10,11 @@ from game_time import TimeManager, Calendar, TimeUnit, Button, TextDisplay, Inpu
 # Initialize pygame
 pygame.init()
 
+# 启用输入法支持
+pygame.key.set_repeat(500, 50)  # 设置按键重复
+# 启用文本输入模式（支持输入法）
+pygame.key.start_text_input()
+
 # Set up display
 SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 700
@@ -182,5 +187,6 @@ while running:
     clock.tick(FPS)
 
 # Quit
+pygame.key.stop_text_input()  # 停止文本输入模式
 pygame.quit()
 sys.exit() 
