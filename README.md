@@ -44,6 +44,15 @@ pip install pygame
 python main.py
 ```
 
+### 运行测试
+```bash
+# 使用测试运行器
+python run_tests.py
+
+# 或直接运行测试文件
+python test_time_system.py
+```
+
 ## 📖 基础用法
 
 ### 1. 基本时间操作
@@ -104,12 +113,14 @@ print(status)
 
 ```
 pygame-sample/
-├── time_system.py      # 核心时间管理逻辑
-├── ui_components.py    # UI组件库（Button, InputBox, TextDisplay）
-├── font_manager.py     # 自适应字体管理器
-├── main.py            # 主程序和测试界面
-├── requirements.txt   # 依赖列表
-└── README.md         # 项目文档
+├── time_system.py        # 核心时间管理逻辑
+├── ui_components.py      # UI组件库（Button, InputBox, TextDisplay）
+├── font_manager.py       # 自适应字体管理器
+├── main.py              # 主程序和测试界面
+├── test_time_system.py  # 时间系统测试用例
+├── run_tests.py         # 测试运行器
+├── requirements.txt     # 依赖列表
+└── README.md           # 项目文档
 ```
 
 ## 🔧 核心API
