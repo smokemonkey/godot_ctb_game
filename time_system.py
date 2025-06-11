@@ -17,7 +17,21 @@ class EraNode:
     
     
 class TimeManager:
-    """时间管理器 - 负责游戏时间的流逝和控制"""
+    """时间管理器 - 负责游戏时间的流逝和控制
+    
+    专为回合制游戏设计的时间系统，支持非匀速时间流逝、精确时间控制和纪年管理。
+    
+    Attributes:
+        DAYS_PER_YEAR (int): 每年天数，默认360天
+        HOURS_PER_DAY (int): 每天小时数，默认24小时  
+        BASE_YEAR (int): 起始年份，默认公元前1000年
+        
+    Example:
+        >>> time_manager = TimeManager()
+        >>> time_manager.advance_time(30, TimeUnit.DAY)
+        >>> print(f"当前年份: {time_manager.current_year}")
+        >>> time_manager.add_era_node("开元")
+    """
     
     DAYS_PER_YEAR = 360
     HOURS_PER_DAY = 24
@@ -57,7 +71,16 @@ class TimeManager:
         return ((self.current_day_in_year - 1) % 30) + 1
     
     def advance_time(self, amount: int, unit: TimeUnit = TimeUnit.DAY) -> None:
-        """推进时间"""
+        """推进时间
+        
+        Args:
+            amount (int): 推进的时间数量
+            unit (TimeUnit): 时间单位，默认为天
+            
+        Example:
+            >>> time_manager.advance_time(5, TimeUnit.DAY)   # 推进5天
+            >>> time_manager.advance_time(3, TimeUnit.HOUR)  # 推进3小时
+        """
         if unit == TimeUnit.DAY:
             self._total_hours += amount * self.HOURS_PER_DAY
         elif unit == TimeUnit.HOUR:
