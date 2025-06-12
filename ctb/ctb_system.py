@@ -1,8 +1,50 @@
 """
-CTB (Conditional Turn-Based) 系统模块
+CTB (Conditional Turn-Based) 战斗系统核心模块
 
-提供基于速度的回合制战斗系统，角色根据速度属性计算行动间隔。
-与时间系统集成，支持精确的时间推进和行动调度。
+主要功能:
+- 基于速度的回合制战斗: 角色根据速度属性计算行动间隔
+- 时间系统集成: 与游戏时间系统无缝配合，支持精确时间推进
+- 行动队列管理: 使用堆队列自动排序，确保行动顺序正确
+- 角色状态管理: 支持角色的激活/停用、添加/移除
+- 灵活的公式系统: 独立的计算逻辑，便于调整平衡性
+
+核心设计:
+- 行动间隔计算: interval_days = base_factor / speed
+- 时间单位转换: 内部使用小时为最小单位，与时间系统保持一致
+- 事件驱动: 支持行动回调，便于游戏逻辑集成
+- 历史记录: 完整的行动历史，支持回放和分析
+
+使用场景:
+- 回合制RPG战斗系统
+- 策略游戏的单位行动管理
+- 任何需要基于速度排序的时间系统
+
+Example:
+    >>> from game_time import TimeManager
+    >>> from ctb import CTBManager, Character
+    >>> 
+    >>> # 初始化系统
+    >>> time_manager = TimeManager()
+    >>> ctb = CTBManager(time_manager)
+    >>> 
+    >>> # 添加角色
+    >>> hero = Character("hero", "英雄", speed=100)
+    >>> enemy = Character("enemy", "敌人", speed=80)
+    >>> ctb.add_character(hero)
+    >>> ctb.add_character(enemy)
+    >>> 
+    >>> # 开始战斗
+    >>> ctb.initialize_ctb()
+    >>> 
+    >>> # 执行行动
+    >>> while True:
+    >>>     action = ctb.execute_next_action()
+    >>>     if action:
+    >>>         print(f"{action.character.name} 在 {action.trigger_time} 小时行动")
+    >>>     else:
+    >>>         break
+
+最后更新: 2025-06-12 - 完善文档说明
 """
 
 from typing import List, Optional, Dict, Any, Callable

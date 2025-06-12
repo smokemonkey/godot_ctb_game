@@ -1,112 +1,177 @@
-# 项目状态文档
+# 游戏时间系统项目状态
 
-## 项目概览
-**项目名称**: pygame-sample  
-**核心功能**: 游戏时间系统 + CTB战斗系统  
-**最后更新**: 2025年6月12日  
+## 项目概述
+专为回合制游戏设计的时间管理系统，支持360天/年历法、纪元锚定和双纪年显示。
 
-## 核心模块结构
+## 当前状态：✅ 稳定版本 (2025-06-12)
 
-```
-pygame-sample/
-├── game_time/                 # 时间系统核心模块
-│   ├── time_system.py        # 主要时间管理类
-│   └── __init__.py           # 模块初始化
-├── ctb/                      # CTB战斗系统
-├── examples/                 # 演示文件
-│   ├── time_web_demo.html    # 时间系统Web演示 (24KB, 705行)
-│   ├── ctb_web_demo.html     # CTB系统Web演示
-│   └── start_web_demo.py     # Web服务器启动脚本
-├── tests/                    # 测试文件
-└── README.md                 # 项目说明
-```
+**重要：现在的接口不要大改了！**
 
-## 当前功能状态
+### 核心功能 ✅ 完成
+- **基础时间系统**: 360天/年，24小时/天，30天/月
+- **时间推进**: 支持按天/小时推进时间
+- **纪元锚定**: 指定纪元元年对应的公元年份
+- **改元功能**: 从当前年份开始新纪元
+- **双纪年显示**: 公历和纪年两种格式
+- **未来限制**: 不允许锚定到未来时期
 
-### ✅ 已完成功能
+### API接口 ✅ 稳定
+```python
+# TimeManager - 核心时间管理
+advance_time(amount: int, unit: TimeUnit = TimeUnit.DAY)
+anchor_era(era_name: str, gregorian_year: int)
+start_new_era(name: str)
+get_current_era_name() -> Optional[str]
+get_current_era_year() -> Optional[int]
 
-#### 1. 时间系统核心 (`game_time/time_system.py`)
-- **基础时间管理**: 360天/年，30天/月，24小时/天
-- **时间推进**: 按小时/天/年推进
-- **纪元系统**: 支持多个历史纪元
-- **🆕 锚定功能**: `anchor_era(era_name, gregorian_year)` - 将指定公元年份设为纪元元年
-- **🆕 改元功能**: `add_era_node()` 基于锚定实现
-- **日历格式化**: 公历和纪年两种显示方式
-
-#### 2. Web演示界面 (`examples/time_web_demo.html`)
-- **现代化UI**: 蓝色渐变主题，响应式布局
-- **三栏布局**: 时间详情 | 状态统计 | 控制面板
-- **时间推进控制**: 天数/小时推进，快速推进按钮
-- **🆕 锚定控制**: 纪元锚定输入框和状态显示
-- **🆕 改元控制**: 基于当前年份的改元功能
-- **实时日志**: 操作记录和滚动显示
-- **测试场景**: 自动化功能演示
-
-#### 3. 服务器系统 (`examples/start_web_demo.py`)
-- **智能启动**: 自动检测端口占用并清理
-- **多模式**: 支持 ctb/time/both 三种演示模式
-- **自动打开**: 启动后自动打开浏览器
-
-### 🔧 核心设计决策
-
-#### 锚定系统设计
-- **锚定**: 可指定任意年份为纪元元年 (`anchor_era(name, year)`)
-- **改元**: 只能将当前年份设为新纪元元年 (`changeEra(name)`)
-- **改元是锚定的wrapper**: `changeEra()` 内部调用 `anchor_era(name, currentYear)`
-- **优先级**: 锚定状态优先于原有纪元节点
-- **限制**: 不允许锚定到未来年份
-
-#### 时间计算逻辑
-- **内部存储**: 以总小时数为基准 (`_totalHours`)
-- **显示计算**: 实时从总小时数计算年月日
-- **纪元年份**: `current_era_year = current_gregorian_year - era_start_year + 1`
-
-### 🚫 已删除功能
-- ❌ 复杂的纪年系统管理
-- ❌ 时间跳转功能 (jumpToYear, jumpToDay)
-- ❌ 独立的纪年添加功能 (addEraNode)
-- ❌ 多个演示文件 (各种demo.py)
-
-### 📝 最近修改记录
-
-#### 2025-06-12 最新修改
-1. **简化改元功能**: 
-   - 删除年份输入框，只保留纪元名称输入
-   - 改元自动使用当前年份作为元年
-   - 更新UI提示文字
-
-2. **清理冗余功能**:
-   - 删除时间跳转控件和相关函数
-   - 删除纪年管理功能
-   - 简化测试场景
-
-3. **界面优化**:
-   - 保持现有的蓝色渐变主题
-   - 三栏布局保持不变
-   - 锚定状态实时显示
-
-## 测试方法
-
-### 启动Web演示
-```bash
-python examples/start_web_demo.py time
-# 访问 http://localhost:8000/time_web_demo.html
+# Calendar - 日历显示
+format_date_gregorian(show_hour: bool = False) -> str
+format_date_era(show_hour: bool = False) -> str
+get_time_status_text() -> str
 ```
 
-### 功能测试流程
-1. **基础时间推进**: 使用+1天、+10天等按钮
-2. **锚定测试**: 输入"开元"和"713"，点击锚定
-3. **改元测试**: 输入"永徽"，点击改元（自动使用当前年份）
-4. **状态验证**: 观察锚定状态显示和纪年变化
+### 测试覆盖 ✅ 完整
+- **19个测试用例**全部通过
+- 基础时间推进功能
+- 锚定功能和限制验证
+- 改元功能测试
+- 日历格式化测试
+- 集成测试和边界情况
 
-## 技术栈
-- **后端**: Python 3.x
-- **前端**: HTML5 + CSS3 + JavaScript (ES6)
-- **服务器**: Python内置HTTP服务器
-- **测试**: Python unittest
+### Web演示 ✅ 可用
+- 现代化UI界面
+- 实时时间显示
+- 锚定和改元控制
+- 操作日志记录
+- 响应式布局
 
-## 下次开发提醒
-- 当前锚定和改元功能已完成并测试通过
-- Web界面已优化为最终版本
-- 如需新功能，优先考虑在现有锚定基础上扩展
-- 避免重新引入已删除的复杂功能 
+## 架构设计
+
+### 核心原则
+1. **纯锚定系统**: 不维护纪元节点列表，只使用锚定机制
+2. **时间单向流动**: 只能推进时间，不能回退或跳转
+3. **接口简洁**: 最小化API，避免过度设计
+4. **功能分离**: 锚定(任意年份) vs 改元(当前年份)
+
+### 数据结构
+```python
+class TimeManager:
+    _total_hours: int                           # 总小时数
+    _current_anchor: Optional[Tuple[str, int]]  # (纪元名, 元年公元年份)
+```
+
+### 计算逻辑
+```python
+# 纪元年份计算
+current_era_year = current_gregorian_year - era_start_year + 1
+
+# 时间属性计算
+current_year = BASE_YEAR + (total_days // DAYS_PER_YEAR)
+current_month = ((day_in_year - 1) // 30) + 1
+current_day_in_month = ((day_in_year - 1) % 30) + 1
+```
+
+## 开发历程
+
+### ❌ 第一阶段：过度工程化
+- 复杂的EraSystem设计
+- 多重纪元系统管理
+- 用户反馈："太复杂了"
+
+### ✅ 第二阶段：最小化实现
+- 回到原始代码基础
+- 只添加必要的锚定功能
+- 用户满意
+
+### ✅ 第三阶段：需求细化
+- 移除不必要参数
+- 添加未来限制
+- 清理演示文件
+
+### ✅ 第四阶段：向后兼容清理
+- 移除EraNode类和_era_nodes
+- 简化为纯锚定系统
+- 更新所有测试和文档
+
+## 使用示例
+
+### 基础使用
+```python
+from game_time import TimeManager, Calendar, TimeUnit
+
+# 初始化
+time_manager = TimeManager()
+calendar = Calendar(time_manager)
+
+# 推进时间
+time_manager.advance_time(100, TimeUnit.DAY)
+
+# 锚定纪元
+time_manager.anchor_era("开元", 713)  # 开元元年=公元713年
+
+# 改元
+time_manager.start_new_era("天宝")    # 天宝元年=当前年份
+
+# 显示时间
+print(calendar.format_date_gregorian())  # 公元718年4月10日
+print(calendar.format_date_era())        # 天宝1年4月10日
+```
+
+### 游戏场景示例
+```python
+# 游戏开始：春秋时期
+time_manager = TimeManager()  # 默认公元前722年
+
+# 推进到唐朝
+time_manager.advance_time(1435 * 360, TimeUnit.DAY)  # 推进到公元713年
+
+# 玩家选择唐朝，锚定开元纪年
+time_manager.anchor_era("开元", 713)
+
+# 游戏进行，时间推进
+time_manager.advance_time(5 * 360, TimeUnit.DAY)  # 5年后
+
+# 皇帝改元
+time_manager.start_new_era("天宝")  # 天宝元年开始
+
+print(f"当前：{calendar.format_date_era()}")  # 天宝1年1月1日
+```
+
+## 未来扩展
+
+### 可能的小幅调整
+- 增加按小时数流逝时间的功能
+- 优化时间推进的性能
+- 添加更多时间查询方法
+
+### 不会改变的部分
+- 核心API接口
+- 基础架构设计
+- 锚定机制逻辑
+
+## 文件结构
+```
+game_time/
+├── __init__.py           # 公共API导出
+├── time_system.py        # 核心时间系统
+ctb/
+├── __init__.py           # CTB模块导出
+├── ctb_system.py         # CTB战斗系统
+tests/
+├── test_time_system.py   # 时间系统测试套件
+├── test_ctb_system.py    # CTB系统测试套件
+├── run_tests.py          # 测试运行器
+examples/
+├── time_web_demo.html    # 时间系统Web演示
+├── ctb_web_demo.html     # CTB系统Web演示
+├── start_web_demo.py     # 演示服务器
+docs/
+├── PROJECT_STATUS.md     # 项目状态 (本文件)
+├── DEVELOPMENT_NOTES.md  # 开发笔记
+```
+
+## 总结
+
+✅ **项目已完成**，接口稳定，功能完整，测试覆盖全面。
+
+⚠️ **重要提醒**：现在的接口不要大改了！未来只做小幅度的功能增强。 
