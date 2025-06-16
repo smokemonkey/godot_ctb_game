@@ -19,6 +19,14 @@ import signal
 import argparse
 from pathlib import Path
 
+# 创建一个自定义的HTTP请求处理器，用于禁用缓存
+class NoCacheHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+    def end_headers(self):
+        self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+        self.send_header('Pragma', 'no-cache')
+        self.send_header('Expires', '0')
+        super().end_headers()
+
 def kill_port_processes(port=8000):
     """杀死占用指定端口的所有进程"""
     try:
@@ -104,8 +112,8 @@ def main():
         print(f"当前目录：{os.getcwd()}")
         return 1
     
-    # 创建HTTP服务器
-    handler = http.server.SimpleHTTPRequestHandler
+    # 创建HTTP服务器, 使用我们自定义的无缓存处理器
+    handler = NoCacheHTTPRequestHandler
     
     try:
         with socketserver.TCPServer(("", port), handler) as httpd:
