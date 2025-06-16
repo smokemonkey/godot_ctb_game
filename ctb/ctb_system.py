@@ -322,6 +322,60 @@ class CTBManager:
         """获取最近的行动记录"""
         return self.action_history[-count:] if self.action_history else []
     
+    def predict_future_actions(self, count: int) -> List[Dict[str, Any]]:
+        """
+        预测未来n个行动。
+
+        此方法不会改变系统的实际状态，仅用于模拟和显示。
+
+        Args:
+            count: 需要预测的行动数量。
+
+        Returns:
+            一个包含预测行动信息的字典列表。
+            每个字典包含: 'character_name', 'character_id', 'trigger_time', 'time_from_now'。
+        """
+        if not self.is_initialized or not self.action_queue:
+            return []
+
+        # 创建一个模拟环境
+        sim_queue = list(self.action_queue)
+        heapq.heapify(sim_queue)
+        
+        predicted_actions = []
+
+        # 循环预测
+        for _ in range(count):
+            if not sim_queue:
+                break
+
+            # 弹出下一个行动
+            action = heapq.heappop(sim_queue)
+            
+            predicted_actions.append({
+                'character_name': action.character.name,
+                'character_id': action.character.id,
+                'trigger_time': action.trigger_time,
+                'time_from_now': action.trigger_time - self.time_manager._total_hours
+            })
+
+            # 为这个角色安排下一次模拟行动
+            character = action.character
+            if character.is_active:
+                next_action_time = CTBFormula.calculate_next_action_time(
+                    action.trigger_time, character.speed, self.base_factor
+                )
+                
+                next_action_event = ActionEvent(
+                    trigger_time=next_action_time,
+                    character=character,
+                    description=f"{character.name} 准备行动 (模拟)"
+                )
+                
+                heapq.heappush(sim_queue, next_action_event)
+
+        return predicted_actions
+    
     def set_character_active(self, character_id: str, is_active: bool) -> bool:
         """设置角色活跃状态"""
         character = self.get_character(character_id)

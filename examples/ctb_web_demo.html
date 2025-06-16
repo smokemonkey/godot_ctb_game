@@ -259,6 +259,11 @@
                 </div>
 
                 <div class="panel" style="margin-top: 20px;">
+                    <h3>🔭 行动预测</h3>
+                    <div class="info-text" id="predictionBar">等待初始化...</div>
+                </div>
+
+                <div class="panel" style="margin-top: 20px;">
                     <h3>📜 行动历史</h3>
                     <div class="scrollable-log" id="actionHistory">等待行动...</div>
                 </div>
@@ -287,6 +292,7 @@
                     <h4>🎮 测试功能</h4>
                     <button class="btn" onclick="toggleCharacterActive()">🔄 切换角色状态</button>
                     <button class="btn" onclick="addRandomCharacter()">➕ 添加随机角色</button>
+                    <button class="btn warning" onclick="runStressTest()">🚀 初始化 (压测模式)</button>
                 </div>
 
                 <div class="control-group">
@@ -295,6 +301,7 @@
                         <div>系统状态: <span id="systemStatus" style="font-weight: bold;">未初始化</span></div>
                         <div>角色数量: <span id="characterCount">0</span></div>
                         <div>行动总数: <span id="actionCount">0</span></div>
+                        <div id="stressTestResult" style="margin-top: 10px; white-space: pre-wrap; font-weight: bold; color: #27ae60; font-size: 13px;"></div>
                     </div>
                 </div>
             </div>
@@ -334,6 +341,7 @@
             updateCTBStatus();
             updateCharacterInfo();
             updateActionQueue();
+            updatePredictionBar();
             updateSystemStatus();
         }
 
@@ -367,14 +375,21 @@
         // 更新角色信息
         function updateCharacterInfo() {
             const characters = gameState.ctbManager.characters;
-            let text = "=== 角色列表 ===\n";
+            let text = `=== 角色列表 (共 ${characters.length} 个) ===\n`;
+            const displayLimit = 20;
+
+            const charactersToShow = characters.slice(0, displayLimit);
             
-            characters.forEach(char => {
+            charactersToShow.forEach(char => {
                 const status = char.isActive ? "✓" : "✗";
                 const interval = Math.ceil(gameState.ctbManager.baseFactor / char.speed);
                 text += `${status} ${char.name} (${char.faction})\n`;
-                text += `  速度:${char.speed} 间隔:${interval}天\n`;
+                text += `  速度:${char.speed.toFixed(2)} 间隔:${interval}天\n`;
             });
+
+            if (characters.length > displayLimit) {
+                text += `\n... (仅显示前 ${displayLimit} 个角色)`;
+            }
             
             document.getElementById('characterInfo').textContent = text;
         }
@@ -398,6 +413,27 @@
             });
             
             document.getElementById('actionQueue').textContent = text;
+        }
+
+        // 更新预测条
+        function updatePredictionBar() {
+            const predictions = predictFutureActions(10); // 预测未来10个行动
+            let text = "=== 未来10次行动预测 ===\n";
+            
+            if (predictions.length === 0) {
+                text = "无法预测（队列为空或未初始化）";
+            } else {
+                predictions.forEach((action, index) => {
+                    const timeUntil = action.triggerTime - gameState.timeManager.totalHours;
+                    const days = Math.floor(timeUntil / 24);
+                    const hours = Math.floor(timeUntil % 24);
+                    
+                    text += `${String(index + 1).padStart(2, ' ')}. ${action.characterName}\n`;
+                    text += `     将在 ${days}天${hours}小时后行动\n`;
+                });
+            }
+            
+            document.getElementById('predictionBar').textContent = text;
         }
 
         // 更新系统状态
@@ -424,6 +460,47 @@
             }
         }
 
+        // 预测未来行动
+        function predictFutureActions(count) {
+            const ctb = gameState.ctbManager;
+            if (!ctb.isInitialized || ctb.actionQueue.length === 0) {
+                return [];
+            }
+
+            // 使用深拷贝创建模拟环境
+            let simQueue = JSON.parse(JSON.stringify(ctb.actionQueue));
+            
+            const predictions = [];
+            
+            for (let i = 0; i < count; i++) {
+                if (simQueue.length === 0) break;
+                
+                // 获取下一个行动 (JS中shift()从数组头部取出)
+                const nextAction = simQueue.shift();
+                predictions.push(nextAction);
+                
+                // 安排该角色的下一次行动
+                const character = ctb.characters.find(c => c.id === nextAction.characterId);
+                if (character && character.isActive) {
+                    const interval = Math.ceil(ctb.baseFactor / character.speed);
+                    const nextTriggerTime = nextAction.triggerTime + (interval * 24);
+                    
+                    simQueue.push({
+                        id: -1, // 模拟行动ID
+                        characterId: character.id,
+                        characterName: character.name,
+                        triggerTime: nextTriggerTime,
+                        actionType: 'attack'
+                    });
+                    
+                    // 保持模拟队列排序
+                    simQueue.sort((a, b) => a.triggerTime - b.triggerTime);
+                }
+            }
+            
+            return predictions;
+        }
+
         // CTB系统控制函数
         function initializeCTB() {
             gameState.ctbManager.characters = [...testCharacters];
@@ -433,8 +510,14 @@
             // 生成初始行动队列
             gameState.ctbManager.characters.forEach(char => {
                 if (char.isActive) {
-                    const interval = Math.ceil(gameState.ctbManager.baseFactor / char.speed);
-                    const triggerTime = gameState.timeManager.totalHours + (interval * 24);
+                    const baseFactor = gameState.ctbManager.baseFactor;
+                    const intervalDays = Math.ceil(baseFactor / char.speed);
+                    const intervalHours = intervalDays * 24;
+
+                    // 首次行动时间在 (0, intervalHours] 区间内随机分布
+                    // 这避免了所有角色在同一天同步其行动周期
+                    const initialDelayHours = Math.floor(Math.random() * intervalHours) + 1;
+                    const triggerTime = gameState.timeManager.totalHours + initialDelayHours;
                     
                     gameState.ctbManager.actionQueue.push({
                         id: gameState.ctbManager.nextActionId++,
@@ -537,7 +620,7 @@
             }
         }
 
-        function resetCTB() {
+        function resetCTB(silent = false) {
             gameState.ctbManager = {
                 isInitialized: false,
                 baseFactor: 100,
@@ -548,7 +631,13 @@
             };
             
             document.getElementById('factorInput').value = "100";
-            addActionLog("CTB系统已重置");
+            if (!silent) {
+                addActionLog("CTB系统已重置");
+            }
+            // Clear stress test results on reset
+            const resultDiv = document.getElementById('stressTestResult');
+            if (resultDiv) resultDiv.textContent = "";
+
             updateAllDisplays();
         }
 
@@ -600,6 +689,91 @@
             gameState.timeManager.currentMonth = months + 1;
             gameState.timeManager.currentDay = days + 1;
             gameState.timeManager.currentHour = hours;
+        }
+
+        function runStressTest() {
+            addActionLog("🔥 开始压力测试初始化...");
+            
+            if (!confirm("您确定要初始化10,000个角色吗？这可能会导致浏览器页面卡顿或无响应。")) {
+                addActionLog("压力测试已取消。");
+                return;
+            }
+
+            const resultDiv = document.getElementById('stressTestResult');
+            resultDiv.textContent = "初始化中...";
+
+            setTimeout(() => {
+                try {
+                    // 1. 重置系统状态
+                    resetCTB(true);
+
+                    // 2. 设置参数
+                    const characterCount = 10000;
+                    const averageIntervalDays = 90;
+                    const baseFactor = gameState.ctbManager.baseFactor;
+                    const targetSpeed = baseFactor / averageIntervalDays;
+
+                    const newCharacters = [];
+                    let totalActionsPerDay = 0;
+
+                    // 3. 生成角色并计算理论平均值
+                    for (let i = 0; i < characterCount; i++) {
+                        const randomFactor = 0.5 + Math.random();
+                        const finalSpeed = Math.max(0.1, targetSpeed * randomFactor);
+                        
+                        newCharacters.push({
+                            id: Date.now() + i,
+                            name: `角色${i + 1}`,
+                            faction: "压测",
+                            speed: parseFloat(finalSpeed.toFixed(2)),
+                            isActive: true
+                        });
+
+                        const intervalDays = Math.ceil(baseFactor / finalSpeed);
+                        if (intervalDays > 0) {
+                            totalActionsPerDay += 1 / intervalDays;
+                        }
+                    }
+                    gameState.ctbManager.characters = newCharacters;
+
+                    // 4. 安排首次行动
+                    gameState.ctbManager.characters.forEach(char => {
+                        const intervalDays = Math.ceil(baseFactor / char.speed);
+                        const intervalHours = intervalDays * 24;
+
+                        // 首次行动时间在 (0, intervalHours] 区间内随机分布
+                        const initialDelayHours = Math.floor(Math.random() * intervalHours) + 1;
+                        const triggerTime = gameState.timeManager.totalHours + initialDelayHours;
+                        
+                        gameState.ctbManager.actionQueue.push({
+                            id: gameState.ctbManager.nextActionId++,
+                            characterId: char.id,
+                            characterName: char.name,
+                            triggerTime: triggerTime,
+                            actionType: 'attack'
+                        });
+                    });
+
+                    // 5. 排序行动队列
+                    gameState.ctbManager.actionQueue.sort((a, b) => a.triggerTime - b.triggerTime);
+
+                    gameState.ctbManager.isInitialized = true;
+
+                    // 6. 显示理论计算结果
+                    const resultText = `--- 压力测试结果 ---\n角色数量: ${characterCount}\n目标行动间隔: ${averageIntervalDays} 天\n理论平均每日行动: ${totalActionsPerDay.toFixed(2)} 人`;
+                    resultDiv.textContent = resultText;
+                    
+                    addActionLog(`✅ 压力测试初始化完成，已生成 ${characterCount} 个角色。`);
+                    
+                    // 7. 更新所有显示
+                    updateAllDisplays();
+
+                } catch (e) {
+                    console.error("压力测试初始化出错:", e);
+                    resultDiv.textContent = "初始化失败，请查看控制台。";
+                    addActionLog("❌ 压力测试初始化失败。");
+                }
+            }, 50);
         }
 
         // 页面加载时初始化显示
