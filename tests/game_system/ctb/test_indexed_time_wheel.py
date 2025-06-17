@@ -329,5 +329,68 @@ class TestIndexedTimeWheelConcurrency(unittest.TestCase):
 
         self.assertEqual(len(exceptions), 0, f"Caught exceptions in threads: {exceptions}")
 
+class TestIndexedTimeWheelFeatures(unittest.TestCase):
+    """Test new features like removal and far-future event scheduling."""
+    def setUp(self):
+        self.tw = IndexedTimeWheel(100) # Wheel with size 100
+
+    def test_remove_scheduled_event_from_wheel(self):
+        """Test removing an event that is currently in the wheel."""
+        self.tw.schedule_with_delay("key1", "event1", 10)
+        self.assertIn("key1", self.tw)
+
+        removed = self.tw.remove("key1")
+        self.assertTrue(removed)
+        self.assertNotIn("key1", self.tw)
+        self.assertIsNone(self.tw.pop_due_event())
+
+    def test_remove_scheduled_event_from_future_heap(self):
+        """Test removing an event that is in the future heap."""
+        self.tw.schedule_with_delay("key2", "event2", 200) # delay > size
+        self.assertIn("key2", self.tw) # __contains__ should check both
+
+        removed = self.tw.remove("key2")
+        self.assertTrue(removed)
+        self.assertNotIn("key2", self.tw)
+
+    def test_remove_nonexistent_event(self):
+        """Test that removing a non-existent key returns False."""
+        removed = self.tw.remove("nonexistent")
+        self.assertFalse(removed)
+
+    def test_schedule_far_future_event(self):
+        """Test that events with long delays go to the future heap."""
+        self.tw.schedule_with_delay("future_event", "data", 150) # delay > size
+        self.assertIn("future_event", self.tw.index)
+        self.assertEqual(len(self.tw.future_events), 1)
+
+        # Verify it's not in the upcoming events from the wheel itself
+        upcoming = self.tw.peek_upcoming_events(count=100)
+        self.assertEqual(len(upcoming), 0)
+
+    def test_tick_moves_future_event_to_wheel(self):
+        """Test that ticking the wheel correctly moves an event from the future heap."""
+        # This event will go to the future heap.
+        self.tw.schedule_with_delay("future_event", "data", 110)
+
+        # This event is on the wheel and will force the clock to advance.
+        self.tw.schedule_with_delay("dummy_event", "dummy_data", 10)
+
+        # Advance time until the dummy event.
+        ticks_advanced = self.tw.advance_to_next_event()
+        self.assertEqual(ticks_advanced, 10)
+
+        # Pop the dummy event
+        event = self.tw.pop_due_event()
+        self.assertEqual(event[0], "dummy_event")
+
+        # Now, the future_event (at hour 110) should have been moved into the wheel.
+        self.assertEqual(len(self.tw.future_events), 0)
+
+        # It should be the next event in the queue.
+        upcoming = self.tw.peek_upcoming_events(count=1)
+        self.assertEqual(len(upcoming), 1)
+        self.assertEqual(upcoming[0][0], "future_event")
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

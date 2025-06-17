@@ -156,14 +156,13 @@ class IndexedTimeWheel(Generic[T]):
             return node_to_pop.key, node_to_pop.value
 
     def _tick(self):
-        """(私有) 将时间向前推进一个单位，并处理到期的远期事件。"""
-        assert self._is_current_slot_empty(), "Cannot advance time: current time slot is not empty."
-
+        """推进时间轮一小时，并移动接近的远期事件到主轮。"""
         self.total_ticks += 1
         self.offset = self.total_ticks % self.buffer_size
 
-        # 检查并处理所有在当前时间点到期的远期事件
-        while self.future_events and self.future_events.peek()[0] == self.total_ticks:
+        # 检查是否有远期事件需要移动到主轮
+        # We must check all events in the heap, not just the top one.
+        while self.future_events and self.future_events.peek()[0] <= self.total_ticks:
             absolute_hour, seq, node = self.future_events.pop()
 
             if node.deleted:
@@ -176,8 +175,17 @@ class IndexedTimeWheel(Generic[T]):
 
         assert not self.future_events or self.future_events.peek()[0] > self.total_ticks
 
-    def tick_till_next_event(self) -> int:
-        """推进时间直到下一个有事件的槽位。"""
+    def advance_to_next_event(self) -> int:
+        """
+        [核心逻辑] 推进时间直到下一个有事件的槽位。
+        这是游戏循环的主要驱动方法。
+
+        Raises:
+            RuntimeError: 如果遍历一整圈后仍未找到任何事件。
+
+        Returns:
+            int: 时间推进的小时数。
+        """
         with self._lock:
             ticks = 0
             # 最多检查 buffer_size 次，防止无限循环
@@ -187,11 +195,14 @@ class IndexedTimeWheel(Generic[T]):
                     return ticks
                 self._tick()
                 ticks += 1
-            # TODO: 时间推进，数据已改变，通知UI重新渲染
-            return ticks
+
+            # TODO: 这种情况可能意味着所有剩余的事件都在远期事件堆中，
+            # 且它们的触发时间超出了当前时间轮的一整圈。
+            # 未来的版本需要更完善的逻辑来处理这种情况, 但目前，这被视为一个异常状态。
+            raise RuntimeError("advance_to_next_event completed a full cycle without finding any event in the wheel.")
 
     def remove(self, key: Any) -> Optional[T]:
-        """通过键以 O(1) 时间复杂度移除一个已安排的事件。"""
+        """从时间轮或远期事件堆中移除一个事件。"""
         with self._lock:
             if key not in self.index:
                 return None
@@ -230,7 +241,20 @@ class IndexedTimeWheel(Generic[T]):
             return node_to_remove.value
 
     def peek_upcoming_events(self, count: int, max_events: Optional[int] = None) -> List[Tuple[Any, T]]:
-        """预览即将发生在主时间轮内的事件 (不包括远期事件)。"""
+        """
+        [仅供UI渲染使用] 预览接下来`count`个小时内即将发生的事件。
+
+        重要提示: 此方法为UI显示或调试而设计, 不应用于核心游戏循环逻辑。
+        它可能会为了UI的便利而返回不精确或不完整的事件数据。
+        游戏循环应使用 advance_to_next_event() 和 pop_due_event()。
+
+        Args:
+            count: 要预览的小时数。
+            max_events: 最多返回的事件数量。
+
+        Returns:
+            一个元组列表，每个元组包含(key, value)。
+        """
         with self._lock:
             events = []
             for i in range(count):
