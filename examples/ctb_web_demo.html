@@ -230,10 +230,11 @@
 
         /* 行动顺序预测竖条样式 */
         .action-order-bar {
+            position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 300px;
+            min-height: 500px; /* 加长预测栏 */
             padding: 10px 0;
             gap: 8px;
             background: linear-gradient(180deg, rgba(52, 152, 219, 0.1) 0%, rgba(52, 152, 219, 0.05) 100%);
@@ -242,25 +243,27 @@
         }
 
         .action-order-avatar {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
+            position: absolute;
+            width: 120px;
+            height: 40px;
+            border-radius: 6px;
             background: linear-gradient(135deg, #ecf0f1 0%, #bdc3c7 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: 14px;
             font-weight: bold;
             color: #2c3e50;
-            border: 3px solid #3498db;
-            transition: all 0.3s ease;
+            border: 2px solid #3498db;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
-            position: relative;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            left: 50%;
+            transform: translateX(-50%);
         }
 
         .action-order-avatar:hover {
-            transform: scale(1.1);
+            transform: translateX(-50%) scale(1.05);
             box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
         }
 
@@ -277,6 +280,45 @@
             box-shadow: 0 0 12px rgba(39, 174, 96, 0.6);
             background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
             color: white;
+        }
+
+        /* 引力坐标动画系统 */
+        .action-order-avatar.gravity-moving {
+            transition: top 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* 分层动画：前排快后排慢 */
+        .action-order-avatar.gravity-fast {
+            transition: top 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .action-order-avatar.gravity-medium {
+            transition: top 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .action-order-avatar.gravity-slow {
+            transition: top 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* 移动动画 */
+        .action-order-avatar.moving {
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 瞬移动画 */
+        .action-order-avatar.teleporting {
+            transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        /* 上浮动画 */
+        .action-order-avatar.float-up {
+            transition: top 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 消失动画 */
+        .action-order-avatar.fade-out {
+            transition: opacity 0.3s ease-out;
+            opacity: 0;
         }
 
         .action-order-avatar .faction-badge {
@@ -317,6 +359,84 @@
             0% { transform: scale(1); }
             50% { transform: scale(1.05); }
             100% { transform: scale(1); }
+        }
+
+        /* 技能预测动画效果 */
+        @keyframes float-up {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+            100% { transform: translateY(0); }
+        }
+
+        @keyframes float-down {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(8px); }
+            100% { transform: translateY(0); }
+        }
+
+        @keyframes breathing {
+            0% {
+                box-shadow: 0 0 12px rgba(231, 76, 60, 0.6);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(231, 76, 60, 0.8);
+                transform: scale(1.05);
+            }
+            100% {
+                box-shadow: 0 0 12px rgba(231, 76, 60, 0.6);
+                transform: scale(1);
+            }
+        }
+
+        @keyframes fade-in-out {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+
+        @keyframes skill-applied {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 12px rgba(231, 76, 60, 0.6);
+            }
+            25% {
+                transform: scale(1.2);
+                box-shadow: 0 0 25px rgba(231, 76, 60, 0.9);
+            }
+            50% {
+                transform: scale(1.1);
+                box-shadow: 0 0 20px rgba(231, 76, 60, 0.8);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 12px rgba(231, 76, 60, 0.6);
+            }
+        }
+
+        /* 延后角色样式 */
+        .action-order-avatar.delayed {
+            animation: breathing 2s infinite, float-up 3s ease-in-out infinite;
+            border-color: #e74c3c !important;
+            box-shadow: 0 0 12px rgba(231, 76, 60, 0.6) !important;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%) !important;
+            color: white !important;
+        }
+
+        /* 预测模式下的其他角色轻微下沉 */
+        .action-order-avatar.prediction-mode {
+            animation: float-down 3s ease-in-out infinite;
+            opacity: 0.8;
+        }
+
+        /* 预测提示动画 */
+        .prediction-hint {
+            animation: fade-in-out 2s ease-in-out infinite;
+        }
+
+        /* 技能应用成功动画 */
+        .action-order-avatar.skill-applied {
+            animation: skill-applied 1s ease-in-out;
         }
 
         /* 阵营颜色映射 */
@@ -411,6 +531,24 @@
                         <button class="btn" onclick="showPredictionDemo()">🔮 预测演示</button>
                         <button class="btn" onclick="runMediumTest()">⚡ 100人测试</button>
                         <button class="btn warning" onclick="runStressTest()">🚀 初始化 (压测模式)</button>
+                        <button class="btn" onclick="testGravityAnimation()">🎯 测试引力动画</button>
+                    </div>
+
+                    <div class="control-group">
+                        <h4>⚡ 技能系统</h4>
+                        <div class="input-group">
+                            <label>目标角色:</label>
+                            <select id="skillTargetSelect" style="flex: 1; padding: 8px 12px; border: 2px solid #bdc3c7; border-radius: 4px; font-size: 14px;">
+                                <option value="">选择角色...</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>延后小时:</label>
+                            <input type="number" id="delayHoursInput" value="5" min="1" max="100" style="flex: 1;">
+                        </div>
+                        <button class="btn" onclick="predictSkillEffect()">🔮 预测效果</button>
+                        <button class="btn success" onclick="applySkillEffect()">✨ 应用技能</button>
+                        <button class="btn warning" onclick="clearPrediction()">🔄 清除预测</button>
                     </div>
 
                     <div class="control-group">
@@ -463,6 +601,7 @@
             updatePredictionBar();
             updateActionOrderBar();
             updateSystemStatus();
+            updateSkillTargetSelect();
         }
 
         // 更新时间显示
@@ -568,70 +707,125 @@
 
             // 使用预测顺序或当前顺序
             const order = predictedOrder || ctb.actionQueue;
-            bar.innerHTML = '';
 
-            // 显示前8个行动
-            order.slice(0, 8).forEach((action, index) => {
-                const character = ctb.characters.find(c => c.id === action.characterId);
-                if (!character) return;
+            // 检查是否需要重新创建DOM元素
+            const existingAvatars = bar.querySelectorAll('.action-order-avatar');
+            const needRecreate = existingAvatars.length === 0 ||
+                                existingAvatars.length !== Math.min(order.length, 8) ||
+                                // 检查角色ID是否发生变化
+                                Array.from(existingAvatars).some((avatar, index) => {
+                                    if (index >= order.length) return true;
+                                    const character = gameState.ctbManager.characters.find(c => c.id === order[index].characterId);
+                                    return character && avatar.dataset.characterId != character.id;
+                                });
 
-                const timeUntil = action.triggerTime - gameState.timeManager.totalHours;
-                const days = Math.floor(timeUntil / 24);
-                const hours = Math.floor(timeUntil % 24);
+            if (needRecreate) {
+                // 重新创建DOM元素
+                bar.innerHTML = '';
 
-                const avatarDiv = document.createElement('div');
-                avatarDiv.className = 'action-order-avatar';
+                // 显示前8个行动
+                order.slice(0, 8).forEach((action, index) => {
+                    const character = gameState.ctbManager.characters.find(c => c.id === action.characterId);
+                    if (!character) return;
 
-                // 添加阵营样式或自定义颜色
-                if (character.customColor) {
-                    // 使用自定义颜色
-                    avatarDiv.style.background = `linear-gradient(135deg, ${character.customColor} 0%, ${darkenColor(character.customColor, 0.2)} 100%)`;
-                    avatarDiv.style.color = 'white';
-                } else {
-                    // 使用阵营样式
-                    const factionClass = getFactionClass(character.faction);
-                    if (factionClass) {
-                        avatarDiv.classList.add(factionClass);
+                    const avatarDiv = document.createElement('div');
+                    avatarDiv.className = 'action-order-avatar';
+                    avatarDiv.dataset.characterId = character.id;
+                    avatarDiv.dataset.index = index;
+
+                    // 设置初始位置
+                    const avatarHeight = 48; // 40px + 8px gap
+                    avatarDiv.style.top = `${index * avatarHeight}px`;
+
+                    // 添加阵营样式或自定义颜色
+                    if (character.customColor) {
+                        // 使用自定义颜色
+                        avatarDiv.style.background = `linear-gradient(135deg, ${character.customColor} 0%, ${darkenColor(character.customColor, 0.2)} 100%)`;
+                        avatarDiv.style.color = 'white';
+                    } else {
+                        // 使用阵营样式
+                        const factionClass = getFactionClass(character.faction);
+                        if (factionClass) {
+                            avatarDiv.classList.add(factionClass);
+                        }
                     }
-                }
 
-                // 当前行动高亮
-                if (index === 0) {
-                    avatarDiv.classList.add('active');
-                }
+                    // 当前行动高亮
+                    if (index === 0) {
+                        avatarDiv.classList.add('active');
+                    }
 
-                // 预测状态
-                if (predictedOrder && index < 3) {
-                    avatarDiv.classList.add('predicted');
-                }
+                    // 头像内容（显示全名）
+                    avatarDiv.textContent = character.name;
 
-                // 头像内容（使用名字首字母）
-                avatarDiv.textContent = character.name[0];
+                    // 阵营徽章
+                    const badgeDiv = document.createElement('div');
+                    badgeDiv.className = 'faction-badge';
+                    badgeDiv.textContent = character.faction[0];
+                    badgeDiv.style.backgroundColor = character.customColor || getFactionColor(character.faction);
+                    avatarDiv.appendChild(badgeDiv);
 
-                // 阵营徽章
-                const badgeDiv = document.createElement('div');
-                badgeDiv.className = 'faction-badge';
-                badgeDiv.textContent = character.faction[0];
-                badgeDiv.style.backgroundColor = character.customColor || getFactionColor(character.faction);
-                avatarDiv.appendChild(badgeDiv);
+                    // 时间信息
+                    const timeDiv = document.createElement('div');
+                    timeDiv.className = 'time-info';
+                    const timeUntil = action.triggerTime - gameState.timeManager.totalHours;
+                    const days = Math.floor(timeUntil / 24);
+                    const hours = Math.floor(timeUntil % 24);
+                    if (days > 0) {
+                        timeDiv.textContent = `${days}天${hours}时`;
+                    } else {
+                        timeDiv.textContent = `${hours}时`;
+                    }
+                    avatarDiv.appendChild(timeDiv);
 
-                // 时间信息
-                const timeDiv = document.createElement('div');
-                timeDiv.className = 'time-info';
-                if (days > 0) {
-                    timeDiv.textContent = `${days}天${hours}时`;
-                } else {
-                    timeDiv.textContent = `${hours}时`;
-                }
-                avatarDiv.appendChild(timeDiv);
+                    // 点击事件（可以扩展为技能选择等）
+                    avatarDiv.onclick = function() {
+                        showCharacterDetails(character, action);
+                    };
 
-                // 点击事件（可以扩展为技能选择等）
-                avatarDiv.onclick = function() {
-                    showCharacterDetails(character, action);
-                };
+                    bar.appendChild(avatarDiv);
+                });
+            } else {
+                // 只更新现有元素的内容和位置，不重新创建
+                const avatars = bar.querySelectorAll('.action-order-avatar');
+                order.slice(0, 8).forEach((action, index) => {
+                    if (index < avatars.length) {
+                        const avatar = avatars[index];
+                        const character = gameState.ctbManager.characters.find(c => c.id === action.characterId);
+                        if (character) {
+                            // 更新文本内容
+                            avatar.textContent = character.name;
+                            avatar.dataset.characterId = character.id;
 
-                bar.appendChild(avatarDiv);
-            });
+                            avatar.dataset.index = index;
+
+                            // 更新时间信息
+                            const timeDiv = avatar.querySelector('.time-info');
+                            if (timeDiv) {
+                                const timeUntil = action.triggerTime - gameState.timeManager.totalHours;
+                                const days = Math.floor(timeUntil / 24);
+                                const hours = Math.floor(timeUntil % 24);
+                                if (days > 0) {
+                                    timeDiv.textContent = `${days}天${hours}时`;
+                                } else {
+                                    timeDiv.textContent = `${hours}时`;
+                                }
+                            }
+
+                            // 更新阵营徽章
+                            const badgeDiv = avatar.querySelector('.faction-badge');
+                            if (badgeDiv) {
+                                badgeDiv.style.backgroundColor = character.customColor || getFactionColor(character.faction);
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 如果是预测模式，执行队列插队动画
+            if (predictedOrder && currentPrediction) {
+                executeQueueAnimation(predictedOrder, currentPrediction);
+            }
 
             // 如果行动数量超过8个，显示更多提示
             if (order.length > 8) {
@@ -643,6 +837,85 @@
                 moreDiv.textContent = `还有 ${order.length - 8} 个行动...`;
                 bar.appendChild(moreDiv);
             }
+
+            // 如果是预测模式，显示预测提示
+            if (predictedOrder && currentPrediction) {
+                const predictionDiv = document.createElement('div');
+                predictionDiv.className = 'prediction-hint';
+                predictionDiv.style.textAlign = 'center';
+                predictionDiv.style.color = '#27ae60';
+                predictionDiv.style.fontSize = '12px';
+                predictionDiv.style.marginTop = '10px';
+                predictionDiv.style.fontWeight = 'bold';
+                predictionDiv.textContent = `🔮 预测模式：${currentPrediction.characterName} 延后 ${currentPrediction.delayHours} 小时`;
+                bar.appendChild(predictionDiv);
+            }
+        }
+
+        // 执行队列插队动画
+        function executeQueueAnimation(predictedOrder, prediction) {
+            const bar = document.getElementById('actionOrderBar');
+            const avatars = bar.querySelectorAll('.action-order-avatar');
+            const avatarHeight = 48;
+
+            // 找到目标角色在原始队列和新队列中的位置
+            const originalOrder = gameState.ctbManager.actionQueue.slice(0, 8);
+            const targetCharacterId = prediction.characterId;
+
+            const oldIndex = originalOrder.findIndex(action => action.characterId == targetCharacterId);
+            const newIndex = predictedOrder.findIndex(action => action.characterId == targetCharacterId);
+
+            if (oldIndex === -1 || newIndex === -1) return;
+
+            // 清除所有引力目标
+            gravityTargets.clear();
+
+            // 设置所有角色的引力目标坐标
+            avatars.forEach(avatar => {
+                const avatarIndex = parseInt(avatar.dataset.index);
+                const characterId = avatar.dataset.characterId;
+
+                if (characterId == targetCharacterId) {
+                    // 目标角色瞬移（不使用引力坐标）
+                    setTimeout(() => {
+                        avatar.style.transition = 'none'; // 瞬移
+                        avatar.style.top = `${newIndex * avatarHeight}px`;
+                        avatar.dataset.index = newIndex;
+
+                        // 添加延后标识
+                        avatar.style.borderColor = '#e74c3c';
+                        avatar.style.boxShadow = '0 0 12px rgba(231, 76, 60, 0.6)';
+                        avatar.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+                        avatar.style.color = 'white';
+
+                        // 恢复过渡动画
+                        setTimeout(() => {
+                            avatar.style.transition = '';
+                        }, 50);
+                    }, 200);
+                } else {
+                    // 其他角色使用引力坐标移动
+                    let targetIndex = avatarIndex;
+                    if (oldIndex < newIndex) {
+                        // 向后移动：被跨过的角色向前补位
+                        if (avatarIndex > oldIndex && avatarIndex <= newIndex) {
+                            targetIndex = avatarIndex - 1;
+                        }
+                    } else {
+                        // 向前移动：被跨过的角色向后让位
+                        if (avatarIndex >= newIndex && avatarIndex < oldIndex) {
+                            targetIndex = avatarIndex + 1;
+                        }
+                    }
+
+                    if (targetIndex !== avatarIndex) {
+                        setGravityTarget(characterId, targetIndex);
+                    }
+                }
+            });
+
+            // 立即应用引力动画
+            applyGravityAnimation();
         }
 
         // 获取阵营CSS类名
@@ -809,6 +1082,44 @@
                 return;
             }
 
+            // 使用引力坐标系统执行动画
+            const bar = document.getElementById('actionOrderBar');
+            const avatars = bar.querySelectorAll('.action-order-avatar');
+            const avatarHeight = 48;
+
+            if (avatars.length > 0) {
+                // 清除所有引力目标
+                gravityTargets.clear();
+
+                // 第一个头像使用引力坐标移动到最底部（消失效果）
+                const firstAvatar = avatars[0];
+                const firstCharacterId = firstAvatar.dataset.characterId;
+                setGravityTarget(firstCharacterId, -1); // 移动到-1位置（底部外）
+
+                // 其他头像使用引力坐标上浮
+                for (let i = 1; i < avatars.length; i++) {
+                    const avatar = avatars[i];
+                    const characterId = avatar.dataset.characterId;
+                    const newIndex = i - 1;
+
+                    // 设置引力目标
+                    setGravityTarget(characterId, newIndex);
+                }
+
+                // 应用引力动画
+                applyGravityAnimation();
+
+                // 动画完成后执行实际逻辑
+                setTimeout(() => {
+                    executeNextActionLogic();
+                }, 600); // 等待动画完成
+            } else {
+                executeNextActionLogic();
+            }
+        }
+
+        // 实际的执行逻辑
+        function executeNextActionLogic() {
             const action = gameState.ctbManager.actionQueue.shift();
             if (!action) {
                 addActionLog("没有待执行的行动");
@@ -853,7 +1164,10 @@
                 gameState.ctbManager.actionQueue.sort((a, b) => a.triggerTime - b.triggerTime);
             }
 
-            updateAllDisplays();
+            // 延迟更新显示，让引力动画完成
+            setTimeout(() => {
+                updateAllDisplays();
+            }, 100);
         }
 
         function skipToNext() {
@@ -1020,7 +1334,7 @@
                     // 3. 生成随机名字和颜色
                     const surnames = ['张', '李', '王', '赵', '陈', '刘', '杨', '黄', '周', '吴', '徐', '孙', '胡', '朱', '高', '林', '何', '郭', '马', '罗', '梁', '宋', '郑', '谢', '韩', '唐', '冯', '于', '董', '萧', '程', '曹', '袁', '邓', '许', '傅', '沈', '曾', '彭', '吕', '苏', '卢', '蒋', '蔡', '贾', '丁', '魏', '薛', '叶', '阎', '余', '潘', '杜', '戴', '夏', '钟', '汪', '田', '任', '姜', '范', '方', '石', '姚', '谭', '廖', '邹', '熊', '金', '陆', '郝', '孔', '白', '崔', '康', '毛', '邱', '秦', '江', '史', '顾', '侯', '邵', '孟', '龙', '万', '段', '雷', '钱', '汤', '尹', '黎', '易', '常', '武', '乔', '贺', '赖', '龚', '文'];
                     const givenNames = ['伟', '芳', '娜', '秀英', '敏', '静', '丽', '强', '磊', '军', '洋', '勇', '艳', '杰', '娟', '涛', '明', '超', '秀兰', '霞', '平', '刚', '桂英', '建华', '建国', '建军', '建平', '建华', '建明', '建强', '建伟', '建勇', '建杰', '建波', '建涛', '建斌', '建辉', '建峰', '建林', '建东', '建南', '建西', '建北', '建中', '建和', '建安', '建康', '建文', '建武', '建德', '建仁', '建义', '建礼', '建智', '建信', '建忠', '建孝', '建节', '建廉', '建耻', '建勇', '建刚', '建强', '建伟', '建杰', '建波', '建涛', '建斌', '建辉', '建峰', '建林', '建东', '建南', '建西', '建北', '建中', '建和', '建安', '建康', '建文', '建武', '建德', '建仁', '建义', '建礼', '建智', '建信', '建忠', '建孝', '建节', '建廉', '建耻'];
-                    const factions = ['蜀国', '魏国', '吴国', '齐国', '楚国', '燕国', '韩国', '赵国', '秦国', '晋国', '宋国', '卫国', '郑国', '鲁国', '越国', '中山国', '滕国', '薛国', '莒国', '邾国', '郯国', '小邾国', '鄫国', '鄅国', '鄫国', '鄅国', '鄫国', '鄅国', '鄫国', '鄅国'];
+                    const factions = ['蜀国', '魏国', '吴国', '齐国', '楚国', '燕国', '韩国', '赵国', '秦国', '晋国', '宋国', '卫国', '郑国', '鲁国', '越国', '中山国', '滕国', '薛国', '莒国', '邾国', '郯国', '小邾国', '鄫国', '鄅国', '鄫国', '鄅国', '鄅国', '鄅国', '鄅国', '鄅国'];
 
                     // 预生成随机颜色池
                     const colorPool = [
@@ -1126,7 +1440,7 @@
                     // 3. 生成随机名字和颜色
                     const surnames = ['张', '李', '王', '赵', '陈', '刘', '杨', '黄', '周', '吴', '徐', '孙', '胡', '朱', '高', '林', '何', '郭', '马', '罗', '梁', '宋', '郑', '谢', '韩', '唐', '冯', '于', '董', '萧', '程', '曹', '袁', '邓', '许', '傅', '沈', '曾', '彭', '吕', '苏', '卢', '蒋', '蔡', '贾', '丁', '魏', '薛', '叶', '阎', '余', '潘', '杜', '戴', '夏', '钟', '汪', '田', '任', '姜', '范', '方', '石', '姚', '谭', '廖', '邹', '熊', '金', '陆', '郝', '孔', '白', '崔', '康', '毛', '邱', '秦', '江', '史', '顾', '侯', '邵', '孟', '龙', '万', '段', '雷', '钱', '汤', '尹', '黎', '易', '常', '武', '乔', '贺', '赖', '龚', '文'];
                     const givenNames = ['伟', '芳', '娜', '秀英', '敏', '静', '丽', '强', '磊', '军', '洋', '勇', '艳', '杰', '娟', '涛', '明', '超', '秀兰', '霞', '平', '刚', '桂英', '建华', '建国', '建军', '建平', '建华', '建明', '建强', '建伟', '建勇', '建杰', '建波', '建涛', '建斌', '建辉', '建峰', '建林', '建东', '建南', '建西', '建北', '建中', '建和', '建安', '建康', '建文', '建武', '建德', '建仁', '建义', '建礼', '建智', '建信', '建忠', '建孝', '建节', '建廉', '建耻', '建勇', '建刚', '建强', '建伟', '建杰', '建波', '建涛', '建斌', '建辉', '建峰', '建林', '建东', '建南', '建西', '建北', '建中', '建和', '建安', '建康', '建文', '建武', '建德', '建仁', '建义', '建礼', '建智', '建信', '建忠', '建孝', '建节', '建廉', '建耻'];
-                    const factions = ['蜀国', '魏国', '吴国', '齐国', '楚国', '燕国', '韩国', '赵国', '秦国', '晋国', '宋国', '卫国', '郑国', '鲁国', '越国', '中山国', '滕国', '薛国', '莒国', '邾国', '郯国', '小邾国', '鄫国', '鄅国', '鄫国', '鄅国', '鄫国', '鄅国', '鄫国', '鄅国'];
+                    const factions = ['蜀国', '魏国', '吴国', '齐国', '楚国', '燕国', '韩国', '赵国', '秦国', '晋国', '宋国', '卫国', '郑国', '鲁国', '越国', '中山国', '滕国', '薛国', '莒国', '邾国', '郯国', '小邾国', '鄫国', '鄅国', '鄫国', '鄅国', '鄅国', '鄅国', '鄅国', '鄅国'];
 
                     // 预生成随机颜色池
                     const colorPool = [
@@ -1217,6 +1531,369 @@
             updateAllDisplays();
             addActionLog("系统启动完成，请点击'初始化CTB'开始");
         });
+
+        // 技能系统相关变量
+        let currentPrediction = null;
+        let apiServerUrl = 'http://localhost:8001';
+
+        // 引力坐标系统
+        let gravityTargets = new Map(); // 存储每个角色的引力目标坐标
+        let animationQueue = []; // 动画队列，支持连续操作
+        let isAnimating = false; // 是否正在执行动画
+
+        // 设置引力目标坐标
+        function setGravityTarget(characterId, targetIndex) {
+            const avatarHeight = 48;
+            let targetY;
+
+            if (targetIndex === -1) {
+                // -1表示移动到底部外（消失效果）
+                targetY = 400; // 移动到足够远的位置
+            } else {
+                targetY = targetIndex * avatarHeight;
+            }
+
+            gravityTargets.set(characterId, targetY);
+        }
+
+        // 清除引力目标坐标
+        function clearGravityTarget(characterId) {
+            gravityTargets.delete(characterId);
+        }
+
+        // 应用引力坐标动画
+        function applyGravityAnimation() {
+            if (isAnimating) {
+                // 如果正在动画，加入队列
+                animationQueue.push(() => applyGravityAnimation());
+                return;
+            }
+
+            isAnimating = true;
+            const bar = document.getElementById('actionOrderBar');
+            const avatars = bar.querySelectorAll('.action-order-avatar');
+            let animationsInProgress = 0;
+
+            avatars.forEach((avatar, index) => {
+                const characterId = avatar.dataset.characterId;
+                const targetY = gravityTargets.get(characterId);
+
+                if (targetY !== undefined) {
+                    const currentY = parseInt(avatar.style.top) || (index * 48);
+
+                    if (Math.abs(targetY - currentY) > 1) { // 有移动距离
+                        animationsInProgress++;
+
+                        // 根据位置设置不同的动画速度（前排快后排慢）
+                        let speedClass = 'gravity-medium';
+                        if (index < 3) {
+                            speedClass = 'gravity-fast';
+                        } else if (index > 5) {
+                            speedClass = 'gravity-slow';
+                        }
+
+                        avatar.classList.add(speedClass);
+                        avatar.style.top = `${targetY}px`;
+
+                        // 动画完成后清理
+                        setTimeout(() => {
+                            avatar.classList.remove(speedClass);
+                            animationsInProgress--;
+
+                            if (animationsInProgress === 0) {
+                                isAnimating = false;
+                                // 处理队列中的下一个动画
+                                if (animationQueue.length > 0) {
+                                    const nextAnimation = animationQueue.shift();
+                                    nextAnimation();
+                                }
+                            }
+                        }, index < 3 ? 400 : index > 5 ? 800 : 600);
+                    } else {
+                        // 没有移动距离，直接清除目标
+                        clearGravityTarget(characterId);
+                    }
+                }
+            });
+
+            // 如果没有动画需要执行
+            if (animationsInProgress === 0) {
+                isAnimating = false;
+                if (animationQueue.length > 0) {
+                    const nextAnimation = animationQueue.shift();
+                    nextAnimation();
+                }
+            }
+        }
+
+        // 更新角色选择器
+        function updateSkillTargetSelect() {
+            const select = document.getElementById('skillTargetSelect');
+            const ctb = gameState.ctbManager;
+
+            // 清空现有选项
+            select.innerHTML = '<option value="">选择角色...</option>';
+
+            if (!ctb.isInitialized || ctb.actionQueue.length === 0) {
+                return;
+            }
+
+            // 按行动顺序排序角色
+            const sortedCharacters = [];
+            ctb.actionQueue.forEach(action => {
+                const character = ctb.characters.find(c => c.id === action.characterId);
+                if (character && !sortedCharacters.find(c => c.id === character.id)) {
+                    const timeUntil = action.triggerTime - gameState.timeManager.totalHours;
+                    const days = Math.floor(timeUntil / 24);
+                    const hours = Math.floor(timeUntil % 24);
+                    const timeText = days > 0 ? `${days}天${hours}时后` : `${hours}时后`;
+
+                    sortedCharacters.push({
+                        ...character,
+                        timeText: timeText,
+                        triggerTime: action.triggerTime
+                    });
+                }
+            });
+
+            // 添加角色选项（按行动顺序）
+            sortedCharacters.forEach(char => {
+                const option = document.createElement('option');
+                option.value = char.id;
+                option.textContent = `${char.name} (${char.faction}) - ${char.timeText}`;
+                select.appendChild(option);
+            });
+        }
+
+        // 预测技能效果
+        function predictSkillEffect() {
+            const characterId = document.getElementById('skillTargetSelect').value;
+            const delayHours = parseInt(document.getElementById('delayHoursInput').value);
+
+            if (!characterId) {
+                alert('请选择目标角色');
+                return;
+            }
+
+            if (delayHours <= 0) {
+                alert('延后小时数必须大于0');
+                return;
+            }
+
+            const character = gameState.ctbManager.characters.find(c => c.id == characterId);
+            if (!character) {
+                alert('角色不存在');
+                return;
+            }
+
+            // 模拟预测效果（实际应该调用API）
+            try {
+                // 创建预测数据
+                const predictedActions = simulateSkillPrediction(characterId, delayHours);
+                currentPrediction = {
+                    characterId: characterId,
+                    characterName: character.name,
+                    delayHours: delayHours,
+                    predictedActions: predictedActions
+                };
+
+                // 更新显示（不重新创建DOM）
+                updateActionOrderBar(predictedActions);
+                addActionLog(`🔮 预测技能效果：${character.name} 延后 ${delayHours} 小时`);
+
+            } catch (error) {
+                console.error('预测失败:', error);
+                alert('预测失败，请查看控制台');
+            }
+        }
+
+        // 模拟技能预测（实际项目中应该调用API）
+        function simulateSkillPrediction(characterId, delayHours) {
+            const ctb = gameState.ctbManager;
+            const currentQueue = [...ctb.actionQueue];
+
+            // 找到目标角色的行动
+            const targetAction = currentQueue.find(action => action.characterId == characterId);
+            if (!targetAction) {
+                return currentQueue;
+            }
+
+            // 创建新的预测队列
+            const predictedQueue = currentQueue.map(action => {
+                if (action.characterId == characterId) {
+                    return {
+                        ...action,
+                        triggerTime: action.triggerTime + delayHours,
+                        isDelayed: true
+                    };
+                }
+                return action;
+            });
+
+            // 重新排序
+            predictedQueue.sort((a, b) => a.triggerTime - b.triggerTime);
+
+            return predictedQueue;
+        }
+
+        // 应用技能效果
+        function applySkillEffect() {
+            if (!currentPrediction) {
+                alert('请先预测技能效果');
+                return;
+            }
+
+            const { characterId, characterName, delayHours } = currentPrediction;
+
+            // 模拟应用技能效果（实际应该调用API）
+            try {
+                // 更新真实队列
+                const ctb = gameState.ctbManager;
+                const targetAction = ctb.actionQueue.find(action => action.characterId == characterId);
+
+                if (targetAction) {
+                    targetAction.triggerTime += delayHours;
+                    // 重新排序
+                    ctb.actionQueue.sort((a, b) => a.triggerTime - b.triggerTime);
+
+                    addActionLog(`✨ 技能已应用：${characterName} 延后 ${delayHours} 小时`);
+
+                    // 添加技能应用成功动画
+                    const avatars = document.querySelectorAll('.action-order-avatar');
+                    avatars.forEach(avatar => {
+                        if (avatar.textContent.includes(characterName[0])) {
+                            avatar.classList.add('skill-applied');
+                            // 1秒后移除动画类
+                            setTimeout(() => {
+                                avatar.classList.remove('skill-applied');
+                            }, 1000);
+                        }
+                    });
+
+                    // 清除预测状态
+                    clearPrediction();
+
+                    // 更新显示
+                    updateAllDisplays();
+                }
+
+            } catch (error) {
+                console.error('应用技能失败:', error);
+                alert('应用技能失败，请查看控制台');
+            }
+        }
+
+        // 清除预测
+        function clearPrediction() {
+            currentPrediction = null;
+
+            // 清除所有引力目标
+            gravityTargets.clear();
+
+            // 清除所有动画相关的CSS类并重置位置
+            const avatars = document.querySelectorAll('.action-order-avatar');
+            avatars.forEach(avatar => {
+                avatar.classList.remove('delayed', 'prediction-mode', 'predicted', 'moving', 'teleporting', 'float-up', 'fade-out', 'gravity-moving', 'gravity-fast', 'gravity-medium', 'gravity-slow');
+                // 重置样式
+                avatar.style.borderColor = '';
+                avatar.style.boxShadow = '';
+                avatar.style.background = '';
+                avatar.style.color = '';
+                avatar.style.opacity = '';
+                avatar.style.transition = '';
+                avatar.style.top = '';
+            });
+
+            updateActionOrderBar(); // 使用真实数据更新
+            addActionLog('🔄 已清除预测效果');
+        }
+
+        // 测试引力坐标动画
+        function testGravityAnimation() {
+            if (!gameState.ctbManager.isInitialized) {
+                addActionLog("请先初始化CTB系统");
+                return;
+            }
+
+            const bar = document.getElementById('actionOrderBar');
+            const avatars = bar.querySelectorAll('.action-order-avatar');
+
+            if (avatars.length === 0) {
+                addActionLog("没有角色可以测试");
+                return;
+            }
+
+            // 强制停止所有正在进行的动画
+            isAnimating = false;
+            animationQueue.length = 0;
+            gravityTargets.clear();
+
+            // 立即重置所有角色位置到原始状态
+            avatars.forEach((avatar, index) => {
+                avatar.style.transition = 'none';
+                avatar.style.top = `${index * 48}px`;
+                avatar.classList.remove('gravity-fast', 'gravity-medium', 'gravity-slow');
+                setTimeout(() => {
+                    avatar.style.transition = '';
+                }, 50);
+            });
+
+            // 生成随机顺序
+            const avatarCount = Math.min(avatars.length, 8);
+            const randomOrder = [];
+            for (let i = 0; i < avatarCount; i++) {
+                randomOrder.push(i);
+            }
+
+            // Fisher-Yates 洗牌算法
+            for (let i = randomOrder.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [randomOrder[i], randomOrder[j]] = [randomOrder[j], randomOrder[i]];
+            }
+
+            addActionLog(`🎯 测试引力动画：随机生成顺序 [${randomOrder.join(', ')}]`);
+
+            // 延迟设置引力目标，确保重置完成
+            setTimeout(() => {
+                // 为每个角色设置引力目标
+                avatars.forEach((avatar, index) => {
+                    if (index < avatarCount) {
+                        const characterId = avatar.dataset.characterId;
+                        const targetIndex = randomOrder[index];
+
+                        // 设置引力目标
+                        setGravityTarget(characterId, targetIndex);
+                    }
+                });
+
+                // 应用引力动画
+                applyGravityAnimation();
+            }, 100);
+
+            // 3秒后恢复原始顺序
+            setTimeout(() => {
+                // 强制停止所有动画
+                isAnimating = false;
+                animationQueue.length = 0;
+                gravityTargets.clear();
+
+                // 立即重置到原始位置
+                avatars.forEach((avatar, index) => {
+                    if (index < avatarCount) {
+                        avatar.style.transition = 'none';
+                        avatar.style.top = `${index * 48}px`;
+                        avatar.classList.remove('gravity-fast', 'gravity-medium', 'gravity-slow');
+                        setTimeout(() => {
+                            avatar.style.transition = '';
+                        }, 50);
+                    }
+                });
+
+                addActionLog("🎯 引力动画测试完成，恢复原始顺序");
+            }, 3000);
+        }
+
+        // 预测演示功能
     </script>
 </body>
 </html>

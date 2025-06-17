@@ -20,6 +20,7 @@ Buffer设计说明:
 from typing import TypeVar, Generic, List, Optional, Dict, Any, Callable, Tuple
 from collections import defaultdict
 from threading import Lock
+import copy
 
 
 T = TypeVar('T')  # 泛型类型参数
@@ -234,3 +235,76 @@ class IndexedTimeWheel(Generic[T]):
         """返回已安排的事件总数。"""
         with self._lock:
             return len(self.index)
+
+    # TODO confirm the copy&delete is not effecting the original list
+    def deepcopy(self) -> 'IndexedTimeWheel[T]':
+        """创建当前时间轮的深拷贝，用于技能效果预测。"""
+        with self._lock:
+            new_wheel = IndexedTimeWheel[T](self.buffer_size)
+            new_wheel.offset = self.offset
+            new_wheel.total_ticks = self.total_ticks
+
+            # 深拷贝slots
+            for i, slot in enumerate(self.slots):
+                new_wheel.slots[i] = [copy.deepcopy(node) for node in slot]
+
+            # 深拷贝future_events
+            new_wheel.future_events = [(hour, copy.deepcopy(node)) for hour, node in self.future_events]
+
+            # 重建index
+            new_wheel.index = {}
+            for slot in new_wheel.slots:
+                for node in slot:
+                    new_wheel.index[node.key] = node
+            for _, node in new_wheel.future_events:
+                new_wheel.index[node.key] = node
+
+            return new_wheel
+
+    def delay_key(self, key: Any, delay_hours: int) -> bool:
+        """
+        延后指定key的事件N小时。只能在拷贝的时间轮上使用。
+
+        Args:
+            key: 要延后的事件key
+            delay_hours: 延后的小时数（必须为正数）
+
+        Returns:
+            bool: 是否成功延后
+        """
+        with self._lock:
+            if key not in self.index:
+                return False
+            if delay_hours <= 0:
+                return False
+
+            node = self.index[key]
+            old_absolute_hour = node.absolute_hour
+            new_absolute_hour = old_absolute_hour + delay_hours
+
+            # 从原位置移除
+            if node.slot_index == -1:
+                # 在future_events中
+                for i, (hour, future_node) in enumerate(self.future_events):
+                    if future_node.key == key:
+                        self.future_events.pop(i)
+                        break
+            else:
+                # 在时间轮中
+                self.slots[node.slot_index] = [n for n in self.slots[node.slot_index] if n.key != key]
+
+            # 重新调度到新位置
+            node.absolute_hour = new_absolute_hour
+            delay = new_absolute_hour - self.total_ticks
+
+            if delay >= self.buffer_size:
+                # 重新放入future_events
+                node.slot_index = -1
+                self._insert_future_event(new_absolute_hour, node)
+            else:
+                # 重新放入时间轮
+                target_index = (self.offset + delay) % self.buffer_size
+                node.slot_index = target_index
+                self._schedule(node, target_index)
+
+            return True

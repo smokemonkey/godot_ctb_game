@@ -477,3 +477,80 @@ class CTBManager:
                 # 否则，返回剩余的小时数
                 return f"{delay}小时后"
         return "无"
+
+    def predict_action_order(self, delay_character_id: str = None, delay_hours: int = 0) -> List[Dict[str, Any]]:
+        """
+        预测行动顺序，支持模拟技能效果
+
+        Args:
+            delay_character_id: 要延后的角色ID，None表示不延后
+            delay_hours: 延后的小时数
+
+        Returns:
+            List[Dict[str, Any]]: 预测的行动顺序列表
+        """
+        # 创建时间轮的深拷贝用于预测
+        prediction_wheel = self.time_wheel.deepcopy()
+
+        # 如果指定了延后角色，应用延后效果
+        if delay_character_id and delay_hours > 0:
+            if not prediction_wheel.delay_key(delay_character_id, delay_hours):
+                # 延后失败，返回原始顺序
+                pass
+
+        # 收集预测的行动顺序
+        predicted_actions = []
+        max_actions = 20  # 最多预测20个行动
+
+        # 从当前时间轮槽位收集
+        for i in range(self.TIME_WHEEL_SIZE):
+            index = (prediction_wheel.offset + i) % self.TIME_WHEEL_SIZE
+            slot_events = prediction_wheel.slots[index]
+
+            for event_node in slot_events:
+                if isinstance(event_node.value, Character):
+                    predicted_actions.append({
+                        'character_id': event_node.key,
+                        'character_name': event_node.value.name,
+                        'faction': event_node.value.faction,
+                        'absolute_hour': event_node.absolute_hour,
+                        'relative_hour': i,  # 相对于当前时间的小时数
+                        'is_delayed': delay_character_id == event_node.key and delay_hours > 0
+                    })
+
+                    if len(predicted_actions) >= max_actions:
+                        return predicted_actions
+
+        # 如果轮内事件不够，从future_events补充
+        if len(predicted_actions) < max_actions:
+            for absolute_hour, event_node in prediction_wheel.future_events:
+                if isinstance(event_node.value, Character):
+                    relative_hour = absolute_hour - prediction_wheel.total_ticks
+                    predicted_actions.append({
+                        'character_id': event_node.key,
+                        'character_name': event_node.value.name,
+                        'faction': event_node.value.faction,
+                        'absolute_hour': absolute_hour,
+                        'relative_hour': relative_hour,
+                        'is_delayed': delay_character_id == event_node.key and delay_hours > 0
+                    })
+
+                    if len(predicted_actions) >= max_actions:
+                        break
+
+        # 按绝对时间排序
+        predicted_actions.sort(key=lambda x: x['absolute_hour'])
+        return predicted_actions
+
+    def apply_delay_skill(self, character_id: str, delay_hours: int) -> bool:
+        """
+        应用延后技能效果到真实时间轮
+
+        Args:
+            character_id: 要延后的角色ID
+            delay_hours: 延后的小时数
+
+        Returns:
+            bool: 是否成功应用
+        """
+        return self.time_wheel.delay_key(character_id, delay_hours)
