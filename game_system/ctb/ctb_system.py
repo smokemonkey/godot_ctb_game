@@ -14,8 +14,6 @@ Buffer设计:
 - 时间轮的当前槽位作为"当前回合的行动buffer"
 - 所有当前槽位的事件立即执行，无需额外维护执行列表
 - 执行完当前槽位所有事件后，时间才会推进
-
-最后更新: 2024-12-17 - 采用buffer设计思路
 """
 
 from typing import List, Optional, Dict, Any, Callable
@@ -24,10 +22,10 @@ import random
 from dataclasses import dataclass
 
 # 导入时间系统
-from game_system.game_time import TimeManager, TimeUnit
+from ..game_time.time_system import TimeManager, TimeUnit, Calendar
 
 # 导入时间轮
-from .time_wheel import IndexedTimeWheel
+from .indexed_time_wheel import IndexedTimeWheel
 
 
 class EventType(Enum):
@@ -145,7 +143,7 @@ class CTBManager:
     # 时间轮大小：180天 * 24小时
     TIME_WHEEL_SIZE = 180 * 24
 
-    def __init__(self, time_manager: TimeManager):
+    def __init__(self, time_manager: TimeManager, time_wheel_size: int = TIME_WHEEL_SIZE):
         """
         初始化CTB管理器
 
@@ -153,6 +151,8 @@ class CTBManager:
             time_manager: 游戏时间管理器
         """
         self.time_manager = time_manager
+        self.calendar = Calendar(self.time_manager)
+        self.TIME_WHEEL_SIZE = time_wheel_size
         self.time_wheel = IndexedTimeWheel[Event](
             self.TIME_WHEEL_SIZE
         )
@@ -233,7 +233,7 @@ class CTBManager:
 
                 # 添加到时间轮
                 delay = next_time - current_time
-                self.time_wheel.schedule(character.id, character, delay)
+                self.time_wheel.schedule_with_delay(character.id, character, delay)
 
         self.is_initialized = True
 
@@ -254,10 +254,10 @@ class CTBManager:
 
         delay = trigger_time - current_time
         try:
-            self.time_wheel.schedule(event.id, event, delay)
+            self.time_wheel.schedule_with_delay(event.id, event, delay)
             return True
-        except ValueError:
-            # 键冲突
+        except (ValueError, AssertionError):
+            # 例如，如果事件ID已经存在
             return False
 
     def execute_next_action(self) -> List[Event]:
@@ -273,30 +273,37 @@ class CTBManager:
         ticks_advanced = self.time_wheel.tick_till_next_event()
 
         # 如果tick_till_next_event跑完一整圈都没找到事件，说明没有事件了
-        if ticks_advanced >= self.time_wheel.time_wheel.size and self.time_wheel.pop_due_event() is None:
+        if ticks_advanced >= self.time_wheel.buffer_size and self.time_wheel.pop_due_event() is None:
             return []
 
-        self.time_manager.advance_time(hours=ticks_advanced)
+        # 2. 与游戏时间同步
+        if ticks_advanced > 0:
+            self.time_manager.advance_time(ticks_advanced, TimeUnit.HOUR)
 
-        # 2. 执行当前时间点的所有事件
+        # 3. 获取并执行当前时间槽的所有事件
         processed_events: List[Event] = []
         while True:
             event_tuple = self.time_wheel.pop_due_event()
-            if event_tuple:
-                _key, event = event_tuple
-                self._execute_event(event)
-                processed_events.append(event)
-            else:
-                # 当pop_due_event返回None时，表示当前时间点的所有事件都已处理完毕
+            if event_tuple is None:
                 break
 
-        # 3. (已移除) 不再需要手动调用tick()。
-        # 下一次调用tick_till_next_event时，它会自动从当前（已清空）的槽位开始推进。
-        # 为了保持时间同步，在处理完一个时间点的所有事件后，将时间推进一格
+            _key, event = event_tuple
+            processed_events.append(event)
+
+            # 如果事件是角色行动，重新调度
+            if isinstance(event, Character):
+                character = event
+                if character.is_active:
+                    current_time = self.time_manager._total_hours
+                    next_time = character.calculate_next_action_time(current_time)
+                    character.trigger_time = next_time
+                    delay = next_time - current_time
+                    assert delay >= 0, "Character action scheduling must have non-negative delay"
+                    self.time_wheel.schedule_with_delay(character.id, character, delay)
+
+        # 4. 如果处理了事件，推进时间 (一个象征性的tick，防止无限循环)
         if processed_events:
-            self.time_manager.advance_time(hours=1)
-            # The tick() on the time_wheel itself is now handled by the next
-            # call to tick_till_next_event().
+            self.time_manager.advance_time(1, TimeUnit.HOUR)
 
         return processed_events
 
@@ -314,11 +321,11 @@ class CTBManager:
         if event.event_type == EventType.CHARACTER_ACTION and isinstance(event, Character):
             character = event
             if character.is_active:
-                current_time = self.time_manager.get_current_time_hours()
+                current_time = self.time_manager._total_hours
                 next_time = character.calculate_next_action_time(current_time)
                 character.trigger_time = next_time
                 delay = next_time - current_time
-                self.time_wheel.schedule(character.id, character, delay)
+                self.time_wheel.schedule_with_delay(character.id, character, delay)
 
     def _record_action(self, event: Event) -> None:
         """
@@ -358,11 +365,11 @@ class CTBManager:
         # 如果角色被重新激活，需要手动为他安排下一次行动
         # 否则他会等到自然触发的execute才被重新调度
         elif active and character_id not in self.time_wheel:
-             current_time = self.time_manager.get_current_time_hours()
-             next_time = character.calculate_next_action_time(current_time)
-             character.trigger_time = next_time
-             delay = next_time - current_time
-             self.time_wheel.schedule(character.id, character, delay)
+            current_time = self.time_manager._total_hours
+            next_time = character.calculate_next_action_time(current_time)
+            character.trigger_time = next_time
+            delay = next_time - current_time
+            self.time_wheel.schedule_with_delay(character.id, character, delay)
 
         return True
 
@@ -383,17 +390,18 @@ class CTBManager:
         )
 
         action_list = []
-        current_time = self.time_manager.get_current_time_hours()
+        current_time = self.time_manager._total_hours
 
-        for _key, event in events_tuples:
-            time_until = event.trigger_time - current_time
-            action_list.append({
-                "id": event.id,
-                "name": event.name,
-                "type": event.event_type.name,
-                "time_until": time_until,
-                "trigger_time": self.time_manager.get_formatted_time(event.trigger_time)
-            })
+        for key, event in events_tuples:
+            if isinstance(event, Character):
+                remaining_time = event.trigger_time - current_time
+                action_list.append({
+                    "id": event.id,
+                    "name": event.name,
+                    "type": event.event_type.name,
+                    "time_until": remaining_time,
+                    "trigger_time": event.trigger_time
+                })
 
         return action_list
 
@@ -404,7 +412,7 @@ class CTBManager:
 
         status_lines = [
             "=== CTB系统状态 ===",
-            f"  时间轮大小: {self.time_wheel.time_wheel.size} 小时",
+            f"  时间轮大小: {self.time_wheel.time_wheel.buffer_size} 小时",
             f"  当前偏移: {self.time_wheel.time_wheel.offset}",
             f"  事件总数: {len(self.time_wheel)}",
             f"  角色数量: {len(self.characters)}",
@@ -412,10 +420,10 @@ class CTBManager:
         ]
 
         # 使用 peek_upcoming_events 安全地获取下一个事件
-        next_events = self.time_wheel.peek_upcoming_events(count=self.time_wheel.time_wheel.size, max_events=1)
+        next_events = self.time_wheel.peek_upcoming_events(count=self.time_wheel.time_wheel.buffer_size, max_events=1)
         if next_events:
             _key, next_event = next_events[0]
-            current_time = self.time_manager.get_current_time_hours()
+            current_time = self.time_manager._total_hours
             delay = next_event.trigger_time - current_time
             if delay <= 0:
                 status_lines.append(f"  下个行动: 立即执行 ({next_event.name})")
@@ -453,3 +461,19 @@ class CTBManager:
             info_list.append(info)
 
         return info_list
+
+    def get_next_action_time_info(self) -> str:
+        """获取下一个行动的时间信息"""
+        # 使用 peek_upcoming_events 安全地获取下一个事件
+        next_events = self.time_wheel.peek_upcoming_events(count=self.time_wheel.time_wheel.buffer_size, max_events=1)
+        if next_events:
+            _key, next_event = next_events[0]
+            current_time = self.time_manager._total_hours
+            delay = next_event.trigger_time - current_time
+            if delay <= 0:
+                # 如果有事件已经到期（或即将到期），返回格式化的时间
+                return self.calendar.format_date_era()
+            else:
+                # 否则，返回剩余的小时数
+                return f"{delay}小时后"
+        return "无"

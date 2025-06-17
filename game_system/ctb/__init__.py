@@ -40,26 +40,20 @@ __author__ = "CTB Development Team"
 
 # 导入核心组件
 from .ctb_system import (
-    EventType,
-    Event,
     Character,
-    CTBManager
+    CTBManager,
+    Event,
+    EventType,
 )
-
-from .time_wheel import (
-    TimeWheel,
-    IndexedTimeWheel
+from .indexed_time_wheel import (
+    IndexedTimeWheel,
 )
 
 # 公开接口
 __all__ = [
-    # 时间轮
-    'TimeWheel',
-    'IndexedTimeWheel',
-
-    # CTB系统
-    'EventType',
-    'Event',
     'Character',
     'CTBManager',
+    'Event',
+    'EventType',
+    'IndexedTimeWheel',
 ]
