@@ -270,9 +270,9 @@ class CTBManager:
             List[Event]: 在当前时间点执行的所有事件的列表。如果没有更多事件，则返回空列表。
         """
         # 1. 推进时间轮和游戏时间到下一个有事件的时间点
-        ticks_advanced = self.time_wheel.tick_till_next_event()
+        ticks_advanced = self.time_wheel.advance_to_next_event()
 
-        # 如果tick_till_next_event跑完一整圈都没找到事件，说明没有事件了
+        # 如果advance_to_next_event跑完一整圈都没找到事件，说明没有事件了
         if ticks_advanced >= self.time_wheel.buffer_size and self.time_wheel.pop_due_event() is None:
             return []
 

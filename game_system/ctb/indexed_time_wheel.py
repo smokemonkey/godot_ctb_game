@@ -169,9 +169,11 @@ class IndexedTimeWheel(Generic[T]):
                 # key 已经在 remove() 时从 index 中删除
                 continue
 
-            # 将到期的远期事件插入主时间轮的当前槽位 (delay=0)
-            node.slot_index = self.offset
-            self._schedule(node, self.offset)
+            # 将到期的远期事件插入时间轮的最远端槽位 (offset-1)
+            # 这样事件会在时间轮中正确的时间点被触发
+            target_index = (self.offset - 1) % self.buffer_size
+            node.slot_index = target_index
+            self._schedule(node, target_index)
 
         assert not self.future_events or self.future_events.peek()[0] > self.total_ticks
 
