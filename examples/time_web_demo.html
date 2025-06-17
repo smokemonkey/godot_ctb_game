@@ -2,719 +2,205 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <title>时间系统演示</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日历系统演示 - 春秋时代时间管理</title>
-    <!-- 
-    时间系统Web演示界面
-    
-    功能特性:
-    - 现代化UI: 蓝色渐变主题，三栏响应式布局
-    - 时间推进: 天数/小时推进，快速推进按钮
-    - 锚定功能: 指定纪元元年对应的公元年份
-    - 改元功能: 将当前年份设为新纪元元年
-    - 实时状态: 锚定状态显示，操作日志记录
-    
-    核心逻辑:
-    - TimeManager类: 模拟后端时间管理逻辑
-    - 纯锚定系统: 只使用锚定机制，不再维护纪元节点列表
-    - 改元=锚定当前年: changeEra()调用anchor_era(name, currentYear)
-    
-    最后更新: 2025-06-12 - 简化改元功能，删除冗余控件
-    -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+    <script src="/config.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
         body {
-            font-family: 'Microsoft YaHei', 'Simhei', Arial, sans-serif;
-            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #2d3436 0%, #636e72 100%);
-            color: white;
-            padding: 20px;
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
             text-align: center;
         }
-
-        .header h1 {
-            font-size: 2em;
+        .container {
+            padding: 40px;
+            background-color: #1e1e1e;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid #333;
+        }
+        #time-display {
+            margin-bottom: 30px;
+        }
+        #date-display {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+        }
+        #era-display {
+            font-size: 1.5em;
+            color: #4CAF50;
             margin-bottom: 10px;
         }
-
-        .content {
-            display: grid;
-            grid-template-columns: 1fr 1fr 350px;
-            gap: 20px;
-            padding: 20px;
-            min-height: 600px;
-        }
-
-        .panel {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 15px;
-            border-left: 4px solid #74b9ff;
-        }
-
-        .panel h3 {
-            color: #2d3436;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-            border-bottom: 2px solid #ecf0f1;
-            padding-bottom: 8px;
-        }
-
-        .info-text, .scrollable-log {
-            font-family: 'Courier New', monospace;
-            background: #2d3436;
-            color: #ddd;
-            padding: 15px;
-            border-radius: 8px;
-            white-space: pre-line;
-            font-size: 13px;
-            line-height: 1.4;
-            overflow-y: auto;
-        }
-
-        .info-text {
-            max-height: 250px;
-        }
-
-        .scrollable-log {
-            max-height: 400px;
-        }
-
         .controls {
             display: flex;
-            flex-direction: column;
-            gap: 15px;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
         }
-
         .control-group {
-            background: #ecf0f1;
-            padding: 15px;
-            border-radius: 8px;
-        }
-
-        .control-group h4 {
-            color: #2d3436;
-            margin-bottom: 10px;
-            font-size: 1em;
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
-            color: white;
-            border: none;
-            padding: 12px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            margin: 5px 0;
-            width: 100%;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(116, 185, 255, 0.4);
-        }
-
-        .btn.success {
-            background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
-        }
-
-        .btn.warning {
-            background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);
-        }
-
-        .btn.danger {
-            background: linear-gradient(135deg, #fd79a8 0%, #e84393 100%);
-        }
-
-        .btn.small {
-            padding: 8px 12px;
-            font-size: 12px;
-            width: auto;
-            margin: 2px;
-        }
-
-        .input-group {
             display: flex;
+            flex-direction: column;
             gap: 10px;
-            align-items: center;
-            margin: 10px 0;
+            padding: 20px;
+            background: #2a2a2a;
+            border-radius: 10px;
         }
-
-        .input-group label {
-            color: #2d3436;
-            font-weight: bold;
-            min-width: 60px;
-            font-size: 12px;
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.2s ease;
+            background-color: #4CAF50;
+            color: white;
         }
-
-        .input-group input {
-            flex: 1;
-            padding: 8px 12px;
-            border: 2px solid #bdc3c7;
-            border-radius: 4px;
-            font-size: 12px;
+        .btn:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
-
-        .input-group input:focus {
-            outline: none;
-            border-color: #74b9ff;
-        }
-
-        .quick-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 5px;
-            margin: 10px 0;
-        }
-
-        .current-time {
-            font-size: 16px;
-            font-weight: bold;
-            color: #74b9ff;
-            margin-bottom: 10px;
-            text-align: center;
-            padding: 10px;
-            background: rgba(116, 185, 255, 0.1);
-            border-radius: 8px;
-        }
-
-        @media (max-width: 1200px) {
-            .content {
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
-        }
+        .btn.danger { background-color: #f44336; }
+        .btn.danger:hover { background-color: #e53935; }
+        .btn.info { background-color: #2196F3; }
+        .btn.info:hover { background-color: #1e88e5; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>🗓️ 日历系统演示</h1>
-            <p>春秋时代时间管理系统 - 360天历法与纪年系统</p>
+        <div id="time-display">
+            <h2 id="era-display">--</h2>
+            <h1 id="date-display">Loading...</h1>
         </div>
-
-        <div class="content">
-            <!-- 左侧面板 -->
-            <div>
-                <div class="current-time" id="currentTime">
-                    春秋1年1月1日0点
-                </div>
-
-                <div class="panel">
-                    <h3>📅 时间详情</h3>
-                    <div class="info-text" id="timeDetails">等待初始化...</div>
-                </div>
-
-                <div class="panel" style="margin-top: 20px;">
-                    <h3>🏛️ 纪年系统</h3>
-                    <div class="info-text" id="eraList">等待初始化...</div>
-                </div>
+        <div class="controls">
+            <div class="control-group">
+                <button class="btn" id="start-stop-btn">开始</button>
+                <button class="btn danger" id="reset-btn">重置</button>
             </div>
-
-            <!-- 中间面板 -->
-            <div>
-                <div class="panel">
-                    <h3>🕐 时间状态</h3>
-                    <div class="info-text" id="timeStatus">等待初始化...</div>
-                </div>
-
-                <div class="panel" style="margin-top: 20px;">
-                    <h3>📊 统计信息</h3>
-                    <div class="info-text" id="statistics">等待初始化...</div>
-                </div>
-
-                <div class="panel" style="margin-top: 20px;">
-                    <h3>📜 操作日志</h3>
-                    <div class="scrollable-log" id="operationLog">系统启动完成...</div>
-                </div>
-            </div>
-
-            <!-- 控制面板 -->
-            <div class="controls">
-                <div class="control-group">
-                    <h4>⏰ 时间推进</h4>
-                    <div class="input-group">
-                        <label>天数:</label>
-                        <input type="number" id="daysInput" value="1" min="1">
-                        <button class="btn small" onclick="advanceDays()">推进</button>
-                    </div>
-                    <div class="input-group">
-                        <label>小时:</label>
-                        <input type="number" id="hoursInput" value="1" min="1">
-                        <button class="btn small" onclick="advanceHours()">推进</button>
-                    </div>
-                    <div class="quick-buttons">
-                        <button class="btn small success" onclick="quickAdvance(1, 'day')">+1天</button>
-                        <button class="btn small success" onclick="quickAdvance(10, 'day')">+10天</button>
-                        <button class="btn small success" onclick="quickAdvance(100, 'day')">+100天</button>
-                        <button class="btn small success" onclick="quickAdvance(1, 'year')">+1年</button>
-                    </div>
-                </div>
-
-                <div class="control-group">
-                    <h4>📜 改元功能</h4>
-                    <div class="input-group">
-                        <label>纪元名:</label>
-                        <input type="text" id="changeEraName" placeholder="如: 永徽">
-                        <button class="btn small success" onclick="changeEra()">改元</button>
-                    </div>
-                    <div style="font-size: 11px; color: #636e72; margin-top: 5px;">
-                        改元会将当前年份设为新纪元元年
-                    </div>
-                </div>
-
-                <div class="control-group">
-                    <h4>⚓ 纪元锚定</h4>
-                    <div class="input-group">
-                        <label>纪元名:</label>
-                        <input type="text" id="anchorEraName" placeholder="如: 开元">
-                    </div>
-                    <div class="input-group">
-                        <label>元年公元:</label>
-                        <input type="number" id="anchorYear" placeholder="如: 713">
-                        <button class="btn small" onclick="anchorEra()">锚定</button>
-                    </div>
-                    <div style="font-size: 11px; color: #636e72; margin-top: 5px;">
-                        锚定状态: <span id="anchorStatus">无</span>
-                    </div>
-                </div>
-
-                <div class="control-group">
-                    <h4>🔄 系统控制</h4>
-                    <button class="btn danger" onclick="resetSystem()">重置系统</button>
-                    <button class="btn" onclick="exportTime()">导出时间</button>
-                    <button class="btn" onclick="testScenario()">测试场景</button>
-                </div>
-
-                <div class="control-group">
-                    <h4>📊 系统信息</h4>
-                    <div style="font-size: 12px; color: #636e72;">
-                        <div>总天数: <span id="totalDays">0</span></div>
-                        <div>总小时: <span id="totalHours">0</span></div>
-                        <div>纪年数: <span id="eraCount">1</span></div>
-                        <div>当前纪年: <span id="currentEra">春秋</span></div>
-                    </div>
-                </div>
+            <div class="control-group">
+                <button class="btn info" onclick="quickAdvance(1, 'day')">+1 天</button>
+                <button class="btn info" onclick="quickAdvance(30, 'day')">+1 月</button>
+                <button class="btn info" onclick="quickAdvance(360, 'day')">+1 年</button>
             </div>
         </div>
     </div>
-
     <script>
-        // 模拟TimeManager和Calendar类
+        // 模拟 Python 的 TimeManager 类
         class TimeManager {
-            constructor() {
-                this.currentYear = -722;
-                this.currentMonth = 1;
-                this.currentDay = 1;
-                this.currentHour = 0;
-                this._totalHours = 0;
-                this._currentAnchor = null; // [纪元名, 元年公元年份]
+            constructor(startYear) {
+                this.BASE_YEAR = startYear;
+                this.HOURS_PER_DAY = 24;
+                this.DAYS_PER_YEAR = 360;
+                this._total_hours = 0;
+                this.era_anchor = null;
             }
 
-            advanceTime(amount, unit) {
-                let hours = 0;
-                if (unit === 'hour') {
-                    hours = amount;
-                } else if (unit === 'day') {
-                    hours = amount * 24;
-                } else if (unit === 'year') {
-                    hours = amount * 360 * 24;
+            get current_year() {
+                const total_days = Math.floor(this._total_hours / this.HOURS_PER_DAY);
+                let year = this.BASE_YEAR + Math.floor(total_days / this.DAYS_PER_YEAR);
+                if (this.BASE_YEAR < 1 && year >= 0) {
+                    year += 1; // 跳过公元0年
                 }
-
-                this._totalHours += hours;
-                this.updateDateFromTotalHours();
-                return true;
+                return year;
             }
 
-
-
-            updateDateFromTotalHours() {
-                const totalDays = Math.floor(this._totalHours / 24);
-                const hours = this._totalHours % 24;
-                
-                // 从起始年-722开始计算
-                const startYear = -722;
-                const years = Math.floor(totalDays / 360);
-                const remainingDays = totalDays % 360;
-                const months = Math.floor(remainingDays / 30) + 1;
-                const days = (remainingDays % 30) + 1;
-                
-                this.currentYear = startYear + years;
-                this.currentMonth = months;
-                this.currentDay = days;
-                this.currentHour = hours;
+            get current_day_in_year() {
+                return Math.floor(this._total_hours / this.HOURS_PER_DAY) % this.DAYS_PER_YEAR + 1;
             }
 
-            // 改元功能：基于锚定的wrapper
-            startNewEra(eraName) {
-                // 改元就是将当前年份锚定为新纪元的元年
-                this.anchorEra(eraName, this.currentYear);
-            }
-            
-            // 为了兼容，保留旧名称
-            changeEra(eraName) {
-                this.startNewEra(eraName);
+            get current_month() {
+                return Math.floor((this.current_day_in_year - 1) / 30) + 1;
             }
 
-            // 新增：锚定功能
-            anchorEra(eraName, gregorianYear) {
-                const currentYear = this.currentYear;
-                if (gregorianYear > currentYear) {
-                    throw new Error(`不能锚定到未来时期：锚定年份${gregorianYear}晚于当前年份${currentYear}`);
-                }
-                this._currentAnchor = [eraName, gregorianYear];
+            get current_day_in_month() {
+                return (this.current_day_in_year - 1) % 30 + 1;
             }
 
-            getCurrentEraName() {
-                if (this._currentAnchor) {
-                    const [eraName, gregorianYear] = this._currentAnchor;
-                    const currentYear = this.currentYear;
-                    
-                    if (currentYear >= gregorianYear) {
-                        return eraName;
-                    }
-                }
-                return null;
+            get current_hour() {
+                return this._total_hours % this.HOURS_PER_DAY;
             }
 
-            getCurrentEraYear() {
-                if (this._currentAnchor) {
-                    const [eraName, gregorianYear] = this._currentAnchor;
-                    const currentYear = this.currentYear;
-                    
-                    if (currentYear >= gregorianYear) {
-                        return currentYear - gregorianYear + 1;
-                    }
-                }
-                return null;
+            advance_time(amount, unit) {
+                let hours_to_add = 0;
+                if (unit === 'day') hours_to_add = amount * this.HOURS_PER_DAY;
+                else if (unit === 'hour') hours_to_add = amount;
+                this._total_hours += hours_to_add;
             }
 
-            getTotalDays() {
-                return Math.floor(this._totalHours / 24);
-            }
-
-            getTotalHours() {
-                return this._totalHours;
-            }
-
-            reset() {
-                this.currentYear = -722;
-                this.currentMonth = 1;
-                this.currentDay = 1;
-                this.currentHour = 0;
-                this._totalHours = 0;
-                this._currentAnchor = null;
-            }
+            reset() { this._total_hours = 0; }
         }
 
-        class Calendar {
-            constructor(timeManager) {
-                this.timeManager = timeManager;
-            }
-
-            formatDateGregorian(showHour = false) {
-                const tm = this.timeManager;
-                const year = Math.abs(tm.currentYear);
-                const era = tm.currentYear < 0 ? "公元前" : "公元";
-                
-                if (showHour) {
-                    return `${era}${year}年${tm.currentMonth}月${tm.currentDay}日${tm.currentHour}点`;
-                }
-                return `${era}${year}年${tm.currentMonth}月${tm.currentDay}日`;
-            }
-
-            formatDateEra(showHour = false) {
-                const tm = this.timeManager;
-                const eraName = tm.getCurrentEraName();
-                const eraYear = tm.getCurrentEraYear();
-                
-                if (!eraName || !eraYear) {
-                    return this.formatDateGregorian(showHour);
-                }
-                
-                if (showHour) {
-                    return `${eraName}${eraYear}年${tm.currentMonth}月${tm.currentDay}日${tm.currentHour}点`;
-                }
-                return `${eraName}${eraYear}年${tm.currentMonth}月${tm.currentDay}日`;
-            }
-
-            getTimeStatusText() {
-                const tm = this.timeManager;
-                const gregorian = this.formatDateGregorian(true);
-                const era = this.formatDateEra(true);
-                const totalDays = tm.getTotalDays();
-                const totalHours = tm.getTotalHours();
-                const eraName = tm.getCurrentEraName();
-                
-                return `公历时间: ${gregorian}
-纪年时间: ${era}
-当前纪年: ${eraName || '无'}
-总计天数: ${totalDays}
-总计小时: ${totalHours}
-年内天数: ${Math.floor((tm._totalHours / 24) % 360) + 1}
-月内天数: ${tm.currentDay}`;
-            }
-        }
-
-        // 初始化系统
-        let timeManager = new TimeManager();
-        let calendar = new Calendar(timeManager);
-
-        // 更新所有显示
-        function updateAllDisplays() {
-            updateCurrentTime();
-            updateTimeDetails();
-            updateTimeStatus();
-            updateStatistics();
-            updateEraList();
-            updateSystemInfo();
-        }
-
-        // 更新当前时间显示
-        function updateCurrentTime() {
-            const eraTime = calendar.formatDateEra(true);
-            document.getElementById('currentTime').textContent = eraTime;
-        }
-
-        // 更新时间详情
-        function updateTimeDetails() {
-            const tm = timeManager;
-            const gregorian = calendar.formatDateGregorian(true);
-            const era = calendar.formatDateEra(true);
-            const eraName = tm.getCurrentEraName();
-            
-            let anchorInfo = '';
-            if (tm._currentAnchor) {
-                const [name, year] = tm._currentAnchor;
-                anchorInfo = `\n锚定信息: ${name}元年 = 公元${year}年`;
-            }
-            
-            const detailText = `公历时间: ${gregorian}
-纪年时间: ${era}
-
-年份: ${tm.currentYear}
-月份: ${tm.currentMonth}
-日期: ${tm.currentDay}
-小时: ${tm.currentHour}
-
-当前纪年: ${eraName || '无'}${anchorInfo}`;
-            
-            document.getElementById('timeDetails').textContent = detailText;
-        }
-
-        // 更新时间状态
-        function updateTimeStatus() {
-            const statusText = calendar.getTimeStatusText();
-            document.getElementById('timeStatus').textContent = statusText;
-        }
-
-        // 更新统计信息
-        function updateStatistics() {
-            const tm = timeManager;
-            const totalDays = tm.getTotalDays();
-            const totalHours = tm.getTotalHours();
-            const yearDays = Math.floor((tm._totalHours / 24) % 360) + 1;
-            const monthDays = tm.currentDay;
-            
-            const statsText = `总计统计:
-- 总天数: ${totalDays}
-- 总小时数: ${totalHours}
-- 总年数: ${Math.floor(totalDays / 360)}
-
-当前统计:
-- 年内第${yearDays}天
-- 月内第${monthDays}天
-- 日内第${tm.currentHour + 1}小时
-
-历法信息:
-- 一年360天
-- 一月30天
-- 一天24小时`;
-            
-            document.getElementById('statistics').textContent = statsText;
-        }
-
-        // 更新纪年列表
-        function updateEraList() {
-            let eraText = "=== 锚定状态 ===\n";
-            
-            if (timeManager._currentAnchor) {
-                const [eraName, gregorianYear] = timeManager._currentAnchor;
-                const eraYear = timeManager.getCurrentEraYear();
-                eraText += `>>> ${eraName} (元年=公元${gregorianYear}年)\n`;
-                eraText += `    当前: ${eraName}${eraYear}年\n`;
-            } else {
-                eraText += "    无锚定纪元\n";
-            }
-            
-            document.getElementById('eraList').textContent = eraText;
-        }
-
-        // 更新系统信息
-        function updateSystemInfo() {
-            const tm = timeManager;
-            document.getElementById('totalDays').textContent = tm.getTotalDays();
-            document.getElementById('totalHours').textContent = tm.getTotalHours();
-            document.getElementById('eraCount').textContent = tm._currentAnchor ? 1 : 0;
-            document.getElementById('currentEra').textContent = tm.getCurrentEraName() || '无';
-            
-            // 更新锚定状态
-            let anchorText = "无";
-            if (tm._currentAnchor) {
-                const [eraName, gregorianYear] = tm._currentAnchor;
-                anchorText = `${eraName}元年 = 公元${gregorianYear}年`;
-            }
-            document.getElementById('anchorStatus').textContent = anchorText;
-        }
-
-        // 添加操作日志
-        function addLog(message) {
-            const logDiv = document.getElementById('operationLog');
-            const logEntry = document.createElement('div');
-            logEntry.className = 'log-entry';
-            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-            
-            logDiv.appendChild(logEntry);
-            logDiv.scrollTop = logDiv.scrollHeight;
-            
-            // 保持最新100条记录
-            while (logDiv.children.length > 100) {
-                logDiv.removeChild(logDiv.firstChild);
-            }
-        }
-
-        // 控制函数
-        function advanceDays() {
-            const days = parseInt(document.getElementById('daysInput').value) || 1;
-            timeManager.advanceTime(days, 'day');
-            addLog(`时间推进 ${days} 天`);
-            updateAllDisplays();
-        }
-
-        function advanceHours() {
-            const hours = parseInt(document.getElementById('hoursInput').value) || 1;
-            timeManager.advanceTime(hours, 'hour');
-            addLog(`时间推进 ${hours} 小时`);
-            updateAllDisplays();
-        }
-
-        function quickAdvance(amount, unit) {
-            timeManager.advanceTime(amount, unit);
-            const unitText = unit === 'day' ? '天' : '年';
-            addLog(`快速推进 ${amount} ${unitText}`);
-            updateAllDisplays();
-        }
-
-        // 改元功能
-        function changeEra() {
-            const eraName = document.getElementById('changeEraName').value.trim();
-            
-            if (!eraName) {
-                addLog('请输入纪元名称');
-                return;
-            }
-            
-            try {
-                const currentYear = timeManager.currentYear;
-                timeManager.startNewEra(eraName);
-                addLog(`改元成功: ${eraName}元年 = 公元${currentYear}年（当前年份）`);
-                document.getElementById('changeEraName').value = '';
-                updateAllDisplays();
-            } catch (error) {
-                addLog(`改元失败: ${error.message}`);
-            }
-        }
-
-        function resetSystem() {
-            timeManager.reset();
-            addLog('系统已重置');
-            updateAllDisplays();
-        }
-
-        function exportTime() {
-            const timeData = {
-                gregorian: calendar.formatDateGregorian(true),
-                era: calendar.formatDateEra(true),
-                totalDays: timeManager.getTotalDays(),
-                totalHours: timeManager.getTotalHours(),
-                currentEra: timeManager.getCurrentEraName() || '无',
-                currentAnchor: timeManager._currentAnchor
+        document.addEventListener('DOMContentLoaded', () => {
+            const state = {
+                timeManager: new TimeManager(window.gameConfig.EPOCH_START_YEAR),
+                isRunning: false,
+                speed: 100, // ms per tick, 10 ticks per second
+                intervalId: null,
             };
-            
-            console.log('时间数据导出:', timeData);
-            addLog('时间数据已导出到控制台');
-        }
 
-        // 锚定纪元
-        function anchorEra() {
-            const eraName = document.getElementById('anchorEraName').value.trim();
-            const gregorianYear = parseInt(document.getElementById('anchorYear').value);
-            
-            if (!eraName || !gregorianYear) {
-                addLog('请输入纪元名称和元年公元年份');
-                return;
+            const dateDisplay = document.getElementById('date-display');
+            const eraDisplay = document.getElementById('era-display');
+            const startStopBtn = document.getElementById('start-stop-btn');
+            const resetBtn = document.getElementById('reset-btn');
+
+            function updateDisplay() {
+                const tm = state.timeManager;
+                const year = tm.current_year;
+                const era = year < 0 ? '公元前' : '公元';
+                const displayYear = Math.abs(year);
+
+                dateDisplay.textContent = `${era} ${displayYear}年${tm.current_month}月${tm.current_day_in_month}日 ${tm.current_hour}点`;
+                eraDisplay.textContent = "--"; // 简化，不显示年号
             }
-            
-            try {
-                timeManager.anchorEra(eraName, gregorianYear);
-                addLog(`锚定成功: ${eraName}元年 = 公元${gregorianYear}年`);
-                document.getElementById('anchorEraName').value = '';
-                document.getElementById('anchorYear').value = '';
-                updateAllDisplays();
-            } catch (error) {
-                addLog(`锚定失败: ${error.message}`);
+
+            function tick() {
+                state.timeManager.advance_time(1, 'day');
+                updateDisplay();
             }
-        }
 
-        function testScenario() {
-            // 测试场景：锚定和改元功能演示
-            addLog('开始测试场景：锚定和改元功能演示');
-            
-            // 先推进一些时间
-            timeManager.advanceTime(1000, 'year');
-            addLog('推进1000年到公元278年');
-            
-            // 测试锚定功能
-            timeManager.anchorEra('西晋', 266);
-            addLog('锚定: 西晋元年 = 公元266年');
-            
-            // 再推进一些时间
-            timeManager.advanceTime(50, 'year');
-            addLog('再推进50年');
-            
-            // 测试改元功能
-            timeManager.startNewEra('东晋');
-            addLog('改元: 东晋元年 = 当前年份');
-            
-            updateAllDisplays();
-        }
+            function start() {
+                if (state.isRunning) return;
+                state.isRunning = true;
+                startStopBtn.textContent = '停止';
+                startStopBtn.classList.add('danger');
+                state.intervalId = setInterval(tick, state.speed);
+            }
 
-        // 页面加载时初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            updateAllDisplays();
-            addLog('日历系统演示启动完成');
+            function stop() {
+                if (!state.isRunning) return;
+                state.isRunning = false;
+                startStopBtn.textContent = '开始';
+                startStopBtn.classList.remove('danger');
+                clearInterval(state.intervalId);
+            }
+
+            function reset() {
+                stop();
+                state.timeManager.reset();
+                updateDisplay();
+            }
+
+            window.quickAdvance = (amount, unit) => {
+                if (state.isRunning) stop();
+                state.timeManager.advance_time(amount, unit);
+                updateDisplay();
+            };
+
+            startStopBtn.addEventListener('click', () => state.isRunning ? stop() : start());
+            resetBtn.addEventListener('click', reset);
+
+            // Initial display
+            updateDisplay();
         });
     </script>
 </body>
-</html> 
+</html>

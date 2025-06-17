@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 游戏时间系统核心模块
 
@@ -19,6 +20,8 @@
 
 from typing import Optional, Tuple
 from enum import Enum
+
+from ..config import EPOCH_START_YEAR
 
 
 class TimeUnit(Enum):
@@ -45,9 +48,10 @@ class TimeManager:
         >>> time_manager.anchor_era("开元", 713)  # 开元元年=公元713年
     """
 
-    DAYS_PER_YEAR = 360
     HOURS_PER_DAY = 24
-    BASE_YEAR = -722  # 公元前722年，鲁隐公元年（春秋开始）
+    DAYS_PER_YEAR = 360  # 简化为12个月，每月30天
+
+    BASE_YEAR = EPOCH_START_YEAR  # 公元前722年，鲁隐公元年（春秋开始）
 
     def __init__(self):
         # 当前时间（以小时为最小单位）

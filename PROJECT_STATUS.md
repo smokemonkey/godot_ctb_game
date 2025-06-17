@@ -120,7 +120,7 @@ print(calendar.format_date_era())        # 天宝1年4月10日
 ### 游戏场景示例
 ```python
 # 游戏开始：春秋时期
-time_manager = TimeManager()  # 默认公元前722年
+time_manager = TimeManager()  # 默认公元前2000年
 
 # 推进到唐朝
 time_manager.advance_time(1435 * 360, TimeUnit.DAY)  # 推进到公元713年
@@ -174,4 +174,23 @@ docs/
 
 ✅ **项目已完成**，接口稳定，功能完整，测试覆盖全面。
 
-⚠️ **重要提醒**：现在的接口不要大改了！未来只做小幅度的功能增强。 
+⚠️ **重要提醒**：现在的接口不要大改了！未来只做小幅度的功能增强。
+
+## 新增功能
+
+### 新增方法
+- `get_events_by_key(key)`: O(k)
+- `advance(hours)`: O(hours)
+
+#### 示例
+```python
+# 假设 key_func = lambda x: x['id']
+wheel = IndexedTimeWheel(size=24*30, key_func=lambda e: e['id'])
+wheel.add({'id': 1, 'action': 'attack'}, 10)
+
+time_manager = TimeManager()  # 默认公元前2000年
+ctb = CTBManager(time_manager)
+```
+
+## 里程碑
+# ... existing code ...

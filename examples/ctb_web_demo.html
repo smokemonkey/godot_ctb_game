@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CTB系统演示 - 回合制战斗时间管理</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.3/dist/semantic.min.css">
+    <script src="/config.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -226,82 +230,84 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🏺 CTB系统演示</h1>
-            <p>基于春秋时代的回合制战斗时间管理系统</p>
-        </div>
-
-        <div class="content">
-            <!-- 左侧面板 -->
-            <div>
-                <div class="panel">
-                    <h3>📅 时间信息</h3>
-                    <div class="info-text" id="timeInfo">等待初始化...</div>
-                </div>
-
-                <div class="panel" style="margin-top: 20px;">
-                    <h3>👥 角色信息</h3>
-                    <div class="info-text" id="characterInfo">等待初始化...</div>
-                </div>
+    <div id="app" class="ui container">
+        <div class="container">
+            <div class="header">
+                <h1>🏺 CTB系统演示</h1>
+                <p>基于春秋时代的回合制战斗时间管理系统</p>
             </div>
 
-            <!-- 中间面板 -->
-            <div>
-                <div class="panel">
-                    <h3>⚔️ CTB状态</h3>
-                    <div class="info-text" id="ctbStatus">等待初始化...</div>
-                </div>
+            <div class="content">
+                <!-- 左侧面板 -->
+                <div>
+                    <div class="panel">
+                        <h3>📅 时间信息</h3>
+                        <div class="info-text" id="timeInfo">等待初始化...</div>
+                    </div>
 
-                <div class="panel" style="margin-top: 20px;">
-                    <h3>⏳ 行动队列</h3>
-                    <div class="info-text" id="actionQueue">等待初始化...</div>
-                </div>
-
-                <div class="panel" style="margin-top: 20px;">
-                    <h3>🔭 行动预测</h3>
-                    <div class="info-text" id="predictionBar">等待初始化...</div>
-                </div>
-
-                <div class="panel" style="margin-top: 20px;">
-                    <h3>📜 行动历史</h3>
-                    <div class="scrollable-log" id="actionHistory">等待行动...</div>
-                </div>
-            </div>
-
-            <!-- 控制面板 -->
-            <div class="controls">
-                <div class="control-group">
-                    <h4>⚙️ 系统控制</h4>
-                    <button class="btn success" onclick="initializeCTB()">🚀 初始化CTB</button>
-                    <button class="btn" onclick="executeNextAction()">▶️ 执行下个行动</button>
-                    <button class="btn warning" onclick="skipToNext()">⏭️ 跳转时间</button>
-                    <button class="btn danger" onclick="resetCTB()">🔄 重置系统</button>
-                </div>
-
-                <div class="control-group">
-                    <h4>🎛️ 参数调整</h4>
-                    <div class="input-group">
-                        <label>基础因子:</label>
-                        <input type="number" id="factorInput" value="100" min="1" max="1000">
-                        <button class="btn" onclick="changeBaseFactor()" style="width: auto; margin: 0;">设置</button>
+                    <div class="panel" style="margin-top: 20px;">
+                        <h3>👥 角色信息</h3>
+                        <div class="info-text" id="characterInfo">等待初始化...</div>
                     </div>
                 </div>
 
-                <div class="control-group">
-                    <h4>🎮 测试功能</h4>
-                    <button class="btn" onclick="toggleCharacterActive()">🔄 切换角色状态</button>
-                    <button class="btn" onclick="addRandomCharacter()">➕ 添加随机角色</button>
-                    <button class="btn warning" onclick="runStressTest()">🚀 初始化 (压测模式)</button>
+                <!-- 中间面板 -->
+                <div>
+                    <div class="panel">
+                        <h3>⚔️ CTB状态</h3>
+                        <div class="info-text" id="ctbStatus">等待初始化...</div>
+                    </div>
+
+                    <div class="panel" style="margin-top: 20px;">
+                        <h3>⏳ 行动队列</h3>
+                        <div class="info-text" id="actionQueue">等待初始化...</div>
+                    </div>
+
+                    <div class="panel" style="margin-top: 20px;">
+                        <h3>🔭 行动预测</h3>
+                        <div class="info-text" id="predictionBar">等待初始化...</div>
+                    </div>
+
+                    <div class="panel" style="margin-top: 20px;">
+                        <h3>📜 行动历史</h3>
+                        <div class="scrollable-log" id="actionHistory">等待行动...</div>
+                    </div>
                 </div>
 
-                <div class="control-group">
-                    <h4>📊 系统状态</h4>
-                    <div style="font-size: 12px; color: #7f8c8d;">
-                        <div>系统状态: <span id="systemStatus" style="font-weight: bold;">未初始化</span></div>
-                        <div>角色数量: <span id="characterCount">0</span></div>
-                        <div>行动总数: <span id="actionCount">0</span></div>
-                        <div id="stressTestResult" style="margin-top: 10px; white-space: pre-wrap; font-weight: bold; color: #27ae60; font-size: 13px;"></div>
+                <!-- 控制面板 -->
+                <div class="controls">
+                    <div class="control-group">
+                        <h4>⚙️ 系统控制</h4>
+                        <button class="btn success" onclick="initializeCTB()">🚀 初始化CTB</button>
+                        <button class="btn" onclick="executeNextAction()">▶️ 执行下个行动</button>
+                        <button class="btn warning" onclick="skipToNext()">⏭️ 跳转时间</button>
+                        <button class="btn danger" onclick="resetCTB()">🔄 重置系统</button>
+                    </div>
+
+                    <div class="control-group">
+                        <h4>🎛️ 参数调整</h4>
+                        <div class="input-group">
+                            <label>基础因子:</label>
+                            <input type="number" id="factorInput" value="100" min="1" max="1000">
+                            <button class="btn" onclick="changeBaseFactor()" style="width: auto; margin: 0;">设置</button>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <h4>🎮 测试功能</h4>
+                        <button class="btn" onclick="toggleCharacterActive()">🔄 切换角色状态</button>
+                        <button class="btn" onclick="addRandomCharacter()">➕ 添加随机角色</button>
+                        <button class="btn warning" onclick="runStressTest()">🚀 初始化 (压测模式)</button>
+                    </div>
+
+                    <div class="control-group">
+                        <h4>📊 系统状态</h4>
+                        <div style="font-size: 12px; color: #7f8c8d;">
+                            <div>系统状态: <span id="systemStatus" style="font-weight: bold;">未初始化</span></div>
+                            <div>角色数量: <span id="characterCount">0</span></div>
+                            <div>行动总数: <span id="actionCount">0</span></div>
+                            <div id="stressTestResult" style="margin-top: 10px; white-space: pre-wrap; font-weight: bold; color: #27ae60; font-size: 13px;"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -312,7 +318,7 @@
         // 模拟的后端数据
         let gameState = {
             timeManager: {
-                currentYear: -722,
+                currentYear: window.gameConfig.EPOCH_START_YEAR,
                 currentMonth: 1,
                 currentDay: 1,
                 currentHour: 0,
@@ -350,7 +356,7 @@
             const tm = gameState.timeManager;
             const year = Math.abs(tm.currentYear);
             const era = tm.currentYear < 0 ? "公元前" : "公元";
-            const eraYear = tm.currentYear + 722 + 1;
+            const eraYear = tm.currentYear - window.gameConfig.EPOCH_START_YEAR + 1;
 
             const timeText = `当前时间: ${era}${year}年${tm.currentMonth}月${tm.currentDay}日${tm.currentHour}点
 纪年: 春秋${eraYear}年${tm.currentMonth}月${tm.currentDay}日${tm.currentHour}点
@@ -556,7 +562,7 @@
             const tm = gameState.timeManager;
             const year = Math.abs(tm.currentYear);
             const era = tm.currentYear < 0 ? "公元前" : "公元";
-            const eraYear = tm.currentYear + 722 + 1;
+            const eraYear = tm.currentYear - window.gameConfig.EPOCH_START_YEAR + 1;
 
             const logMessage = `春秋${eraYear}年${tm.currentMonth}月${tm.currentDay}日${tm.currentHour}点 (${era}${year}年${tm.currentMonth}月${tm.currentDay}日${tm.currentHour}点) - ${action.characterName} 行动`;
             addActionLog(logMessage);
@@ -679,7 +685,7 @@
             const hours = totalHours % 24;
 
             // 简化的日期计算（360天/年，30天/月）
-            const startYear = -722;
+            const startYear = window.gameConfig.EPOCH_START_YEAR;
             const years = Math.floor(totalDays / 360);
             const remainingDays = totalDays % 360;
             const months = Math.floor(remainingDays / 30);
