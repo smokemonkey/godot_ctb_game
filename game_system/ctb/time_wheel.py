@@ -19,6 +19,7 @@ Buffer设计说明:
 
 from typing import TypeVar, Generic, List, Optional, Dict, Any, Callable, Tuple
 from collections import defaultdict
+from threading import Lock
 
 
 T = TypeVar('T')  # 泛型类型参数
@@ -136,84 +137,100 @@ class IndexedTimeWheel(Generic[T]):
     def __init__(self, size: int):
         self.time_wheel = TimeWheel[_EventNode[T]](size)
         self.index: Dict[Any, _EventNode[T]] = {}
+        self._lock = Lock()
 
     def schedule(self, key: Any, value: T, delay: int):
         """安排一个带有关联键的事件。"""
-        if key in self.index:
-            raise ValueError(f"Key '{key}' already exists in the time wheel.")
-        if delay < 0:
-            raise ValueError("Delay must be non-negative.")
+        with self._lock:
+            if key in self.index:
+                raise ValueError(f"Key '{key}' already exists in the time wheel.")
+            if delay < 0:
+                raise ValueError("Delay must be non-negative.")
 
-        scheduled_at = (self.time_wheel.offset + delay) % self.time_wheel.size
-        node = _EventNode(key, value, scheduled_at)
+            scheduled_at = (self.time_wheel.offset + delay) % self.time_wheel.size
+            node = _EventNode(key, value, scheduled_at)
 
-        self.time_wheel.schedule(node, delay)
-        self.index[key] = node
+            self.time_wheel.schedule(node, delay)
+            self.index[key] = node
+            # TODO: 数据改变后通知UI重新渲染
 
     def pop_due_event(self) -> Optional[Tuple[Any, T]]:
         """从当前时间槽中弹出一个到期的事件及其键。"""
-        due_node = self.time_wheel.pop_due_event()
-        if due_node:
-            if due_node.key in self.index:
-                 del self.index[due_node.key]
-            return due_node.key, due_node.value
-        return None
+        with self._lock:
+            due_node = self.time_wheel.pop_due_event()
+            if due_node:
+                if due_node.key in self.index:
+                     del self.index[due_node.key]
+                # TODO: 数据改变后通知UI重新渲染
+                return due_node.key, due_node.value
+            return None
 
     def tick_till_next_event(self) -> int:
         """推进时间直到下一个事件。"""
-        return self.time_wheel.tick_till_next_event()
+        with self._lock:
+            ticks = self.time_wheel.tick_till_next_event()
+            if ticks > 0:
+                # TODO: 时间推进，数据已改变，通知UI重新渲染
+                pass
+            return ticks
 
     def peek_upcoming_events(self, count: int, max_events: Optional[int] = None) -> List[Tuple[Any, T]]:
         """预览即将发生的事件。"""
-        nodes = self.time_wheel.peek_upcoming_events(count, max_events)
-        return [(node.key, node.value) for node in nodes]
+        with self._lock:
+            nodes = self.time_wheel.peek_upcoming_events(count, max_events)
+            return [(node.key, node.value) for node in nodes]
 
     def remove(self, key: Any) -> Optional[T]:
         """通过键以 O(1) 时间复杂度移除一个已安排的事件。"""
-        if key not in self.index:
-            return None
+        with self._lock:
+            if key not in self.index:
+                return None
 
-        node_to_remove = self.index[key]
+            node_to_remove = self.index[key]
 
-        # O(1) 链表移除
-        prev_node = node_to_remove.prev
-        next_node = node_to_remove.next
+            # O(1) 链表移除
+            prev_node = node_to_remove.prev
+            next_node = node_to_remove.next
 
-        if prev_node:
-            prev_node.next = next_node
-        if next_node:
-            next_node.prev = prev_node
+            if prev_node:
+                prev_node.next = next_node
+            if next_node:
+                next_node.prev = prev_node
 
-        # 更新 TimeWheel 槽位中的 head/tail 指针
-        index = node_to_remove.scheduled_at
-        head, tail = self.time_wheel.slots[index]
+            # 更新 TimeWheel 槽位中的 head/tail 指针
+            index = node_to_remove.scheduled_at
+            head, tail = self.time_wheel.slots[index]
 
-        new_head, new_tail = head, tail
+            new_head, new_tail = head, tail
 
-        if node_to_remove == head:
-            new_head = next_node
-        if node_to_remove == tail:
-            new_tail = prev_node
+            if node_to_remove == head:
+                new_head = next_node
+            if node_to_remove == tail:
+                new_tail = prev_node
 
-        self.time_wheel.slots[index] = (new_head, new_tail)
+            self.time_wheel.slots[index] = (new_head, new_tail)
 
-        del self.index[key]
+            del self.index[key]
 
-        # 清理移除节点的指针
-        node_to_remove.prev = None
-        node_to_remove.next = None
+            # 清理移除节点的指针
+            node_to_remove.prev = None
+            node_to_remove.next = None
 
-        return node_to_remove.value
+            # TODO: 数据改变后通知UI重新渲染
+            return node_to_remove.value
 
     def get(self, key: Any) -> Optional[T]:
         """通过键获取一个已安排的事件的值。"""
-        node = self.index.get(key)
-        return node.value if node else None
+        with self._lock:
+            node = self.index.get(key)
+            return node.value if node else None
 
     def __contains__(self, key: Any) -> bool:
         """检查一个键是否存在于时间轮中。"""
-        return key in self.index
+        with self._lock:
+            return key in self.index
 
     def __len__(self) -> int:
         """返回已安排的事件总数。"""
-        return len(self.index)
+        with self._lock:
+            return len(self.index)
