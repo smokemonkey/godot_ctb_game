@@ -351,12 +351,12 @@
             const year = Math.abs(tm.currentYear);
             const era = tm.currentYear < 0 ? "公元前" : "公元";
             const eraYear = tm.currentYear + 722 + 1;
-            
+
             const timeText = `当前时间: ${era}${year}年${tm.currentMonth}月${tm.currentDay}日${tm.currentHour}点
 纪年: 春秋${eraYear}年${tm.currentMonth}月${tm.currentDay}日${tm.currentHour}点
 总计小时: ${tm.totalHours}
 总计天数: ${Math.floor(tm.totalHours / 24)}`;
-            
+
             document.getElementById('timeInfo').textContent = timeText;
         }
 
@@ -368,7 +368,7 @@
 活跃角色: ${ctb.characters.filter(c => c.isActive).length}/${ctb.characters.length}
 队列长度: ${ctb.actionQueue.length}
 历史记录: ${ctb.actionHistory.length}`;
-            
+
             document.getElementById('ctbStatus').textContent = statusText;
         }
 
@@ -379,7 +379,7 @@
             const displayLimit = 20;
 
             const charactersToShow = characters.slice(0, displayLimit);
-            
+
             charactersToShow.forEach(char => {
                 const status = char.isActive ? "✓" : "✗";
                 const interval = Math.ceil(gameState.ctbManager.baseFactor / char.speed);
@@ -390,7 +390,7 @@
             if (characters.length > displayLimit) {
                 text += `\n... (仅显示前 ${displayLimit} 个角色)`;
             }
-            
+
             document.getElementById('characterInfo').textContent = text;
         }
 
@@ -398,12 +398,12 @@
         function updateActionQueue() {
             const queue = gameState.ctbManager.actionQueue;
             let text = "=== 行动队列 ===\n";
-            
+
             queue.slice(0, 8).forEach((action, index) => {
                 const timeUntil = action.triggerTime - gameState.timeManager.totalHours;
                 const days = Math.floor(timeUntil / 24);
                 const hours = Math.floor(timeUntil % 24);
-                
+
                 if (index === 0) {
                     text += `→ ${action.characterName}\n`;
                 } else {
@@ -411,7 +411,7 @@
                 }
                 text += `    ${days}天${hours}小时后\n`;
             });
-            
+
             document.getElementById('actionQueue').textContent = text;
         }
 
@@ -419,7 +419,7 @@
         function updatePredictionBar() {
             const predictions = predictFutureActions(10); // 预测未来10个行动
             let text = "=== 未来10次行动预测 ===\n";
-            
+
             if (predictions.length === 0) {
                 text = "无法预测（队列为空或未初始化）";
             } else {
@@ -427,12 +427,12 @@
                     const timeUntil = action.triggerTime - gameState.timeManager.totalHours;
                     const days = Math.floor(timeUntil / 24);
                     const hours = Math.floor(timeUntil % 24);
-                    
+
                     text += `${String(index + 1).padStart(2, ' ')}. ${action.characterName}\n`;
                     text += `     将在 ${days}天${hours}小时后行动\n`;
                 });
             }
-            
+
             document.getElementById('predictionBar').textContent = text;
         }
 
@@ -450,10 +450,10 @@
             const logEntry = document.createElement('div');
             logEntry.className = 'log-entry';
             logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-            
+
             historyDiv.appendChild(logEntry);
             historyDiv.scrollTop = historyDiv.scrollHeight;
-            
+
             // 保持最新50条记录
             while (historyDiv.children.length > 50) {
                 historyDiv.removeChild(historyDiv.firstChild);
@@ -469,22 +469,22 @@
 
             // 使用深拷贝创建模拟环境
             let simQueue = JSON.parse(JSON.stringify(ctb.actionQueue));
-            
+
             const predictions = [];
-            
+
             for (let i = 0; i < count; i++) {
                 if (simQueue.length === 0) break;
-                
+
                 // 获取下一个行动 (JS中shift()从数组头部取出)
                 const nextAction = simQueue.shift();
                 predictions.push(nextAction);
-                
+
                 // 安排该角色的下一次行动
                 const character = ctb.characters.find(c => c.id === nextAction.characterId);
                 if (character && character.isActive) {
                     const interval = Math.ceil(ctb.baseFactor / character.speed);
                     const nextTriggerTime = nextAction.triggerTime + (interval * 24);
-                    
+
                     simQueue.push({
                         id: -1, // 模拟行动ID
                         characterId: character.id,
@@ -492,12 +492,12 @@
                         triggerTime: nextTriggerTime,
                         actionType: 'attack'
                     });
-                    
+
                     // 保持模拟队列排序
                     simQueue.sort((a, b) => a.triggerTime - b.triggerTime);
                 }
             }
-            
+
             return predictions;
         }
 
@@ -506,7 +506,7 @@
             gameState.ctbManager.characters = [...testCharacters];
             gameState.ctbManager.isInitialized = true;
             gameState.ctbManager.actionQueue = [];
-            
+
             // 生成初始行动队列
             gameState.ctbManager.characters.forEach(char => {
                 if (char.isActive) {
@@ -518,7 +518,7 @@
                     // 这避免了所有角色在同一天同步其行动周期
                     const initialDelayHours = Math.floor(Math.random() * intervalHours) + 1;
                     const triggerTime = gameState.timeManager.totalHours + initialDelayHours;
-                    
+
                     gameState.ctbManager.actionQueue.push({
                         id: gameState.ctbManager.nextActionId++,
                         characterId: char.id,
@@ -528,10 +528,10 @@
                     });
                 }
             });
-            
+
             // 按触发时间排序
             gameState.ctbManager.actionQueue.sort((a, b) => a.triggerTime - b.triggerTime);
-            
+
             addActionLog("CTB系统已初始化");
             updateAllDisplays();
         }
@@ -541,39 +541,39 @@
                 addActionLog("请先初始化CTB系统");
                 return;
             }
-            
+
             const action = gameState.ctbManager.actionQueue.shift();
             if (!action) {
                 addActionLog("没有待执行的行动");
                 return;
             }
-            
+
             // 推进时间到行动时间
             gameState.timeManager.totalHours = action.triggerTime;
             updateTimeFromTotalHours();
-            
+
             // 记录行动
             const tm = gameState.timeManager;
             const year = Math.abs(tm.currentYear);
             const era = tm.currentYear < 0 ? "公元前" : "公元";
             const eraYear = tm.currentYear + 722 + 1;
-            
+
             const logMessage = `春秋${eraYear}年${tm.currentMonth}月${tm.currentDay}日${tm.currentHour}点 (${era}${year}年${tm.currentMonth}月${tm.currentDay}日${tm.currentHour}点) - ${action.characterName} 行动`;
             addActionLog(logMessage);
-            
+
             // 添加到历史
             gameState.ctbManager.actionHistory.push({
                 ...action,
                 executedTime: action.triggerTime,
                 timestamp: Date.now()
             });
-            
+
             // 为该角色安排下次行动
             const character = gameState.ctbManager.characters.find(c => c.id === action.characterId);
             if (character && character.isActive) {
                 const interval = Math.ceil(gameState.ctbManager.baseFactor / character.speed);
                 const nextTriggerTime = action.triggerTime + (interval * 24);
-                
+
                 gameState.ctbManager.actionQueue.push({
                     id: gameState.ctbManager.nextActionId++,
                     characterId: character.id,
@@ -581,11 +581,11 @@
                     triggerTime: nextTriggerTime,
                     actionType: 'attack'
                 });
-                
+
                 // 重新排序队列
                 gameState.ctbManager.actionQueue.sort((a, b) => a.triggerTime - b.triggerTime);
             }
-            
+
             updateAllDisplays();
         }
 
@@ -594,17 +594,17 @@
                 addActionLog("请先初始化CTB系统");
                 return;
             }
-            
+
             const nextAction = gameState.ctbManager.actionQueue[0];
             if (!nextAction) {
                 addActionLog("没有待执行的行动");
                 return;
             }
-            
+
             // 直接跳转时间
             gameState.timeManager.totalHours = nextAction.triggerTime;
             updateTimeFromTotalHours();
-            
+
             addActionLog(`时间已跳转到 ${nextAction.characterName} 的行动时间`);
             updateAllDisplays();
         }
@@ -629,7 +629,7 @@
                 actionHistory: [],
                 nextActionId: 1
             };
-            
+
             document.getElementById('factorInput').value = "100";
             if (!silent) {
                 addActionLog("CTB系统已重置");
@@ -654,11 +654,11 @@
         function addRandomCharacter() {
             const names = ["赵六", "孙七", "周八", "吴九", "郑十"];
             const factions = ["齐国", "楚国", "燕国", "韩国", "赵国"];
-            
+
             const randomName = names[Math.floor(Math.random() * names.length)];
             const randomFaction = factions[Math.floor(Math.random() * factions.length)];
             const randomSpeed = Math.floor(Math.random() * 8) + 3; // 3-10
-            
+
             const newChar = {
                 id: Date.now(),
                 name: randomName,
@@ -666,7 +666,7 @@
                 speed: randomSpeed,
                 isActive: true
             };
-            
+
             gameState.ctbManager.characters.push(newChar);
             addActionLog(`添加角色: ${randomName}(${randomFaction}) 速度:${randomSpeed}`);
             updateAllDisplays();
@@ -677,14 +677,14 @@
             const totalHours = gameState.timeManager.totalHours;
             const totalDays = Math.floor(totalHours / 24);
             const hours = totalHours % 24;
-            
+
             // 简化的日期计算（360天/年，30天/月）
             const startYear = -722;
             const years = Math.floor(totalDays / 360);
             const remainingDays = totalDays % 360;
             const months = Math.floor(remainingDays / 30);
             const days = remainingDays % 30;
-            
+
             gameState.timeManager.currentYear = startYear + years;
             gameState.timeManager.currentMonth = months + 1;
             gameState.timeManager.currentDay = days + 1;
@@ -693,7 +693,7 @@
 
         function runStressTest() {
             addActionLog("🔥 开始压力测试初始化...");
-            
+
             if (!confirm("您确定要初始化10,000个角色吗？这可能会导致浏览器页面卡顿或无响应。")) {
                 addActionLog("压力测试已取消。");
                 return;
@@ -720,7 +720,7 @@
                     for (let i = 0; i < characterCount; i++) {
                         const randomFactor = 0.5 + Math.random();
                         const finalSpeed = Math.max(0.1, targetSpeed * randomFactor);
-                        
+
                         newCharacters.push({
                             id: Date.now() + i,
                             name: `角色${i + 1}`,
@@ -744,7 +744,7 @@
                         // 首次行动时间在 (0, intervalHours] 区间内随机分布
                         const initialDelayHours = Math.floor(Math.random() * intervalHours) + 1;
                         const triggerTime = gameState.timeManager.totalHours + initialDelayHours;
-                        
+
                         gameState.ctbManager.actionQueue.push({
                             id: gameState.ctbManager.nextActionId++,
                             characterId: char.id,
@@ -762,9 +762,9 @@
                     // 6. 显示理论计算结果
                     const resultText = `--- 压力测试结果 ---\n角色数量: ${characterCount}\n目标行动间隔: ${averageIntervalDays} 天\n理论平均每日行动: ${totalActionsPerDay.toFixed(2)} 人`;
                     resultDiv.textContent = resultText;
-                    
+
                     addActionLog(`✅ 压力测试初始化完成，已生成 ${characterCount} 个角色。`);
-                    
+
                     // 7. 更新所有显示
                     updateAllDisplays();
 
@@ -783,4 +783,4 @@
         });
     </script>
 </body>
-</html> 
+</html>

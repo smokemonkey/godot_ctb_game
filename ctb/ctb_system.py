@@ -1,415 +1,471 @@
+#!/usr/bin/env python3
 """
 CTB (Conditional Turn-Based) 战斗系统核心模块
 
-主要功能:
-- 基于速度的回合制战斗: 角色根据速度属性计算行动间隔
-- 时间系统集成: 与游戏时间系统无缝配合，支持精确时间推进
-- 行动队列管理: 使用堆队列自动排序，确保行动顺序正确
-- 角色状态管理: 支持角色的激活/停用、添加/移除
-- 灵活的公式系统: 独立的计算逻辑，便于调整平衡性
+基于时间轮的事件调度系统，支持角色行动和各种游戏事件的精确时间管理。
 
-核心设计:
-- 行动间隔计算: interval_days = base_factor / speed
-- 时间单位转换: 内部使用小时为最小单位，与时间系统保持一致
-- 事件驱动: 支持行动回调，便于游戏逻辑集成
-- 历史记录: 完整的行动历史，支持回放和分析
+核心特性:
+- 事件驱动: 所有游戏行为都是事件，包括角色行动
+- 时间轮调度: 使用环形缓冲区高效管理未来180天的事件
+- 随机间隔: 角色行动间隔在1-180天之间随机分布
+- 灵活扩展: 支持自定义事件类型和执行逻辑
 
-使用场景:
-- 回合制RPG战斗系统
-- 策略游戏的单位行动管理
-- 任何需要基于速度排序的时间系统
+Buffer设计:
+- 时间轮的当前槽位作为"当前回合的行动buffer"
+- 所有当前槽位的事件立即执行，无需额外维护执行列表
+- 执行完当前槽位所有事件后，时间才会推进
 
-Example:
-    >>> from game_time import TimeManager
-    >>> from ctb import CTBManager, Character
-    >>> 
-    >>> # 初始化系统
-    >>> time_manager = TimeManager()
-    >>> ctb = CTBManager(time_manager)
-    >>> 
-    >>> # 添加角色
-    >>> hero = Character("hero", "英雄", speed=100)
-    >>> enemy = Character("enemy", "敌人", speed=80)
-    >>> ctb.add_character(hero)
-    >>> ctb.add_character(enemy)
-    >>> 
-    >>> # 开始战斗
-    >>> ctb.initialize_ctb()
-    >>> 
-    >>> # 执行行动
-    >>> while True:
-    >>>     action = ctb.execute_next_action()
-    >>>     if action:
-    >>>         print(f"{action.character.name} 在 {action.trigger_time} 小时行动")
-    >>>     else:
-    >>>         break
-
-最后更新: 2025-06-12 - 完善文档说明
+最后更新: 2024-12-17 - 采用buffer设计思路
 """
 
 from typing import List, Optional, Dict, Any, Callable
+from enum import Enum, auto
+import random
 from dataclasses import dataclass
-from enum import Enum
-import heapq
+
+# 导入时间系统
 from game_time import TimeManager, TimeUnit
 
-
-class ActionType(Enum):
-    """行动类型枚举"""
-    MOVE = "移动"
-    ATTACK = "攻击" 
-    SKILL = "技能"
-    WAIT = "等待"
-    CUSTOM = "自定义"
+# 导入时间轮
+from .time_wheel import IndexedTimeWheel
 
 
-@dataclass
-class Character:
-    """角色数据类"""
-    id: str
-    name: str
-    speed: int
-    faction: str = "中立"
-    is_active: bool = True
-    
-    def __post_init__(self):
-        """初始化后验证"""
-        if self.speed <= 0:
-            raise ValueError(f"角色 {self.name} 的速度必须大于0，当前值: {self.speed}")
+class EventType(Enum):
+    """事件类型枚举"""
+    CHARACTER_ACTION = auto()  # 角色行动
+    SEASON_CHANGE = auto()     # 季节变化
+    WEATHER_CHANGE = auto()    # 天气变化
+    STORY_EVENT = auto()       # 剧情事件
+    CUSTOM = auto()           # 自定义事件
 
 
-@dataclass
-class ActionEvent:
-    """行动事件数据类"""
-    trigger_time: int  # 触发的绝对时间（小时）
-    character: Character
-    action_type: ActionType = ActionType.CUSTOM
-    description: str = ""
-    
-    def __lt__(self, other):
-        """用于堆排序的比较方法"""
-        return self.trigger_time < other.trigger_time
+class Event:
+    """
+    事件基类
 
+    所有CTB系统中的事件都应继承此类。
 
-class CTBFormula:
-    """CTB公式配置类 - 隔离计算逻辑便于修改"""
-    
-    @staticmethod
-    def calculate_action_interval(speed: int, base_factor: int = 100) -> float:
+    Attributes:
+        id: 事件的唯一标识符
+        name: 事件名称
+        event_type: 事件类型
+        trigger_time: 触发时间（绝对时间，小时）
+        description: 事件描述
+    """
+
+    def __init__(self, id: str, name: str, event_type: EventType,
+                 trigger_time: int, description: str = ""):
+        self.id = id
+        self.name = name
+        self.event_type = event_type
+        self.trigger_time = trigger_time
+        self.description = description
+
+    def execute(self) -> Any:
         """
-        计算行动间隔
-        
-        Args:
-            speed: 角色速度
-            base_factor: 基础因子，默认100
-            
+        执行事件
+
+       子类应重写此方法实现具体的事件逻辑。
+
         Returns:
-            行动间隔（天数）
-            
-        Formula:
-            interval_days = base_factor / speed
+            Any: 执行结果，具体类型由子类决定
         """
-        if speed <= 0:
-            raise ValueError("速度必须大于0")
-        return base_factor / speed
-    
-    @staticmethod
-    def calculate_next_action_time(current_time: int, speed: int, base_factor: int = 100) -> int:
+        raise NotImplementedError("子类必须实现execute方法")
+
+    def __str__(self):
+        return f"{self.name} ({self.event_type.name})"
+
+
+class Character(Event):
+    """
+    游戏角色
+
+    角色是一种特殊的事件，其execute方法执行角色的行动。
+
+    Attributes:
+        faction: 角色所属阵营
+        is_active: 角色是否活跃（可以行动）
+    """
+
+    def __init__(self, id: str, name: str, faction: str = "中立"):
+        super().__init__(
+            id=id,
+            name=name,
+            event_type=EventType.CHARACTER_ACTION,
+            trigger_time=0,
+            description=f"{name}的行动"
+        )
+        self.faction = faction
+        self.is_active = True
+
+    def calculate_next_action_time(self, current_time: int) -> int:
         """
         计算下次行动时间
-        
+
+        使用三角分布生成1-180天之间的随机间隔，
+        峰值在90天，产生更自然的分布。
+
         Args:
             current_time: 当前时间（小时）
-            speed: 角色速度
-            base_factor: 基础因子
-            
+
         Returns:
-            下次行动时间（小时）
+            int: 下次行动的绝对时间（小时）
         """
-        interval_days = CTBFormula.calculate_action_interval(speed, base_factor)
-        interval_hours = int(interval_days * 24)  # 转换为小时
-        return current_time + interval_hours
+        # 使用三角分布：最小1天，最大180天，众数90天
+        days = random.triangular(1, 180, 90)
+        hours = int(days * 24)
+        return current_time + hours
+
+    def execute(self) -> 'Character':
+        """
+        执行角色行动
+
+        Returns:
+            Character: 返回自身，便于链式调用
+        """
+        # 这里可以添加角色行动的具体逻辑
+        # 例如：触发战斗、使用技能、移动等
+        return self
 
 
 class CTBManager:
-    """CTB系统管理器"""
-    
-    def __init__(self, time_manager: TimeManager, base_factor: int = 100):
+    """
+    CTB系统管理器
+
+    负责管理所有事件的调度和执行。
+
+    Attributes:
+        time_manager: 时间管理器
+        time_wheel: 时间轮调度器
+        characters: 角色字典
+        is_initialized: 系统是否已初始化
+        action_history: 行动历史记录
+    """
+
+    # 时间轮大小：180天 * 24小时
+    TIME_WHEEL_SIZE = 180 * 24
+
+    def __init__(self, time_manager: TimeManager):
         """
         初始化CTB管理器
-        
+
         Args:
-            time_manager: 时间管理器实例
-            base_factor: 速度计算的基础因子
+            time_manager: 游戏时间管理器
         """
         self.time_manager = time_manager
-        self.base_factor = base_factor
-        self.characters: List[Character] = []
-        self.action_queue: List[ActionEvent] = []  # 使用堆队列管理行动顺序
-        self.action_history: List[Dict[str, Any]] = []
+        self.time_wheel = IndexedTimeWheel[Event](
+            self.TIME_WHEEL_SIZE,
+            key_func=lambda e: e.id
+        )
+        self.characters: Dict[str, Character] = {}
         self.is_initialized = False
-        
-        # 回调函数
-        self.on_character_action: Optional[Callable[[ActionEvent], None]] = None
-    
-    def set_base_factor(self, factor: int) -> None:
-        """设置基础因子"""
-        if factor <= 0:
-            raise ValueError("基础因子必须大于0")
-        self.base_factor = factor
-        if self.is_initialized:
-            self._rebuild_action_queue()
-    
+        self.action_history: List[Dict[str, Any]] = []
+
+        # 事件执行回调
+        self.on_event_executed: Optional[Callable[[Event], None]] = None
+
     def add_character(self, character: Character) -> None:
-        """添加角色"""
-        if any(c.id == character.id for c in self.characters):
-            raise ValueError(f"角色ID '{character.id}' 已存在")
-        
-        self.characters.append(character)
-        
-        # 如果系统已初始化，立即为新角色安排行动
-        if self.is_initialized:
-            self._schedule_character_action(character)
-    
+        """
+        添加角色到系统
+
+        Args:
+            character: 要添加的角色
+
+        Raises:
+            ValueError: 如果角色ID已存在
+        """
+        if character.id in self.characters:
+            raise ValueError(f"Character with ID {character.id} already exists")
+
+        self.characters[character.id] = character
+
     def remove_character(self, character_id: str) -> bool:
-        """移除角色"""
-        character = self.get_character(character_id)
-        if not character:
+        """
+        从系统中移除角色
+
+        Args:
+            character_id: 要移除的角色ID
+
+        Returns:
+            bool: 如果成功移除返回True，否则返回False
+        """
+        if character_id not in self.characters:
             return False
-        
-        # 从角色列表中移除
-        self.characters = [c for c in self.characters if c.id != character_id]
-        
-        # 从行动队列中移除相关事件
-        self.action_queue = [event for event in self.action_queue 
-                           if event.character.id != character_id]
-        heapq.heapify(self.action_queue)
-        
+
+        # 从时间轮中移除角色的事件
+        self.time_wheel.remove_by_key(character_id)
+
+        # 从角色字典中移除
+        del self.characters[character_id]
         return True
-    
+
     def get_character(self, character_id: str) -> Optional[Character]:
-        """获取角色"""
-        return next((c for c in self.characters if c.id == character_id), None)
-    
+        """
+        获取角色
+
+        Args:
+            character_id: 角色ID
+
+        Returns:
+            Optional[Character]: 如果找到返回角色，否则返回None
+        """
+        return self.characters.get(character_id)
+
     def initialize_ctb(self) -> None:
-        """初始化CTB系统，为所有角色安排首次行动"""
+        """
+        初始化CTB系统
+
+        为所有角色安排初始行动时间。
+
+        Raises:
+            ValueError: 如果没有角色
+        """
         if not self.characters:
-            raise ValueError("没有角色可以初始化CTB系统")
-        
-        self.action_queue.clear()
+            raise ValueError("Cannot initialize CTB without characters")
+
         current_time = self.time_manager._total_hours
-        
-        # 为每个角色安排首次行动
-        for character in self.characters:
+
+        # 为每个活跃角色安排初始行动
+        for character in self.characters.values():
             if character.is_active:
-                self._schedule_character_action(character, current_time)
-        
+                # 计算初始行动时间
+                next_time = character.calculate_next_action_time(current_time)
+                character.trigger_time = next_time
+
+                # 添加到时间轮（使用buffer设计，delay=0表示立即执行）
+                delay = next_time - current_time
+                self.time_wheel.add(character, delay)
+
         self.is_initialized = True
-    
-    def _schedule_character_action(self, character: Character, from_time: Optional[int] = None) -> None:
-        """为角色安排下次行动"""
-        if not character.is_active:
-            return
-        
-        current_time = from_time if from_time is not None else self.time_manager._total_hours
-        next_action_time = CTBFormula.calculate_next_action_time(
-            current_time, character.speed, self.base_factor
-        )
-        
-        action_event = ActionEvent(
-            trigger_time=next_action_time,
-            character=character,
-            action_type=ActionType.CUSTOM,
-            description=f"{character.name} 准备行动"
-        )
-        
-        heapq.heappush(self.action_queue, action_event)
-    
-    def _rebuild_action_queue(self) -> None:
-        """重建行动队列（当基础因子改变时）"""
+
+    def register_event(self, event: Event, trigger_time: int) -> bool:
+        """
+        注册自定义事件
+
+        Args:
+            event: 要注册的事件
+            trigger_time: 触发时间（绝对时间）
+
+        Returns:
+            bool: 如果成功注册返回True，否则返回False
+        """
+        current_time = self.time_manager._total_hours
+        delay = trigger_time - current_time
+
+        if delay < 0:
+            return False  # 不能注册过去的事件
+
+        event.trigger_time = trigger_time
+        return self.time_wheel.add(event, delay)
+
+    def execute_next_action(self) -> Optional[Event]:
+        """
+        执行下一个行动
+
+        使用buffer设计：
+        1. 检查当前槽位是否有事件
+        2. 如果有，执行第一个事件
+        3. 如果没有，推进时间直到找到事件
+
+        Returns:
+            Optional[Event]: 执行的事件，如果没有事件返回None
+        """
         if not self.is_initialized:
-            return
-        
-        # 保存当前时间
-        current_time = self.time_manager._total_hours
-        
-        # 清空队列并重新安排所有角色
-        self.action_queue.clear()
-        for character in self.characters:
-            if character.is_active:
-                self._schedule_character_action(character, current_time)
-    
-    def get_next_action(self) -> Optional[ActionEvent]:
-        """获取下一个行动事件（不执行）"""
-        if not self.action_queue:
             return None
-        return self.action_queue[0]
-    
-    def execute_next_action(self) -> Optional[ActionEvent]:
-        """执行下一个行动"""
-        if not self.action_queue:
+
+        # 检查当前buffer
+        current_buffer = self.time_wheel.get_current_buffer()
+
+        if current_buffer:
+            # 执行buffer中的第一个事件
+            event = current_buffer[0]
+            self.time_wheel.remove(event, 0)  # 从当前槽位移除
+
+            # 执行事件
+            self._execute_event(event)
+            return event
+
+        # 如果当前buffer为空，推进时间
+        next_delay = self.time_wheel.get_next_event_delay()
+        if next_delay is None:
             return None
-        
-        # 获取下一个行动事件
-        next_action = heapq.heappop(self.action_queue)
-        
-        # 推进时间到行动时间
-        target_time = next_action.trigger_time
-        current_time = self.time_manager._total_hours
-        
-        if target_time > current_time:
-            time_diff = target_time - current_time
-            self.time_manager.advance_time(time_diff, TimeUnit.HOUR)
-        
-        # 执行行动
-        self._perform_action(next_action)
-        
-        # 为该角色安排下次行动
-        self._schedule_character_action(next_action.character)
-        
-        return next_action
-    
-    def _perform_action(self, action: ActionEvent) -> None:
-        """执行具体行动"""
-        # 记录行动历史
-        action_record = {
+
+        # 推进时间（以小时为单位）
+        self.time_manager.advance_time(next_delay, TimeUnit.HOUR)
+
+        # 推进时间轮
+        self.time_wheel.advance(next_delay)
+
+        # 推进后，事件应该在新的当前buffer中
+        current_buffer = self.time_wheel.get_current_buffer()
+
+        if current_buffer:
+            # 执行第一个事件
+            event = current_buffer[0]
+            self.time_wheel.remove(event, 0)
+
+            # 执行事件
+            self._execute_event(event)
+            return event
+
+        return None
+
+    def _execute_event(self, event: Event) -> None:
+        """
+        执行事件的内部方法
+
+        Args:
+            event: 要执行的事件
+        """
+        # 执行事件
+        event.execute()
+
+        # 记录历史
+        self._record_action(event)
+
+        # 如果是角色行动，安排下次行动
+        if isinstance(event, Character) and event.is_active:
+            current_time = self.time_manager._total_hours
+            next_time = event.calculate_next_action_time(current_time)
+            event.trigger_time = next_time
+
+            delay = next_time - current_time
+            self.time_wheel.add(event, delay)
+
+        # 触发回调
+        if self.on_event_executed:
+            self.on_event_executed(event)
+
+    def _record_action(self, event: Event) -> None:
+        """
+        记录行动历史
+
+        Args:
+            event: 执行的事件
+        """
+        record = {
+            'event_name': event.name,
+            'event_type': event.event_type.name,
             'timestamp': self.time_manager._total_hours,
             'year': self.time_manager.current_year,
             'month': self.time_manager.current_month,
             'day': self.time_manager.current_day_in_month,
-            'hour': self.time_manager.current_hour,
-            'character_id': action.character.id,
-            'character_name': action.character.name,
-            'action_type': action.action_type.value,
-            'description': action.description
+            'hour': self.time_manager.current_hour
         }
-        self.action_history.append(action_record)
-        
-        # 触发回调
-        if self.on_character_action:
-            self.on_character_action(action)
-    
-    def get_action_queue_info(self) -> List[Dict[str, Any]]:
-        """获取行动队列信息"""
-        queue_info = []
-        for event in sorted(self.action_queue):
-            queue_info.append({
-                'character_name': event.character.name,
-                'trigger_time': event.trigger_time,
-                'time_until_action': event.trigger_time - self.time_manager._total_hours,
-                'action_type': event.action_type.value,
-                'description': event.description
-            })
-        return queue_info
-    
-    def get_character_info(self) -> List[Dict[str, Any]]:
-        """获取角色信息"""
-        info = []
-        for char in self.characters:
-            interval = CTBFormula.calculate_action_interval(char.speed, self.base_factor)
-            info.append({
-                'id': char.id,
-                'name': char.name,
-                'speed': char.speed,
-                'faction': char.faction,
-                'is_active': char.is_active,
-                'action_interval_days': round(interval, 2),
-                'action_interval_hours': round(interval * 24, 1)
-            })
-        return info
-    
-    def get_recent_actions(self, count: int = 10) -> List[Dict[str, Any]]:
-        """获取最近的行动记录"""
-        return self.action_history[-count:] if self.action_history else []
-    
-    def predict_future_actions(self, count: int) -> List[Dict[str, Any]]:
-        """
-        预测未来n个行动。
+        self.action_history.append(record)
 
-        此方法不会改变系统的实际状态，仅用于模拟和显示。
+    def set_character_active(self, character_id: str, active: bool) -> bool:
+        """
+        设置角色的活跃状态
 
         Args:
-            count: 需要预测的行动数量。
+            character_id: 角色ID
+            active: 是否活跃
 
         Returns:
-            一个包含预测行动信息的字典列表。
-            每个字典包含: 'character_name', 'character_id', 'trigger_time', 'time_from_now'。
+            bool: 如果成功设置返回True
         """
-        if not self.is_initialized or not self.action_queue:
-            return []
-
-        # 创建一个模拟环境
-        sim_queue = list(self.action_queue)
-        heapq.heapify(sim_queue)
-        
-        predicted_actions = []
-
-        # 循环预测
-        for _ in range(count):
-            if not sim_queue:
-                break
-
-            # 弹出下一个行动
-            action = heapq.heappop(sim_queue)
-            
-            predicted_actions.append({
-                'character_name': action.character.name,
-                'character_id': action.character.id,
-                'trigger_time': action.trigger_time,
-                'time_from_now': action.trigger_time - self.time_manager._total_hours
-            })
-
-            # 为这个角色安排下一次模拟行动
-            character = action.character
-            if character.is_active:
-                next_action_time = CTBFormula.calculate_next_action_time(
-                    action.trigger_time, character.speed, self.base_factor
-                )
-                
-                next_action_event = ActionEvent(
-                    trigger_time=next_action_time,
-                    character=character,
-                    description=f"{character.name} 准备行动 (模拟)"
-                )
-                
-                heapq.heappush(sim_queue, next_action_event)
-
-        return predicted_actions
-    
-    def set_character_active(self, character_id: str, is_active: bool) -> bool:
-        """设置角色活跃状态"""
         character = self.get_character(character_id)
         if not character:
             return False
-        
-        character.is_active = is_active
-        
-        if not is_active:
-            # 移除该角色的所有行动事件
-            self.action_queue = [event for event in self.action_queue 
-                               if event.character.id != character_id]
-            heapq.heapify(self.action_queue)
-        elif self.is_initialized:
-            # 如果重新激活，安排行动
-            self._schedule_character_action(character)
-        
+
+        character.is_active = active
+
+        if not active:
+            # 如果设为非活跃，从时间轮中移除
+            self.time_wheel.remove_by_key(character_id)
+        else:
+            # 如果设为活跃，重新安排行动
+            current_time = self.time_manager._total_hours
+            next_time = character.calculate_next_action_time(current_time)
+            character.trigger_time = next_time
+
+            delay = next_time - current_time
+            self.time_wheel.add(character, delay)
+
         return True
-    
+
+    def get_action_list(self, count: int) -> List[Dict[str, Any]]:
+        """
+        获取未来的行动列表
+
+        Args:
+            count: 要获取的行动数量
+
+        Returns:
+            List[Dict[str, Any]]: 行动信息列表
+        """
+        all_events = self.time_wheel.get_all_events()
+        current_time = self.time_manager._total_hours
+
+        # 按延迟时间排序
+        all_events.sort(key=lambda x: x[0])
+
+        action_list = []
+        for delay, event in all_events[:count]:
+            action_info = {
+                'event_name': event.name,
+                'event_type': event.event_type.name,
+                'hours_from_now': delay,
+                'days_from_now': delay / 24,
+                'trigger_time': current_time + delay
+            }
+            action_list.append(action_info)
+
+        return action_list
+
     def get_status_text(self) -> str:
-        """获取CTB系统状态文本"""
+        """
+        获取CTB系统状态文本
+
+        Returns:
+            str: 格式化的状态文本
+        """
         if not self.is_initialized:
             return "CTB系统未初始化"
-        
-        lines = []
-        lines.append(f"=== CTB系统状态 ===")
-        lines.append(f"基础因子: {self.base_factor}")
-        lines.append(f"活跃角色: {len([c for c in self.characters if c.is_active])}/{len(self.characters)}")
-        lines.append(f"待执行行动: {len(self.action_queue)}")
-        
-        if self.action_queue:
-            next_action = self.action_queue[0]
-            time_until = next_action.trigger_time - self.time_manager._total_hours
-            lines.append(f"下个行动: {next_action.character.name}")
-            lines.append(f"剩余时间: {time_until}小时 ({time_until//24}天{time_until%24}小时)")
-        
-        return "\n".join(lines) 
+
+        lines = [
+            "=== CTB系统状态 ===",
+            f"时间轮大小: {self.TIME_WHEEL_SIZE} 小时",
+            f"当前偏移: {self.time_wheel.offset}",
+            f"总事件数: {self.time_wheel.total_events()}",
+            f"活跃角色: {sum(1 for c in self.characters.values() if c.is_active)}",
+        ]
+
+        # 添加下一个行动信息
+        next_delay = self.time_wheel.get_next_event_delay()
+        if next_delay is not None:
+            if next_delay == 0:
+                lines.append("下个行动: 立即执行（当前buffer）")
+            else:
+                lines.append(f"下个行动: {next_delay} 小时后")
+
+        return "\n".join(lines)
+
+    def get_character_info(self) -> List[Dict[str, Any]]:
+        """
+        获取所有角色信息
+
+        Returns:
+            List[Dict[str, Any]]: 角色信息列表
+        """
+        info_list = []
+
+        for character in self.characters.values():
+            info = {
+                'id': character.id,
+                'name': character.name,
+                'faction': character.faction,
+                'is_active': character.is_active
+            }
+
+            # 尝试从时间轮中获取下次行动时间
+            event = self.time_wheel.get_by_key(character.id)
+            if event:
+                current_time = self.time_manager._total_hours
+                info['next_action_time'] = event.trigger_time
+                info['time_until_action'] = event.trigger_time - current_time
+
+            info_list.append(info)
+
+        return info_list
