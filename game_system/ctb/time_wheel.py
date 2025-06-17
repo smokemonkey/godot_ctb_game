@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """
+这个文件的接口是人工决定,已经finalize,没有明确指示绝不可以更改.
+
 时间轮数据结构 - 用于CTB系统的事件调度
 
 核心设计:
@@ -27,10 +29,10 @@ T = TypeVar('T')  # 泛型类型参数
 
 class _EventNode(Generic[T]):
     """用于在 IndexedTimeWheel 中存储事件的双向链表节点。"""
-    def __init__(self, key: Any, value: T, scheduled_at: int):
+    def __init__(self, key: Any, value: T, slot_index: int):
         self.key = key
         self.value = value
-        self.scheduled_at = scheduled_at  # 存储绝对槽位索引
+        self.slot_index = slot_index  # 存储预定槽位的绝对索引
         self.prev: Optional['_EventNode[T]'] = None
         self.next: Optional['_EventNode[T]'] = None
 
@@ -43,28 +45,51 @@ class TimeWheel(Generic[T]):
     一个泛型的时间轮数据结构，内部为每个槽位使用双向链表以实现 O(1) 的添加/弹出/删除。
     泛型类型 T 应为 _EventNode 或具有 prev/next 指针的类似结构。
     """
-    def __init__(self, size: int):
-        if size <= 0:
+    def __init__(self, buffer_size: int):
+        if buffer_size <= 0:
             raise ValueError("Time wheel size must be positive.")
-        self.size = size
+        self.buffer_size = buffer_size
         # 每个槽位存储一个 (head, tail) 元组，代表一个双向链表
-        self.slots: List[Tuple[Optional[T], Optional[T]]] = [(None, None) for _ in range(size)]
-        self.offset = 0
+        self.slots: List[Tuple[Optional[T], Optional[T]]] = [(None, None) for _ in range(buffer_size)]
+        self.offset = 0  # 当前在环形数组中的指针位置
+        self.total_ticks = 0 # 从开始到现在的总节拍数
 
-    def schedule(self, event_node: T, delay: int):
-        """在相对延迟后安排一个事件节点。"""
-        if delay < 0:
-            raise ValueError("Delay must be non-negative.")
-        index = (self.offset + delay) % self.size
-
-        head, tail = self.slots[index]
+    def _schedule(self, event_node: T, target_index: int):
+        """将事件节点插入到指定的目标索引槽位中。"""
+        head, tail = self.slots[target_index]
 
         if tail is None:  # 链表为空
-            self.slots[index] = (event_node, event_node)
+            self.slots[target_index] = (event_node, event_node)
         else:  # 追加到链表末尾
             tail.next = event_node
             event_node.prev = tail
-            self.slots[index] = (head, event_node)
+            self.slots[target_index] = (head, event_node)
+
+    def schedule_with_delay(self, event_node: T, delay: int):
+        """在相对延迟后安排一个事件节点。延迟必须小于时间轮的大小。"""
+        if delay < 0:
+            raise ValueError("Delay must be non-negative.")
+        if delay >= self.buffer_size:
+            raise ValueError(f"Delay ({delay}) must be less than the time wheel size ({self.buffer_size}).")
+
+        target_index = (self.offset + delay) % self.buffer_size
+        event_node.slot_index = target_index
+        self._schedule(event_node, target_index)
+
+    def schedule_at_absolute_hour(self, event_node: T, absolute_hour: int):
+        """在指定的绝对时间点安排一个事件节点。时间点不能在过去，也不能超过一个完整的轮次。"""
+        if absolute_hour < self.total_ticks:
+            raise ValueError(f"Cannot schedule in the past. Absolute hour ({absolute_hour}) "
+                             f"is less than current time ({self.total_ticks}).")
+        if absolute_hour >= self.total_ticks + self.buffer_size:
+            raise ValueError(f"Cannot schedule at absolute_hour ({absolute_hour}) more than one wheel cycle "
+                             f"(current_time={self.total_ticks}, size={self.buffer_size}) in the future.")
+
+        delay = absolute_hour - self.total_ticks
+        target_index = (self.offset + delay) % self.buffer_size
+
+        event_node.slot_index = target_index
+        self._schedule(event_node, target_index)
 
     def _is_current_slot_empty(self) -> bool:
         """检查当前时间槽是否为空。"""
@@ -95,12 +120,13 @@ class TimeWheel(Generic[T]):
         """将时间向前推进一个单位。"""
         if not self._is_current_slot_empty():
             raise RuntimeError("Cannot advance time: current time slot is not empty.")
-        self.offset = (self.offset + 1) % self.size
+        self.total_ticks += 1
+        self.offset = self.total_ticks % self.buffer_size
 
     def tick_till_next_event(self) -> int:
         """推进时间直到下一个有事件的槽位。"""
         ticks = 0
-        for _ in range(self.size):
+        for _ in range(self.buffer_size):
             if not self._is_current_slot_empty():
                 return ticks
             self._tick()
@@ -111,7 +137,7 @@ class TimeWheel(Generic[T]):
         """通过遍历链表，获取相对延迟处的事件列表。"""
         if delay < 0:
             raise ValueError("Delay must be non-negative.")
-        index = (self.offset + delay) % self.size
+        index = (self.offset + delay) % self.buffer_size
 
         events = []
         current_node, _ = self.slots[index]
@@ -136,21 +162,54 @@ class IndexedTimeWheel(Generic[T]):
     """
     def __init__(self, size: int):
         self.time_wheel = TimeWheel[_EventNode[T]](size)
+
+        # TODO: make index one to multiple events.
         self.index: Dict[Any, _EventNode[T]] = {}
         self._lock = Lock()
 
-    def schedule(self, key: Any, value: T, delay: int):
-        """安排一个带有关联键的事件。"""
+    def _get_current_absolute_hour(self):
+        """这是一个简化的示例，现实中可能需要更复杂的逻辑来跟踪总轮数。"""
+        return self.time_wheel.total_ticks
+
+    def schedule_with_delay(self, key: Any, value: T, delay: int):
+        """在相对延迟后安排一个带有关联键的事件。"""
         with self._lock:
             if key in self.index:
                 raise ValueError(f"Key '{key}' already exists in the time wheel.")
+            # 基础时间轮会进行验证，但在这里也进行一次检查可以更快地失败
             if delay < 0:
                 raise ValueError("Delay must be non-negative.")
+            if delay >= self.time_wheel.buffer_size:
+                raise ValueError(f"Delay ({delay}) must be less than the time wheel size ({self.time_wheel.buffer_size}).")
 
-            scheduled_at = (self.time_wheel.offset + delay) % self.time_wheel.size
-            node = _EventNode(key, value, scheduled_at)
+            # _EventNode需要知道它将被插入哪个槽位索引
+            slot_index = (self.time_wheel.offset + delay) % self.time_wheel.buffer_size
+            node = _EventNode(key, value, slot_index)
 
-            self.time_wheel.schedule(node, delay)
+            self.time_wheel.schedule_with_delay(node, delay)
+            self.index[key] = node
+            # TODO: 数据改变后通知UI重新渲染
+
+    def schedule_at_absolute_hour(self, key: Any, value: T, absolute_hour: int):
+        """在指定的绝对时间点安排一个带有关联键的事件。"""
+        with self._lock:
+            if key in self.index:
+                raise ValueError(f"Key '{key}' already exists in the time wheel.")
+
+            # 基础时间轮会进行验证，我们在这里仅计算索引以创建节点
+            # 验证: 不能在过去安排
+            if absolute_hour < self.time_wheel.total_ticks:
+                raise ValueError(f"Cannot schedule in the past. Absolute hour ({absolute_hour}) "
+                                 f"is less than current time ({self.time_wheel.total_ticks}).")
+            # 验证: 不能安排超过一个轮次
+            if absolute_hour >= self.time_wheel.total_ticks + self.time_wheel.buffer_size:
+                raise ValueError(f"Cannot schedule at absolute_hour ({absolute_hour}) more than one wheel cycle.")
+
+            delay = absolute_hour - self.time_wheel.total_ticks
+            slot_index = (self.time_wheel.offset + delay) % self.time_wheel.buffer_size
+            node = _EventNode(key, value, slot_index)
+
+            self.time_wheel.schedule_at_absolute_hour(node, absolute_hour)
             self.index[key] = node
             # TODO: 数据改变后通知UI重新渲染
 
@@ -198,7 +257,7 @@ class IndexedTimeWheel(Generic[T]):
                 next_node.prev = prev_node
 
             # 更新 TimeWheel 槽位中的 head/tail 指针
-            index = node_to_remove.scheduled_at
+            index = node_to_remove.slot_index
             head, tail = self.time_wheel.slots[index]
 
             new_head, new_tail = head, tail
