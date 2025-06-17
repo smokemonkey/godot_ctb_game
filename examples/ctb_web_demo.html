@@ -227,6 +227,108 @@
             background: #3498db;
             border-radius: 3px;
         }
+
+        /* 行动顺序预测竖条样式 */
+        .action-order-bar {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 300px;
+            padding: 10px 0;
+            gap: 8px;
+            background: linear-gradient(180deg, rgba(52, 152, 219, 0.1) 0%, rgba(52, 152, 219, 0.05) 100%);
+            border-radius: 8px;
+            border: 1px solid rgba(52, 152, 219, 0.2);
+        }
+
+        .action-order-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ecf0f1 0%, #bdc3c7 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            border: 3px solid #3498db;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .action-order-avatar:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .action-order-avatar.active {
+            border-color: #e67e22;
+            box-shadow: 0 0 12px rgba(230, 126, 34, 0.6);
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .action-order-avatar.predicted {
+            border-color: #27ae60;
+            box-shadow: 0 0 12px rgba(39, 174, 96, 0.6);
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            color: white;
+        }
+
+        .action-order-avatar .faction-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .action-order-avatar .time-info {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: #7f8c8d;
+            white-space: nowrap;
+            background: rgba(255,255,255,0.9);
+            padding: 2px 4px;
+            border-radius: 3px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .action-order-avatar:hover .time-info {
+            opacity: 1;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* 阵营颜色映射 */
+        .faction-shu { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%) !important; }
+        .faction-wei { background: linear-gradient(135deg, #3498db 0%, #2980b9 100%) !important; }
+        .faction-wu { background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%) !important; }
+        .faction-qi { background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%) !important; }
+        .faction-chu { background: linear-gradient(135deg, #27ae60 0%, #219a52 100%) !important; }
+        .faction-yan { background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%) !important; }
+        .faction-han { background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%) !important; }
+        .faction-zhao { background: linear-gradient(135deg, #e67e22 0%, #d35400 100%) !important; }
+        .faction-neutral { background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%) !important; }
     </style>
 </head>
 <body>
@@ -248,6 +350,15 @@
                     <div class="panel" style="margin-top: 20px;">
                         <h3>👥 角色信息</h3>
                         <div class="info-text" id="characterInfo">等待初始化...</div>
+                    </div>
+
+                    <div class="panel" style="margin-top: 20px;">
+                        <h3>🧭 行动顺序预测</h3>
+                        <div class="action-order-bar" id="actionOrderBar">
+                            <div style="text-align: center; color: #7f8c8d; padding: 20px;">
+                                等待初始化...
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -297,6 +408,8 @@
                         <h4>🎮 测试功能</h4>
                         <button class="btn" onclick="toggleCharacterActive()">🔄 切换角色状态</button>
                         <button class="btn" onclick="addRandomCharacter()">➕ 添加随机角色</button>
+                        <button class="btn" onclick="showPredictionDemo()">🔮 预测演示</button>
+                        <button class="btn" onclick="runMediumTest()">⚡ 100人测试</button>
                         <button class="btn warning" onclick="runStressTest()">🚀 初始化 (压测模式)</button>
                     </div>
 
@@ -348,6 +461,7 @@
             updateCharacterInfo();
             updateActionQueue();
             updatePredictionBar();
+            updateActionOrderBar();
             updateSystemStatus();
         }
 
@@ -440,6 +554,153 @@
             }
 
             document.getElementById('predictionBar').textContent = text;
+        }
+
+        // 更新行动顺序预测竖条
+        function updateActionOrderBar(predictedOrder = null) {
+            const bar = document.getElementById('actionOrderBar');
+            const ctb = gameState.ctbManager;
+
+            if (!ctb.isInitialized || ctb.actionQueue.length === 0) {
+                bar.innerHTML = '<div style="text-align: center; color: #7f8c8d; padding: 20px;">等待初始化...</div>';
+                return;
+            }
+
+            // 使用预测顺序或当前顺序
+            const order = predictedOrder || ctb.actionQueue;
+            bar.innerHTML = '';
+
+            // 显示前8个行动
+            order.slice(0, 8).forEach((action, index) => {
+                const character = ctb.characters.find(c => c.id === action.characterId);
+                if (!character) return;
+
+                const timeUntil = action.triggerTime - gameState.timeManager.totalHours;
+                const days = Math.floor(timeUntil / 24);
+                const hours = Math.floor(timeUntil % 24);
+
+                const avatarDiv = document.createElement('div');
+                avatarDiv.className = 'action-order-avatar';
+
+                // 添加阵营样式或自定义颜色
+                if (character.customColor) {
+                    // 使用自定义颜色
+                    avatarDiv.style.background = `linear-gradient(135deg, ${character.customColor} 0%, ${darkenColor(character.customColor, 0.2)} 100%)`;
+                    avatarDiv.style.color = 'white';
+                } else {
+                    // 使用阵营样式
+                    const factionClass = getFactionClass(character.faction);
+                    if (factionClass) {
+                        avatarDiv.classList.add(factionClass);
+                    }
+                }
+
+                // 当前行动高亮
+                if (index === 0) {
+                    avatarDiv.classList.add('active');
+                }
+
+                // 预测状态
+                if (predictedOrder && index < 3) {
+                    avatarDiv.classList.add('predicted');
+                }
+
+                // 头像内容（使用名字首字母）
+                avatarDiv.textContent = character.name[0];
+
+                // 阵营徽章
+                const badgeDiv = document.createElement('div');
+                badgeDiv.className = 'faction-badge';
+                badgeDiv.textContent = character.faction[0];
+                badgeDiv.style.backgroundColor = character.customColor || getFactionColor(character.faction);
+                avatarDiv.appendChild(badgeDiv);
+
+                // 时间信息
+                const timeDiv = document.createElement('div');
+                timeDiv.className = 'time-info';
+                if (days > 0) {
+                    timeDiv.textContent = `${days}天${hours}时`;
+                } else {
+                    timeDiv.textContent = `${hours}时`;
+                }
+                avatarDiv.appendChild(timeDiv);
+
+                // 点击事件（可以扩展为技能选择等）
+                avatarDiv.onclick = function() {
+                    showCharacterDetails(character, action);
+                };
+
+                bar.appendChild(avatarDiv);
+            });
+
+            // 如果行动数量超过8个，显示更多提示
+            if (order.length > 8) {
+                const moreDiv = document.createElement('div');
+                moreDiv.style.textAlign = 'center';
+                moreDiv.style.color = '#7f8c8d';
+                moreDiv.style.fontSize = '12px';
+                moreDiv.style.marginTop = '10px';
+                moreDiv.textContent = `还有 ${order.length - 8} 个行动...`;
+                bar.appendChild(moreDiv);
+            }
+        }
+
+        // 获取阵营CSS类名
+        function getFactionClass(faction) {
+            const factionMap = {
+                '蜀国': 'faction-shu',
+                '魏国': 'faction-wei',
+                '吴国': 'faction-wu',
+                '齐国': 'faction-qi',
+                '楚国': 'faction-chu',
+                '燕国': 'faction-yan',
+                '韩国': 'faction-han',
+                '赵国': 'faction-zhao',
+                '中立': 'faction-neutral'
+            };
+            return factionMap[faction] || '';
+        }
+
+        // 获取阵营颜色
+        function getFactionColor(faction) {
+            const colorMap = {
+                '蜀国': '#e74c3c',
+                '魏国': '#3498db',
+                '吴国': '#f39c12',
+                '齐国': '#9b59b6',
+                '楚国': '#27ae60',
+                '燕国': '#1abc9c',
+                '韩国': '#34495e',
+                '赵国': '#e67e22',
+                '中立': '#95a5a6'
+            };
+            return colorMap[faction] || '#95a5a6';
+        }
+
+        // 颜色变暗辅助函数
+        function darkenColor(color, factor) {
+            // 简单的颜色变暗算法
+            const hex = color.replace('#', '');
+            const r = Math.max(0, parseInt(hex.substr(0, 2), 16) * (1 - factor));
+            const g = Math.max(0, parseInt(hex.substr(2, 2), 16) * (1 - factor));
+            const b = Math.max(0, parseInt(hex.substr(4, 2), 16) * (1 - factor));
+            return `#${Math.round(r).toString(16).padStart(2, '0')}${Math.round(g).toString(16).padStart(2, '0')}${Math.round(b).toString(16).padStart(2, '0')}`;
+        }
+
+        // 显示角色详情（可扩展为技能选择等）
+        function showCharacterDetails(character, action) {
+            const timeUntil = action.triggerTime - gameState.timeManager.totalHours;
+            const days = Math.floor(timeUntil / 24);
+            const hours = Math.floor(timeUntil % 24);
+
+            let timeText = '';
+            if (days > 0) {
+                timeText = `${days}天${hours}小时后`;
+            } else {
+                timeText = `${hours}小时后`;
+            }
+
+            addActionLog(`角色详情: ${character.name} (${character.faction}) - 速度:${character.speed} - ${timeText}行动`);
         }
 
         // 更新系统状态
@@ -678,6 +939,47 @@
             updateAllDisplays();
         }
 
+        // 预测演示功能
+        function showPredictionDemo() {
+            if (!gameState.ctbManager.isInitialized) {
+                addActionLog("请先初始化CTB系统");
+                return;
+            }
+
+            const ctb = gameState.ctbManager;
+            if (ctb.actionQueue.length < 2) {
+                addActionLog("需要至少2个行动才能演示预测效果");
+                return;
+            }
+
+            // 创建预测顺序（模拟第一个角色行动后，第二个角色提前行动）
+            const predictedOrder = [...ctb.actionQueue];
+
+            // 模拟第一个角色行动后，第二个角色的行动时间提前
+            if (predictedOrder.length >= 2) {
+                const firstAction = predictedOrder[0];
+                const secondAction = predictedOrder[1];
+
+                // 模拟第二个角色因为某种技能或效果提前行动
+                const timeAdvance = Math.floor(Math.random() * 24) + 1; // 提前1-24小时
+                secondAction.triggerTime = firstAction.triggerTime + timeAdvance;
+
+                // 重新排序
+                predictedOrder.sort((a, b) => a.triggerTime - b.triggerTime);
+
+                addActionLog(`🔮 预测演示: 假设${firstAction.characterName}行动后，${secondAction.characterName}提前${timeAdvance}小时行动`);
+
+                // 显示预测效果
+                updateActionOrderBar(predictedOrder);
+
+                // 3秒后恢复原始显示
+                setTimeout(() => {
+                    updateActionOrderBar();
+                    addActionLog("预测演示结束，恢复原始顺序");
+                }, 3000);
+            }
+        }
+
         // 从总小时数更新日期时间
         function updateTimeFromTotalHours() {
             const totalHours = gameState.timeManager.totalHours;
@@ -697,13 +999,9 @@
             gameState.timeManager.currentHour = hours;
         }
 
-        function runStressTest() {
-            addActionLog("🔥 开始压力测试初始化...");
-
-            if (!confirm("您确定要初始化10,000个角色吗？这可能会导致浏览器页面卡顿或无响应。")) {
-                addActionLog("压力测试已取消。");
-                return;
-            }
+        // 100人测试模式
+        function runMediumTest() {
+            addActionLog("⚡ 开始100人测试初始化...");
 
             const resultDiv = document.getElementById('stressTestResult');
             resultDiv.textContent = "初始化中...";
@@ -714,25 +1012,51 @@
                     resetCTB(true);
 
                     // 2. 设置参数
-                    const characterCount = 10000;
-                    const averageIntervalDays = 90;
+                    const characterCount = 100;
+                    const averageIntervalDays = 30; // 更短的间隔，便于观察
                     const baseFactor = gameState.ctbManager.baseFactor;
                     const targetSpeed = baseFactor / averageIntervalDays;
+
+                    // 3. 生成随机名字和颜色
+                    const surnames = ['张', '李', '王', '赵', '陈', '刘', '杨', '黄', '周', '吴', '徐', '孙', '胡', '朱', '高', '林', '何', '郭', '马', '罗', '梁', '宋', '郑', '谢', '韩', '唐', '冯', '于', '董', '萧', '程', '曹', '袁', '邓', '许', '傅', '沈', '曾', '彭', '吕', '苏', '卢', '蒋', '蔡', '贾', '丁', '魏', '薛', '叶', '阎', '余', '潘', '杜', '戴', '夏', '钟', '汪', '田', '任', '姜', '范', '方', '石', '姚', '谭', '廖', '邹', '熊', '金', '陆', '郝', '孔', '白', '崔', '康', '毛', '邱', '秦', '江', '史', '顾', '侯', '邵', '孟', '龙', '万', '段', '雷', '钱', '汤', '尹', '黎', '易', '常', '武', '乔', '贺', '赖', '龚', '文'];
+                    const givenNames = ['伟', '芳', '娜', '秀英', '敏', '静', '丽', '强', '磊', '军', '洋', '勇', '艳', '杰', '娟', '涛', '明', '超', '秀兰', '霞', '平', '刚', '桂英', '建华', '建国', '建军', '建平', '建华', '建明', '建强', '建伟', '建勇', '建杰', '建波', '建涛', '建斌', '建辉', '建峰', '建林', '建东', '建南', '建西', '建北', '建中', '建和', '建安', '建康', '建文', '建武', '建德', '建仁', '建义', '建礼', '建智', '建信', '建忠', '建孝', '建节', '建廉', '建耻', '建勇', '建刚', '建强', '建伟', '建杰', '建波', '建涛', '建斌', '建辉', '建峰', '建林', '建东', '建南', '建西', '建北', '建中', '建和', '建安', '建康', '建文', '建武', '建德', '建仁', '建义', '建礼', '建智', '建信', '建忠', '建孝', '建节', '建廉', '建耻'];
+                    const factions = ['蜀国', '魏国', '吴国', '齐国', '楚国', '燕国', '韩国', '赵国', '秦国', '晋国', '宋国', '卫国', '郑国', '鲁国', '越国', '中山国', '滕国', '薛国', '莒国', '邾国', '郯国', '小邾国', '鄫国', '鄅国', '鄫国', '鄅国', '鄫国', '鄅国', '鄫国', '鄅国'];
+
+                    // 预生成随机颜色池
+                    const colorPool = [
+                        '#e74c3c', '#3498db', '#f39c12', '#9b59b6', '#27ae60', '#1abc9c', '#34495e', '#e67e22',
+                        '#8e44ad', '#2980b9', '#d35400', '#c0392b', '#16a085', '#f1c40f', '#e74c3c', '#3498db',
+                        '#f39c12', '#9b59b6', '#27ae60', '#1abc9c', '#34495e', '#e67e22', '#8e44ad', '#2980b9',
+                        '#d35400', '#c0392b', '#16a085', '#f1c40f', '#95a5a6', '#7f8c8d', '#2c3e50', '#ecf0f1'
+                    ];
 
                     const newCharacters = [];
                     let totalActionsPerDay = 0;
 
-                    // 3. 生成角色并计算理论平均值
+                    // 4. 生成角色并计算理论平均值
                     for (let i = 0; i < characterCount; i++) {
                         const randomFactor = 0.5 + Math.random();
                         const finalSpeed = Math.max(0.1, targetSpeed * randomFactor);
 
+                        // 生成随机名字
+                        const surname = surnames[Math.floor(Math.random() * surnames.length)];
+                        const givenName = givenNames[Math.floor(Math.random() * givenNames.length)];
+                        const randomName = surname + givenName;
+
+                        // 随机阵营
+                        const randomFaction = factions[Math.floor(Math.random() * factions.length)];
+
+                        // 分配固定随机颜色（基于角色ID确保一致性）
+                        const colorIndex = (Date.now() + i) % colorPool.length;
+                        const randomColor = colorPool[colorIndex];
+
                         newCharacters.push({
                             id: Date.now() + i,
-                            name: `角色${i + 1}`,
-                            faction: "压测",
+                            name: randomName,
+                            faction: randomFaction,
                             speed: parseFloat(finalSpeed.toFixed(2)),
-                            isActive: true
+                            isActive: true,
+                            customColor: randomColor  // 添加自定义颜色属性
                         });
 
                         const intervalDays = Math.ceil(baseFactor / finalSpeed);
@@ -742,7 +1066,7 @@
                     }
                     gameState.ctbManager.characters = newCharacters;
 
-                    // 4. 安排首次行动
+                    // 5. 安排首次行动
                     gameState.ctbManager.characters.forEach(char => {
                         const intervalDays = Math.ceil(baseFactor / char.speed);
                         const intervalHours = intervalDays * 24;
@@ -760,18 +1084,124 @@
                         });
                     });
 
-                    // 5. 排序行动队列
+                    // 6. 排序行动队列
                     gameState.ctbManager.actionQueue.sort((a, b) => a.triggerTime - b.triggerTime);
 
                     gameState.ctbManager.isInitialized = true;
 
-                    // 6. 显示理论计算结果
+                    // 7. 显示理论计算结果
+                    const resultText = `--- 100人测试结果 ---\n角色数量: ${characterCount}\n目标行动间隔: ${averageIntervalDays} 天\n理论平均每日行动: ${totalActionsPerDay.toFixed(2)} 人\n\n💡 适合测试行动顺序预测竖条效果`;
+                    resultDiv.textContent = resultText;
+
+                    addActionLog(`✅ 100人测试初始化完成，已生成 ${characterCount} 个角色。`);
+
+                    // 8. 更新所有显示
+                    updateAllDisplays();
+
+                } catch (e) {
+                    console.error("100人测试初始化出错:", e);
+                    resultDiv.textContent = "初始化失败，请查看控制台。";
+                    addActionLog("❌ 100人测试初始化失败。");
+                }
+            }, 50);
+        }
+
+        function runStressTest() {
+            addActionLog("🔥 开始压力测试初始化...");
+
+            const resultDiv = document.getElementById('stressTestResult');
+            resultDiv.textContent = "初始化中...";
+
+            setTimeout(() => {
+                try {
+                    // 1. 重置系统状态
+                    resetCTB(true);
+
+                    // 2. 设置参数
+                    const characterCount = 10000;
+                    const averageIntervalDays = 90;
+                    const baseFactor = gameState.ctbManager.baseFactor;
+                    const targetSpeed = baseFactor / averageIntervalDays;
+
+                    // 3. 生成随机名字和颜色
+                    const surnames = ['张', '李', '王', '赵', '陈', '刘', '杨', '黄', '周', '吴', '徐', '孙', '胡', '朱', '高', '林', '何', '郭', '马', '罗', '梁', '宋', '郑', '谢', '韩', '唐', '冯', '于', '董', '萧', '程', '曹', '袁', '邓', '许', '傅', '沈', '曾', '彭', '吕', '苏', '卢', '蒋', '蔡', '贾', '丁', '魏', '薛', '叶', '阎', '余', '潘', '杜', '戴', '夏', '钟', '汪', '田', '任', '姜', '范', '方', '石', '姚', '谭', '廖', '邹', '熊', '金', '陆', '郝', '孔', '白', '崔', '康', '毛', '邱', '秦', '江', '史', '顾', '侯', '邵', '孟', '龙', '万', '段', '雷', '钱', '汤', '尹', '黎', '易', '常', '武', '乔', '贺', '赖', '龚', '文'];
+                    const givenNames = ['伟', '芳', '娜', '秀英', '敏', '静', '丽', '强', '磊', '军', '洋', '勇', '艳', '杰', '娟', '涛', '明', '超', '秀兰', '霞', '平', '刚', '桂英', '建华', '建国', '建军', '建平', '建华', '建明', '建强', '建伟', '建勇', '建杰', '建波', '建涛', '建斌', '建辉', '建峰', '建林', '建东', '建南', '建西', '建北', '建中', '建和', '建安', '建康', '建文', '建武', '建德', '建仁', '建义', '建礼', '建智', '建信', '建忠', '建孝', '建节', '建廉', '建耻', '建勇', '建刚', '建强', '建伟', '建杰', '建波', '建涛', '建斌', '建辉', '建峰', '建林', '建东', '建南', '建西', '建北', '建中', '建和', '建安', '建康', '建文', '建武', '建德', '建仁', '建义', '建礼', '建智', '建信', '建忠', '建孝', '建节', '建廉', '建耻'];
+                    const factions = ['蜀国', '魏国', '吴国', '齐国', '楚国', '燕国', '韩国', '赵国', '秦国', '晋国', '宋国', '卫国', '郑国', '鲁国', '越国', '中山国', '滕国', '薛国', '莒国', '邾国', '郯国', '小邾国', '鄫国', '鄅国', '鄫国', '鄅国', '鄫国', '鄅国', '鄫国', '鄅国'];
+
+                    // 预生成随机颜色池
+                    const colorPool = [
+                        '#e74c3c', '#3498db', '#f39c12', '#9b59b6', '#27ae60', '#1abc9c', '#34495e', '#e67e22',
+                        '#8e44ad', '#2980b9', '#d35400', '#c0392b', '#16a085', '#f1c40f', '#e74c3c', '#3498db',
+                        '#f39c12', '#9b59b6', '#27ae60', '#1abc9c', '#34495e', '#e67e22', '#8e44ad', '#2980b9',
+                        '#d35400', '#c0392b', '#16a085', '#f1c40f', '#95a5a6', '#7f8c8d', '#2c3e50', '#ecf0f1'
+                    ];
+
+                    const newCharacters = [];
+                    let totalActionsPerDay = 0;
+
+                    // 4. 生成角色并计算理论平均值
+                    for (let i = 0; i < characterCount; i++) {
+                        const randomFactor = 0.5 + Math.random();
+                        const finalSpeed = Math.max(0.1, targetSpeed * randomFactor);
+
+                        // 生成随机名字
+                        const surname = surnames[Math.floor(Math.random() * surnames.length)];
+                        const givenName = givenNames[Math.floor(Math.random() * givenNames.length)];
+                        const randomName = surname + givenName;
+
+                        // 随机阵营
+                        const randomFaction = factions[Math.floor(Math.random() * factions.length)];
+
+                        // 分配固定随机颜色（基于角色ID确保一致性）
+                        const colorIndex = (Date.now() + i) % colorPool.length;
+                        const randomColor = colorPool[colorIndex];
+
+                        newCharacters.push({
+                            id: Date.now() + i,
+                            name: randomName,
+                            faction: randomFaction,
+                            speed: parseFloat(finalSpeed.toFixed(2)),
+                            isActive: true,
+                            customColor: randomColor  // 添加自定义颜色属性
+                        });
+
+                        const intervalDays = Math.ceil(baseFactor / finalSpeed);
+                        if (intervalDays > 0) {
+                            totalActionsPerDay += 1 / intervalDays;
+                        }
+                    }
+                    gameState.ctbManager.characters = newCharacters;
+
+                    // 5. 安排首次行动
+                    gameState.ctbManager.characters.forEach(char => {
+                        const intervalDays = Math.ceil(baseFactor / char.speed);
+                        const intervalHours = intervalDays * 24;
+
+                        // 首次行动时间在 (0, intervalHours] 区间内随机分布
+                        const initialDelayHours = Math.floor(Math.random() * intervalHours) + 1;
+                        const triggerTime = gameState.timeManager.totalHours + initialDelayHours;
+
+                        gameState.ctbManager.actionQueue.push({
+                            id: gameState.ctbManager.nextActionId++,
+                            characterId: char.id,
+                            characterName: char.name,
+                            triggerTime: triggerTime,
+                            actionType: 'attack'
+                        });
+                    });
+
+                    // 6. 排序行动队列
+                    gameState.ctbManager.actionQueue.sort((a, b) => a.triggerTime - b.triggerTime);
+
+                    gameState.ctbManager.isInitialized = true;
+
+                    // 7. 显示理论计算结果
                     const resultText = `--- 压力测试结果 ---\n角色数量: ${characterCount}\n目标行动间隔: ${averageIntervalDays} 天\n理论平均每日行动: ${totalActionsPerDay.toFixed(2)} 人`;
                     resultDiv.textContent = resultText;
 
                     addActionLog(`✅ 压力测试初始化完成，已生成 ${characterCount} 个角色。`);
 
-                    // 7. 更新所有显示
+                    // 8. 更新所有显示
                     updateAllDisplays();
 
                 } catch (e) {
