@@ -20,47 +20,22 @@ Buffer设计说明:
 from typing import TypeVar, Generic, List, Optional, Dict, Any, Callable, Tuple
 from collections import defaultdict
 from threading import Lock
-import heapq
 
 
 T = TypeVar('T')  # 泛型类型参数
 
 
 class _EventNode(Generic[T]):
-    """用于在 IndexedTimeWheel 中存储事件的双向链表节点。"""
+    """用于在 IndexedTimeWheel 中存储事件。"""
     def __init__(self, key: Any, value: T, slot_index: int, absolute_hour: Optional[int] = None):
         self.key = key
         self.value = value
-        # 当 slot_index == -1 时，表示事件在 future_events 堆中
+        # 当 slot_index == -1 时，表示事件在 future_events 列表中
         self.slot_index = slot_index
         self.absolute_hour = absolute_hour
-        self.deleted = False
-        self.prev: Optional['_EventNode[T]'] = None
-        self.next: Optional['_EventNode[T]'] = None
 
     def __repr__(self) -> str:
         return f"_EventNode(key={self.key}, value={self.value})"
-
-
-class MinHeap(Generic[T]):
-    """一个显式的最小堆实现，用于存储远期事件。"""
-    def __init__(self):
-        self._heap: List[Tuple[int, int, _EventNode[T]]] = []
-
-    def push(self, absolute_hour: int, seq: int, node: _EventNode[T]):
-        """将一个事件节点推入堆中。"""
-        heapq.heappush(self._heap, (absolute_hour, seq, node))
-
-    def pop(self) -> Tuple[int, int, _EventNode[T]]:
-        """从堆中弹出并返回最小的事件节点。"""
-        return heapq.heappop(self._heap)
-
-    def peek(self) -> Optional[Tuple[int, int, _EventNode[T]]]:
-        """查看堆顶的最小事件节点，不弹出。"""
-        return self._heap[0] if self._heap else None
-
-    def __len__(self) -> int:
-        return len(self._heap)
 
 
 class IndexedTimeWheel(Generic[T]):
@@ -72,15 +47,14 @@ class IndexedTimeWheel(Generic[T]):
     def __init__(self, buffer_size: int):
         assert buffer_size > 0, "Time wheel size must be positive."
         self.buffer_size = buffer_size
-        # 核心环形缓冲区
-        self.slots: List[Tuple[Optional[_EventNode[T]], Optional[_EventNode[T]]]] = [(None, None) for _ in range(self.buffer_size)]
+        # 核心环形缓冲区 - 每个槽位存储事件列表
+        self.slots: List[List[_EventNode[T]]] = [[] for _ in range(self.buffer_size)]
         self.offset = 0
         self.total_ticks = 0
 
         # 索引和远期事件
         self.index: Dict[Any, _EventNode[T]] = {}
-        self.future_events = MinHeap[_EventNode[T]]()
-        self._seq = 0
+        self.future_events = []
         self._lock = Lock()
 
 
@@ -95,9 +69,8 @@ class IndexedTimeWheel(Generic[T]):
                 absolute_hour = self.total_ticks + delay
                 # slot_index = -1 表示在远期池中
                 node = _EventNode(key, value, slot_index=-1, absolute_hour=absolute_hour)
-                self.future_events.push(absolute_hour, self._seq, node)
+                self._insert_future_event(absolute_hour, node)
                 self.index[key] = node
-                self._seq += 1
             else:
                 # 正常调度到时间轮
                 target_index = (self.offset + delay) % self.buffer_size
@@ -117,37 +90,33 @@ class IndexedTimeWheel(Generic[T]):
 
     def _schedule(self, event_node: _EventNode[T], target_index: int):
         """将事件节点插入到指定的目标索引槽位中。"""
-        head, tail = self.slots[target_index]
-        if tail is None:
-            self.slots[target_index] = (event_node, event_node)
-        else:
-            tail.next = event_node
-            event_node.prev = tail
-            self.slots[target_index] = (head, event_node)
+        self.slots[target_index].append(event_node)
+
+    def _insert_future_event(self, absolute_hour: int, node: _EventNode[T]):
+        """将远期事件插入到列表中，从后往前找到正确位置直接插入。"""
+        # 从后往前找到插入位置
+        insert_index = len(self.future_events)
+        for i in range(len(self.future_events) - 1, -1, -1):
+            if self.future_events[i][0] <= absolute_hour:
+                insert_index = i + 1
+                break
+            insert_index = i
+
+        # 在正确位置插入
+        self.future_events.insert(insert_index, (absolute_hour, node))
 
     def _is_current_slot_empty(self) -> bool:
         """检查当前时间槽是否为空。"""
-        return self.slots[self.offset][0] is None
+        return not self.slots[self.offset]
 
     def pop_due_event(self) -> Optional[Tuple[Any, T]]:
         """从当前时间槽的头部弹出一个到期的事件。"""
         with self._lock:
-            head, tail = self.slots[self.offset]
-            if head is None:
+            if not self.slots[self.offset]:
                 return None
 
-            node_to_pop = head
-            new_head = head.next
-
-            if new_head is None:
-                self.slots[self.offset] = (None, None)
-            else:
-                new_head.prev = None
-                self.slots[self.offset] = (new_head, tail)
-
-            # 清理弹出节点的指针
-            node_to_pop.next = None
-            node_to_pop.prev = None
+            node_to_pop = self.slots[self.offset][0]
+            self.slots[self.offset] = self.slots[self.offset][1:]
 
             if node_to_pop.key in self.index:
                 del self.index[node_to_pop.key]
@@ -161,13 +130,9 @@ class IndexedTimeWheel(Generic[T]):
         self.offset = self.total_ticks % self.buffer_size
 
         # 检查是否有远期事件需要移动到主轮
-        # We must check all events in the heap, not just the top one.
-        while self.future_events and self.future_events.peek()[0] <= self.total_ticks:
-            absolute_hour, seq, node = self.future_events.pop()
-
-            if node.deleted:
-                # key 已经在 remove() 时从 index 中删除
-                continue
+        # 由于列表已按absolute_hour排序，只需要检查第一个元素
+        while self.future_events and self.future_events[0][0] <= self.total_ticks:
+            absolute_hour, node = self.future_events.pop(0)
 
             # 将到期的远期事件插入时间轮的最远端槽位 (offset-1)
             # 这样事件会在时间轮中正确的时间点被触发
@@ -175,7 +140,7 @@ class IndexedTimeWheel(Generic[T]):
             node.slot_index = target_index
             self._schedule(node, target_index)
 
-        assert not self.future_events or self.future_events.peek()[0] > self.total_ticks
+        assert not self.future_events or self.future_events[0][0] > self.total_ticks
 
     def advance_to_next_event(self) -> int:
         """
@@ -204,39 +169,23 @@ class IndexedTimeWheel(Generic[T]):
             raise RuntimeError("advance_to_next_event completed a full cycle without finding any event in the wheel.")
 
     def remove(self, key: Any) -> Optional[T]:
-        """从时间轮或远期事件堆中移除一个事件。"""
+        """从时间轮或远期事件列表中移除一个事件。"""
         with self._lock:
             if key not in self.index:
                 return None
 
             node_to_remove = self.index[key]
 
-            # case 1: 事件在远期池中, 懒惰删除
+            # case 1: 事件在远期池中, 直接从列表中删除
             if node_to_remove.slot_index == -1:
-                node_to_remove.deleted = True
+                # 从远期事件列表中删除
+                for i, (_, node) in enumerate(self.future_events):
+                    if node.key == key:
+                        self.future_events.pop(i)
+                        break
             # case 2: 事件在时间轮中, O(1) 链表移除
             else:
-                prev_node = node_to_remove.prev
-                next_node = node_to_remove.next
-
-                if prev_node:
-                    prev_node.next = next_node
-                if next_node:
-                    next_node.prev = prev_node
-
-                index = node_to_remove.slot_index
-                head, tail = self.slots[index]
-                new_head, new_tail = head, tail
-
-                if node_to_remove == head:
-                    new_head = next_node
-                if node_to_remove == tail:
-                    new_tail = prev_node
-
-                self.slots[index] = (new_head, new_tail)
-
-                node_to_remove.prev = None
-                node_to_remove.next = None
+                self.slots[node_to_remove.slot_index] = [node for node in self.slots[node_to_remove.slot_index] if node.key != key]
 
             del self.index[key]
             # TODO: 数据改变后通知UI重新渲染
@@ -261,12 +210,9 @@ class IndexedTimeWheel(Generic[T]):
             events = []
             for i in range(count):
                 index = (self.offset + i) % self.buffer_size
-                current_node, _ = self.slots[index]
-                while current_node:
-                    # 在主轮中不应该遇到已删除的节点，这是一个内部逻辑错误
-                    assert not current_node.deleted, "Bug: Found a deleted node in the main wheel."
-                    events.append((current_node.key, current_node.value))
-                    current_node = current_node.next
+                current_nodes = self.slots[index]
+                for node in current_nodes:
+                    events.append((node.key, node.value))
 
                 if max_events is not None and len(events) >= max_events:
                     return events[:max_events]

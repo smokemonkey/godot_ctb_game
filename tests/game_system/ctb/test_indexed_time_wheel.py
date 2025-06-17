@@ -184,27 +184,23 @@ class TestFutureEvents(unittest.TestCase):
 
         self.assertIn("A", i_wheel)
         self.assertEqual(len(i_wheel.future_events), 1)
-        self.assertEqual(i_wheel.future_events.peek()[0], 15) # Check absolute hour in heap
+        self.assertEqual(i_wheel.future_events[0][0], 15) # Check absolute hour in heap
         self.assertEqual(i_wheel.index["A"].slot_index, -1)
         # The main wheel should be empty
         self.assertTrue(i_wheel._is_current_slot_empty())
 
     def test_remove_from_future_bucket(self):
-        """Test removing an event from the future bucket uses lazy deletion."""
+        """Test removing an event from the future bucket uses direct deletion."""
         i_wheel = IndexedTimeWheel[str](10)
         i_wheel.schedule_with_delay("A", "Future A", 15)
-
-        node = i_wheel.index["A"]
-        self.assertFalse(node.deleted)
 
         removed_value = i_wheel.remove("A")
         self.assertEqual(removed_value, "Future A")
 
-        # The key is gone from the index, but the node in future_events is marked
+        # The key is gone from the index
         self.assertNotIn("A", i_wheel)
-        self.assertTrue(node.deleted)
-        # Heap itself is not modified yet
-        self.assertEqual(len(i_wheel.future_events), 1)
+        # Future events list is now empty
+        self.assertEqual(len(i_wheel.future_events), 0)
 
     def test_reschedule_on_tick(self):
         """Test that future events are rescheduled when their time comes."""
@@ -216,8 +212,8 @@ class TestFutureEvents(unittest.TestCase):
 
         # Verify initial state: A is in wheel, B is in heap.
         self.assertEqual(len(i_wheel.future_events), 1)
-        # Peek at the node in the tuple: (time, seq, node)
-        self.assertEqual(i_wheel.future_events.peek()[2].key, "B")
+        # Peek at the node in the tuple: (time, node)
+        self.assertEqual(i_wheel.future_events[0][1].key, "B")
         self.assertNotEqual(i_wheel.index["A"].slot_index, -1)
         self.assertEqual(i_wheel.index["B"].slot_index, -1)
 
@@ -248,12 +244,12 @@ class TestFutureEvents(unittest.TestCase):
         self.assertIn("B", i_wheel)
 
     def test_deleted_future_event_is_not_rescheduled(self):
-        """Test that a deleted future event is discarded during rescheduling."""
+        """Test that a deleted future event is not rescheduled."""
         i_wheel = IndexedTimeWheel[str](10)
         i_wheel.schedule_with_delay("A", "Future A", 12)
         i_wheel.schedule_with_delay("B", "Future B", 12)
 
-        i_wheel.remove("A") # This one is lazily deleted
+        i_wheel.remove("A") # This one is immediately deleted
 
         # Advance time to trigger reschedule
         for _ in range(12):
@@ -393,7 +389,7 @@ class TestIndexedTimeWheelFeatures(unittest.TestCase):
 
         # At this point, total_ticks = 10, future_event is still in the heap
         self.assertEqual(len(self.tw.future_events), 1)
-        self.assertEqual(self.tw.future_events.peek()[2].key, "future_event")
+        self.assertEqual(self.tw.future_events[0][1].key, "future_event")
 
         # Advance time to 110 to trigger the future event
         for _ in range(100):  # Advance 100 more ticks to reach time 110
