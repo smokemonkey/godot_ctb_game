@@ -191,6 +191,7 @@ class IndexedTimeWheel(Generic[T]):
             # TODO: 数据改变后通知UI重新渲染
             return node_to_remove.value
 
+    # TODO 最极端情况下从future_event中读取事件。
     def peek_upcoming_events(self, count: int, max_events: Optional[int] = None) -> List[Tuple[Any, T]]:
         """
         [仅供UI渲染使用] 预览接下来`count`个小时内即将发生的事件。
