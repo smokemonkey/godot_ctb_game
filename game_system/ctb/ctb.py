@@ -133,7 +133,7 @@ class CTBManager:
     负责管理所有事件的调度和执行。
 
     Attributes:
-        time_manager: 时间管理器
+        calendar: 时间管理器
         time_wheel: 时间轮调度器
         characters: 角色字典
         is_initialized: 系统是否已初始化
@@ -143,17 +143,18 @@ class CTBManager:
     # 时间轮大小：180天 * 24小时
     TIME_WHEEL_SIZE = 180 * 24
 
-    def __init__(self, time_manager: Calendar, time_wheel_size: int = TIME_WHEEL_SIZE):
+    def __init__(self, calendar: Calendar, time_wheel_size: int = TIME_WHEEL_SIZE):
         """
         初始化CTB管理器
 
         Args:
-            time_manager: 游戏时间管理器（Calendar实例）
+            calendar: 游戏时间管理器（Calendar实例）
         """
-        self.time_manager = time_manager
+        self.calendar = calendar
         self.TIME_WHEEL_SIZE = time_wheel_size
         self.time_wheel = IndexedTimeWheel[Event](
-            self.TIME_WHEEL_SIZE
+            self.TIME_WHEEL_SIZE,
+            get_time_callback=lambda: self.calendar.get_time_info()['total_hours']
         )
         self.characters: Dict[str, Character] = {}
         self.is_initialized = False
@@ -221,7 +222,7 @@ class CTBManager:
         if not self.characters:
             raise ValueError("Cannot initialize CTB without characters")
 
-        current_time = self.time_manager._total_hours
+        current_time = self.calendar._total_hours
 
         # 为每个活跃角色安排初始行动
         for character in self.characters.values():
@@ -247,7 +248,7 @@ class CTBManager:
         Returns:
             bool: 如果成功注册返回True，否则返回False
         """
-        current_time = self.time_manager._total_hours
+        current_time = self.calendar._total_hours
         if trigger_time < current_time:
             return False  # 不能在过去注册事件
 
@@ -277,7 +278,7 @@ class CTBManager:
 
         # 2. 与游戏时间同步
         if ticks_advanced > 0:
-            self.time_manager.advance_time(ticks_advanced, TimeUnit.HOUR)
+            self.calendar.advance_time(ticks_advanced, TimeUnit.HOUR)
 
         # 3. 获取并执行当前时间槽的所有事件
         processed_events: List[Event] = []
@@ -294,7 +295,7 @@ class CTBManager:
 
         # 4. 如果处理了事件，推进时间 (一个象征性的tick，防止无限循环)
         if processed_events:
-            self.time_manager.advance_time(1, TimeUnit.HOUR)
+            self.calendar.advance_time(1, TimeUnit.HOUR)
 
         return processed_events
 
@@ -312,7 +313,7 @@ class CTBManager:
         if event.event_type == EventType.CHARACTER_ACTION and isinstance(event, Character):
             character = event
             if character.is_active:
-                current_time = self.time_manager._total_hours
+                current_time = self.calendar._total_hours
                 next_time = character.calculate_next_action_time(current_time)
                 character.trigger_time = next_time
                 delay = next_time - current_time
@@ -328,11 +329,11 @@ class CTBManager:
         record = {
             'event_name': event.name,
             'event_type': event.event_type.name,
-            'timestamp': self.time_manager._total_hours,
-            'year': self.time_manager.current_year,
-            'month': self.time_manager.current_month,
-            'day': self.time_manager.current_day_in_month,
-            'hour': self.time_manager.current_hour
+            'timestamp': self.calendar._total_hours,
+            'year': self.calendar.current_year,
+            'month': self.calendar.current_month,
+            'day': self.calendar.current_day_in_month,
+            'hour': self.calendar.current_hour
         }
         self.action_history.append(record)
 
@@ -356,7 +357,7 @@ class CTBManager:
         # 如果角色被重新激活，需要手动为他安排下一次行动
         # 否则他会等到自然触发的execute才被重新调度
         elif active and character_id not in self.time_wheel:
-            current_time = self.time_manager._total_hours
+            current_time = self.calendar._total_hours
             next_time = character.calculate_next_action_time(current_time)
             character.trigger_time = next_time
             delay = next_time - current_time
@@ -381,7 +382,7 @@ class CTBManager:
         )
 
         action_list = []
-        current_time = self.time_manager._total_hours
+        current_time = self.calendar._total_hours
 
         for key, event in events_tuples:
             if isinstance(event, Character):
@@ -414,7 +415,7 @@ class CTBManager:
         next_events = self.time_wheel.peek_upcoming_events(count=self.time_wheel.buffer_size, max_events=1)
         if next_events:
             _key, next_event = next_events[0]
-            current_time = self.time_manager._total_hours
+            current_time = self.calendar._total_hours
             delay = next_event.trigger_time - current_time
             if delay <= 0:
                 status_lines.append(f"  下个行动: 立即执行 ({next_event.name})")
@@ -445,7 +446,7 @@ class CTBManager:
             # 尝试从时间轮中获取下次行动时间
             event = self.time_wheel.get(character.id)
             if event:
-                current_time = self.time_manager._total_hours
+                current_time = self.calendar._total_hours
                 info['next_action_time'] = event.trigger_time
                 info['time_until_action'] = event.trigger_time - current_time
 
@@ -459,11 +460,11 @@ class CTBManager:
         next_events = self.time_wheel.peek_upcoming_events(count=self.time_wheel.buffer_size, max_events=1)
         if next_events:
             _key, next_event = next_events[0]
-            current_time = self.time_manager._total_hours
+            current_time = self.calendar._total_hours
             delay = next_event.trigger_time - current_time
             if delay <= 0:
                 # 如果有事件已经到期（或即将到期），返回格式化的时间
-                return self.time_manager.format_date_era()
+                return self.calendar.format_date_era()
             else:
                 # 否则，返回剩余的小时数
                 return f"{delay}小时后"
