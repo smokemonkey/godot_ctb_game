@@ -25,7 +25,7 @@ from dataclasses import dataclass
 from ..calendar.calendar import TimeManager, TimeUnit, Calendar
 
 # 导入时间轮
-from .indexed_time_wheel import IndexedTimeWheel
+from ..indexed_time_wheel import IndexedTimeWheel
 
 
 class EventType(Enum):

@@ -151,23 +151,45 @@ print(f"当前：{calendar.format_date_era()}")  # 天宝1年1月1日
 
 ## 文件结构
 ```
-game_time/
-├── __init__.py           # 公共API导出
-├── time_system.py        # 核心时间系统
-ctb/
-├── __init__.py           # CTB模块导出
-├── ctb.py         # CTB战斗系统
+game_system/
+├── __init__.py                    # 游戏系统根模块
+├── config.py                      # 配置文件
+├── calendar/                      # 日历系统模块
+│   ├── __init__.py               # 日历模块导出
+│   └── calendar.py               # 核心日历系统
+├── ctb/                          # CTB战斗系统模块
+│   ├── __init__.py               # CTB模块导出
+│   └── ctb.py                    # CTB战斗系统
+└── indexed_time_wheel/           # 索引时间轮模块
+    ├── __init__.py               # 索引时间轮模块导出
+    └── indexed_time_wheel.py     # 索引时间轮实现
+
 tests/
-├── test_time_system.py   # 时间系统测试套件
-├── test_ctb_system.py    # CTB系统测试套件
-├── run_tests.py          # 测试运行器
+├── __init__.py                   # 测试根模块
+├── run_tests.py                  # 测试运行器
+└── game_system/                  # 游戏系统测试
+    ├── __init__.py              # 测试根模块
+    ├── calendar/                # 日历系统测试
+    │   └── test_calendar.py     # 日历系统测试套件
+    ├── ctb/                     # CTB系统测试
+    │   ├── __init__.py          # CTB测试模块
+    │   └── test_ctb.py          # CTB系统测试套件
+    └── indexed_time_wheel/      # 索引时间轮测试
+        ├── __init__.py          # 索引时间轮测试模块
+        └── test_indexed_time_wheel.py  # 索引时间轮测试套件
+
 examples/
-├── calendar_demo.html    # 时间系统Web演示
-├── ctb_web_demo.html     # CTB系统Web演示
-├── start_web_demo.py     # 演示服务器
+├── calendar_demo.html            # 时间系统Web演示
+├── ctb_web_demo.html             # CTB系统Web演示
+├── ctb_event_examples.py         # CTB事件示例
+├── start_web_demo.py             # 演示服务器
+└── data/                         # 示例数据
+
 docs/
-├── PROJECT_STATUS.md     # 项目状态 (本文件)
-├── DEVELOPMENT_NOTES.md  # 开发笔记
+├── PROJECT_STATUS.md             # 项目状态 (本文件)
+├── DEVELOPMENT_NOTES.md          # 开发笔记
+├── API_DOCS.md                   # API文档
+└── README.md                     # 项目说明
 ```
 
 ## 总结

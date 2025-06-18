@@ -45,7 +45,7 @@ from .ctb import (
     Event,
     EventType,
 )
-from .indexed_time_wheel import (
+from ..indexed_time_wheel import (
     IndexedTimeWheel,
 )
 
