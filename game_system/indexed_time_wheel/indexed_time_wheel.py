@@ -44,13 +44,13 @@ class IndexedTimeWheel(Generic[T]):
     内部为每个槽位使用双向链表以实现 O(1) 的添加/弹出/删除。
     通过唯一的键以 O(1) 的时间复杂度来跟踪和移除事件。
     """
-    def __init__(self, buffer_size: int):
+    def __init__(self, buffer_size: int, get_time_callback: Callable[[], int]):
         assert buffer_size > 0, "Time wheel size must be positive."
         self.buffer_size = buffer_size
+        self.get_time = get_time_callback
         # 核心环形缓冲区 - 每个槽位存储事件列表
         self.slots: List[List[_EventNode[T]]] = [[] for _ in range(self.buffer_size)]
         self.offset = 0
-        self.total_ticks = 0
 
         # 索引和远期事件
         self.index: Dict[Any, _EventNode[T]] = {}
@@ -64,9 +64,11 @@ class IndexedTimeWheel(Generic[T]):
             assert key not in self.index, f"Key '{key}' already exists."
             assert delay >= 0, "Delay must be non-negative."
 
+            now = self.get_time()
+            absolute_hour = now + delay
+
             # 如果延迟超出了当前轮次，则放入远期事件池
             if delay >= self.buffer_size:
-                absolute_hour = self.total_ticks + delay
                 # slot_index = -1 表示在远期池中
                 node = _EventNode(key, value, slot_index=-1, absolute_hour=absolute_hour)
                 self._insert_future_event(absolute_hour, node)
@@ -74,7 +76,6 @@ class IndexedTimeWheel(Generic[T]):
             else:
                 # 正常调度到时间轮
                 target_index = (self.offset + delay) % self.buffer_size
-                absolute_hour = self.total_ticks + delay
                 node = _EventNode(key, value, target_index, absolute_hour=absolute_hour)
                 self._schedule(node, target_index)
                 self.index[key] = node
@@ -83,9 +84,10 @@ class IndexedTimeWheel(Generic[T]):
 
     def schedule_at_absolute_hour(self, key: Any, value: T, absolute_hour: int):
         """在指定的绝对时间点安排一个带有关联键的事件 (便利封装)。"""
-        assert absolute_hour >= self.total_ticks, "Cannot schedule in the past."
+        now = self.get_time()
+        assert absolute_hour >= now, "Cannot schedule in the past."
 
-        delay = absolute_hour - self.total_ticks
+        delay = absolute_hour - now
         self.schedule_with_delay(key, value, delay)
 
     def _schedule(self, event_node: _EventNode[T], target_index: int):
@@ -123,15 +125,15 @@ class IndexedTimeWheel(Generic[T]):
             # TODO: 数据改变后通知UI重新渲染
             return node_to_pop.key, node_to_pop.value
 
-    def _tick(self):
+    def update_wheel(self):
+        """更新时间轮状态：更新offset并移动接近的远期事件到主轮"""
         with self._lock:
-            """推进时间轮一小时，并移动接近的远期事件到主轮。"""
-            self.total_ticks += 1
-            self.offset = self.total_ticks % self.buffer_size
+            # 更新offset
+            self.offset = self.get_time() % self.buffer_size
 
             # 检查是否有远期事件需要移动到主轮
             # 由于列表已按absolute_hour排序，只需要检查第一个元素
-            while self.future_events and self.future_events[0][0] <= self.total_ticks:
+            while self.future_events and self.future_events[0][0] <= self.get_time():
                 absolute_hour, node = self.future_events.pop(0)
 
                 # 将到期的远期事件插入时间轮的最远端槽位 (offset-1)
@@ -140,32 +142,7 @@ class IndexedTimeWheel(Generic[T]):
                 node.slot_index = target_index
                 self._schedule(node, target_index)
 
-            assert not self.future_events or self.future_events[0][0] > self.total_ticks
-
-    def advance_to_next_event(self) -> int:
-        """
-        [核心逻辑] 推进时间直到下一个有事件的槽位。
-        这是游戏循环的主要驱动方法。
-
-        Raises:
-            RuntimeError: 如果遍历一整圈后仍未找到任何事件。
-
-        Returns:
-            int: 时间推进的小时数。
-        """
-        ticks = 0
-        # 最多检查 buffer_size 次，防止无限循环
-        for _ in range(self.buffer_size):
-            if not self._is_current_slot_empty():
-                # TODO: 时间推进，数据已改变，通知UI重新渲染
-                return ticks
-            self._tick()
-            ticks += 1
-
-        # TODO: 这种情况可能意味着所有剩余的事件都在远期事件堆中，
-        # 且它们的触发时间超出了当前时间轮的一整圈。
-        # 未来的版本需要更完善的逻辑来处理这种情况, 但目前，这被视为一个异常状态。
-        raise RuntimeError("advance_to_next_event completed a full cycle without finding any event in the wheel.")
+            assert not self.future_events or self.future_events[0][0] > self.get_time()
 
     def remove(self, key: Any) -> Optional[T]:
         """从时间轮或远期事件列表中移除一个事件。"""
