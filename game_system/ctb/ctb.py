@@ -2,30 +2,27 @@
 """
 CTB (Conditional Turn-Based) 战斗系统核心模块
 
-基于时间轮的事件调度系统，支持角色行动和各种游戏事件的精确时间管理。
+基于事件调度系统，支持角色行动和各种游戏事件的精确时间管理。
 
 核心特性:
 - 事件驱动: 所有游戏行为都是事件，包括角色行动
-- 时间轮调度: 使用环形缓冲区高效管理未来180天的事件
+- 时间调度: 使用回调函数访问时间轮，不直接管理时间
 - 随机间隔: 角色行动间隔在1-180天之间随机分布
 - 灵活扩展: 支持自定义事件类型和执行逻辑
 
-Buffer设计:
-- 时间轮的当前槽位作为"当前回合的行动buffer"
-- 所有当前槽位的事件立即执行，无需额外维护执行列表
-- 执行完当前槽位所有事件后，时间才会推进
+设计原则:
+- CTB只负责事件的调度和执行
+- 不直接管理时间轮或日历
+- 通过回调函数访问时间轮功能
+- 事件执行后返回下次执行时间
 """
 
-from typing import List, Optional, Dict, Any, Callable
+from typing import List, Optional, Dict, Any, Callable, Tuple
 from enum import Enum, auto
 import random
 from dataclasses import dataclass
 
 # 导入时间系统
-from ..calendar.calendar import Calendar, TimeUnit
-
-# 导入时间轮
-from ..indexed_time_wheel import IndexedTimeWheel
 
 
 class EventType(Enum):
@@ -130,32 +127,41 @@ class CTBManager:
     """
     CTB系统管理器
 
-    负责管理所有事件的调度和执行。
+    负责管理所有事件的调度和执行，通过回调函数访问时间轮。
 
     Attributes:
-        calendar: 时间管理器
-        time_wheel: 时间轮调度器
+        get_time_callback: 获取当前时间的回调函数
+        schedule_callback: 调度事件的回调函数
+        remove_callback: 移除事件的回调函数
+        peek_callback: 预览事件的回调函数
+        pop_callback: 弹出到期事件的回调函数
         characters: 角色字典
         is_initialized: 系统是否已初始化
         action_history: 行动历史记录
     """
 
-    # 时间轮大小：180天 * 24小时
-    TIME_WHEEL_SIZE = 180 * 24
-
-    def __init__(self, calendar: Calendar, time_wheel_size: int = TIME_WHEEL_SIZE):
+    def __init__(self,
+                 get_time_callback: Callable[[], int],
+                 schedule_callback: Callable[[str, Event, int], bool],
+                 remove_callback: Callable[[str], bool],
+                 peek_callback: Callable[[int, int], List[Tuple[str, Event]]],
+                 pop_callback: Callable[[], Optional[Tuple[str, Event]]]):
         """
         初始化CTB管理器
 
         Args:
-            calendar: 游戏时间管理器（Calendar实例）
+            get_time_callback: 获取当前时间的回调函数
+            schedule_callback: 调度事件的回调函数 (key, event, delay) -> bool
+            remove_callback: 移除事件的回调函数 (key) -> bool
+            peek_callback: 预览事件的回调函数 (count, max_events) -> List[Tuple[str, Event]]
+            pop_callback: 弹出到期事件的回调函数 () -> Optional[Tuple[str, Event]]
         """
-        self.calendar = calendar
-        self.TIME_WHEEL_SIZE = time_wheel_size
-        self.time_wheel = IndexedTimeWheel[Event](
-            self.TIME_WHEEL_SIZE,
-            get_time_callback=lambda: self.calendar.get_timestamp()
-        )
+        self.get_time_callback = get_time_callback
+        self.schedule_callback = schedule_callback
+        self.remove_callback = remove_callback
+        self.peek_callback = peek_callback
+        self.pop_callback = pop_callback
+
         self.characters: Dict[str, Character] = {}
         self.is_initialized = False
         self.action_history: List[Dict[str, Any]] = []
@@ -192,7 +198,7 @@ class CTBManager:
             return False
 
         # 从时间轮中移除角色的事件
-        self.time_wheel.remove(character_id)
+        self.remove_callback(character_id)
 
         # 从角色字典中移除
         del self.characters[character_id]
@@ -222,7 +228,7 @@ class CTBManager:
         if not self.characters:
             raise ValueError("Cannot initialize CTB without characters")
 
-        current_time = self.calendar.get_timestamp()
+        current_time = self.get_time_callback()
 
         # 为每个活跃角色安排初始行动
         for character in self.characters.values():
@@ -233,71 +239,65 @@ class CTBManager:
 
                 # 添加到时间轮
                 delay = next_time - current_time
-                self.time_wheel.schedule_with_delay(character.id, character, delay)
+                self.schedule_callback(character.id, character, delay)
 
         self.is_initialized = True
 
-    def register_event(self, event: Event, trigger_time: int) -> bool:
+    def schedule_event(self, event: Event, trigger_time: int) -> bool:
         """
-        注册自定义事件
+        调度自定义事件
 
         Args:
-            event: 要注册的事件
+            event: 要调度的事件
             trigger_time: 触发时间（绝对时间）
 
         Returns:
-            bool: 如果成功注册返回True，否则返回False
+            bool: 如果成功调度返回True，否则返回False
         """
-        current_time = self.calendar.get_timestamp()
+        current_time = self.get_time_callback()
         if trigger_time < current_time:
-            return False  # 不能在过去注册事件
+            return False  # 不能在过去调度事件
 
         delay = trigger_time - current_time
-        try:
-            self.time_wheel.schedule_with_delay(event.id, event, delay)
-            return True
-        except (ValueError, AssertionError):
-            # 例如，如果事件ID已经存在
-            return False
+        return self.schedule_with_delay(event.id, event, delay)
 
-    def execute_next_action(self) -> List[Event]:
+    def schedule_with_delay(self, key: str, event: Event, delay: int) -> bool:
         """
-        推进时间直到下一个事件发生，并执行该时间点的所有事件。
+        使用延迟时间调度事件
 
-        此方法是游戏主循环的核心驱动力。它会高效地跳过空闲时间。
+        Args:
+            key: 事件键值
+            event: 要调度的事件
+            delay: 延迟时间（小时）
 
         Returns:
-            List[Event]: 在当前时间点执行的所有事件的列表。如果没有更多事件，则返回空列表。
+            bool: 如果成功调度返回True，否则返回False
         """
-        # 1. 推进时间轮和游戏时间到下一个有事件的时间点
-        ticks_advanced = self.time_wheel.advance_to_next_event()
+        return self.schedule_callback(key, event, delay)
 
-        # 如果advance_to_next_event跑完一整圈都没找到事件，说明没有事件了
-        if ticks_advanced >= self.time_wheel.buffer_size and self.time_wheel.pop_due_event() is None:
-            return []
+    def get_due_event(self) -> Optional[Event]:
+        """
+        获取当前时间到期的下一个事件
 
-        # 2. 与游戏时间同步
-        if ticks_advanced > 0:
-            self.calendar.advance_time(ticks_advanced, TimeUnit.HOUR)
+        Returns:
+            Optional[Event]: 到期的事件，如果没有则返回None
+        """
+        event_tuple = self.pop_callback()
+        if event_tuple is None:
+            return None
 
-        # 3. 获取并执行当前时间槽的所有事件
-        processed_events: List[Event] = []
-        while True:
-            event_tuple = self.time_wheel.pop_due_event()
-            if event_tuple is None:
-                break
+        _key, event = event_tuple
+        return event
 
-            _key, event = event_tuple
-            processed_events.append(event)
+    def execute_events(self, events: List[Event]) -> None:
+        """
+        执行事件列表
 
-            # 执行事件并记录历史
+        Args:
+            events: 要执行的事件列表
+        """
+        for event in events:
             self._execute_event(event)
-
-        # 4. 如果处理了事件，推进时间 (一个象征性的tick，防止无限循环)
-        if processed_events:
-            self.calendar.advance_time(1, TimeUnit.HOUR)
-
-        return processed_events
 
     def _execute_event(self, event: Event) -> None:
         """
@@ -313,11 +313,11 @@ class CTBManager:
         if event.event_type == EventType.CHARACTER_ACTION and isinstance(event, Character):
             character = event
             if character.is_active:
-                current_time = self.calendar.get_timestamp()
+                current_time = self.get_time_callback()
                 next_time = character.calculate_next_action_time(current_time)
                 character.trigger_time = next_time
                 delay = next_time - current_time
-                self.time_wheel.schedule_with_delay(character.id, character, delay)
+                self.schedule_with_delay(character.id, character, delay)
 
     def _record_action(self, event: Event) -> None:
         """
@@ -326,14 +326,11 @@ class CTBManager:
         Args:
             event: 执行的事件
         """
+        current_time = self.get_time_callback()
         record = {
             'event_name': event.name,
             'event_type': event.event_type.name,
-            'timestamp': self.calendar.get_timestamp(),
-            'gregorian_year': self.calendar.current_gregorian_year,
-            'month': self.calendar.current_month,
-            'day': self.calendar.current_day_in_month,
-            'hour_in_day': self.calendar.current_hour_in_day
+            'timestamp': current_time,
         }
         self.action_history.append(record)
 
@@ -352,70 +349,37 @@ class CTBManager:
 
         # 如果角色被设置为不活跃，从时间轮中移除其未来的行动
         if not active:
-            self.time_wheel.remove(character_id)
+            self.remove_callback(character_id)
 
         # 如果角色被重新激活，需要手动为他安排下一次行动
-        # 否则他会等到自然触发的execute才被重新调度
-        elif active and character_id not in self.time_wheel:
-            current_time = self.calendar.get_timestamp()
+        elif active:
+            current_time = self.get_time_callback()
             next_time = character.calculate_next_action_time(current_time)
             character.trigger_time = next_time
             delay = next_time - current_time
-            self.time_wheel.schedule_with_delay(character.id, character, delay)
+            self.schedule_with_delay(character.id, character, delay)
 
         return True
-
-    def get_action_list(self, count: int) -> List[Dict[str, Any]]:
-        """
-        获取未来的行动列表，用于UI显示
-
-        Args:
-            count: 要获取的行动数量
-
-        Returns:
-            一个包含行动信息的字典列表
-        """
-        # 预览未来的所有事件
-        events_tuples = self.time_wheel.peek_upcoming_events(
-            count=self.TIME_WHEEL_SIZE,
-            max_events=count
-        )
-
-        action_list = []
-        current_time = self.calendar.get_timestamp()
-
-        for key, event in events_tuples:
-            if isinstance(event, Character):
-                remaining_time = event.trigger_time - current_time
-                action_list.append({
-                    "id": event.id,
-                    "name": event.name,
-                    "type": event.event_type.name,
-                    "time_until": remaining_time,
-                    "trigger_time": event.trigger_time
-                })
-
-        return action_list
 
     def get_status_text(self) -> str:
         """获取系统当前状态的文本描述"""
         if not self.is_initialized:
             return "CTB系统未初始化"
 
+        current_time = self.get_time_callback()
+        active_characters = sum(1 for c in self.characters.values() if c.is_active)
+
         status_lines = [
             "=== CTB系统状态 ===",
-            f"  时间轮大小: {self.time_wheel.buffer_size} 小时",
-            f"  当前偏移: {self.time_wheel.offset}",
-            f"  事件总数: {len(self.time_wheel)}",
+            f"  当前时间: {current_time} 小时",
             f"  角色数量: {len(self.characters)}",
-            f"  活跃角色: {sum(1 for c in self.characters.values() if c.is_active)}",
+            f"  活跃角色: {active_characters}",
         ]
 
-        # 使用 peek_upcoming_events 安全地获取下一个事件
-        next_events = self.time_wheel.peek_upcoming_events(count=self.time_wheel.buffer_size, max_events=1)
+        # 获取下一个事件
+        next_events = self.peek_callback(count=1, max_events=1)
         if next_events:
             _key, next_event = next_events[0]
-            current_time = self.calendar.get_timestamp()
             delay = next_event.trigger_time - current_time
             if delay <= 0:
                 status_lines.append(f"  下个行动: 立即执行 ({next_event.name})")
@@ -434,6 +398,7 @@ class CTBManager:
             List[Dict[str, Any]]: 角色信息列表
         """
         info_list = []
+        current_time = self.get_time_callback()
 
         for character in self.characters.values():
             info = {
@@ -444,11 +409,12 @@ class CTBManager:
             }
 
             # 尝试从时间轮中获取下次行动时间
-            event = self.time_wheel.get(character.id)
-            if event:
-                current_time = self.calendar.get_timestamp()
-                info['next_action_time'] = event.trigger_time
-                info['time_until_action'] = event.trigger_time - current_time
+            events = self.peek_callback(count=1, max_events=1)
+            for key, event in events:
+                if key == character.id:
+                    info['next_action_time'] = event.trigger_time
+                    info['time_until_action'] = event.trigger_time - current_time
+                    break
 
             info_list.append(info)
 
@@ -456,16 +422,15 @@ class CTBManager:
 
     def get_next_action_time_info(self) -> str:
         """获取下一个行动的时间信息"""
-        # 使用 peek_upcoming_events 安全地获取下一个事件
-        next_events = self.time_wheel.peek_upcoming_events(count=self.time_wheel.buffer_size, max_events=1)
-        if next_events:
-            _key, next_event = next_events[0]
-            current_time = self.calendar.get_timestamp()
-            delay = next_event.trigger_time - current_time
-            if delay <= 0:
-                # 如果有事件已经到期（或即将到期），返回格式化的时间
-                return self.calendar.format_date_era()
-            else:
-                # 否则，返回剩余的小时数
-                return f"{delay}小时后"
-        return "无"
+        next_events = self.peek_callback(count=1, max_events=1)
+        if not next_events:
+            return "无"
+
+        current_time = self.get_time_callback()
+        _key, next_event = next_events[0]
+        delay = next_event.trigger_time - current_time
+
+        if delay <= 0:
+            return "立即执行"
+        else:
+            return f"{delay}小时后"

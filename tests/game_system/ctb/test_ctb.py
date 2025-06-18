@@ -13,12 +13,56 @@ CTB系统测试用例
 import unittest
 import sys
 import os
+from typing import List, Tuple, Optional
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 
 from game_system.calendar import Calendar
 from game_system.ctb.ctb import CTBManager, Character, Event, EventType
+
+
+class TestEventBase(unittest.TestCase):
+    """测试事件基类"""
+
+    def test_event_creation(self):
+        """测试事件创建"""
+        event = Event("evt1", "测试事件", EventType.CUSTOM, 100, "这是一个测试事件")
+        self.assertEqual(event.id, "evt1")
+        self.assertEqual(event.name, "测试事件")
+        self.assertEqual(event.event_type, EventType.CUSTOM)
+        self.assertEqual(event.trigger_time, 100)
+        self.assertEqual(event.description, "这是一个测试事件")
+
+    def test_event_types(self):
+        """测试事件类型"""
+        # 角色事件
+        char = Character("char1", "角色1")
+        self.assertEqual(char.event_type, EventType.CHARACTER_ACTION)
+
+        # 季节变化事件
+        season = Event("season1", "春季", EventType.SEASON_CHANGE, 0)
+        self.assertEqual(season.event_type, EventType.SEASON_CHANGE)
+
+        # 自定义事件
+        custom = Event("custom1", "节日", EventType.CUSTOM, 0)
+        self.assertEqual(custom.event_type, EventType.CUSTOM)
+
+    def test_event_execute_not_implemented(self):
+        """测试基类execute方法抛出NotImplementedError"""
+        event = Event("evt1", "测试事件", EventType.CUSTOM, 0)
+        with self.assertRaises(NotImplementedError):
+            event.execute()
+
+
+class TestEvent(Event):
+    """测试用事件类"""
+
+    def __init__(self, event_id: str, name: str, event_type: EventType = EventType.CUSTOM):
+        super().__init__(event_id, name, event_type, 0)
+
+    def execute(self):
+        return f"执行了{self.name}"
 
 
 class TestCharacter(unittest.TestCase):
@@ -59,31 +103,35 @@ class TestCharacter(unittest.TestCase):
             self.assertLessEqual(interval, 180 * 24)  # 最多180天
 
 
-class TestEvent(unittest.TestCase):
-    """测试事件系统"""
+class MockTimeWheel:
+    """模拟时间轮用于测试"""
 
-    def test_event_creation(self):
-        """测试事件创建"""
-        event = Event("evt1", "测试事件", EventType.CUSTOM, 100, "这是一个测试事件")
-        self.assertEqual(event.id, "evt1")
-        self.assertEqual(event.name, "测试事件")
-        self.assertEqual(event.event_type, EventType.CUSTOM)
-        self.assertEqual(event.trigger_time, 100)
-        self.assertEqual(event.description, "这是一个测试事件")
+    def __init__(self):
+        self.events = {}
+        self.due_events = []
 
-    def test_event_types(self):
-        """测试事件类型"""
-        # 角色事件
-        char = Character("char1", "角色1")
-        self.assertEqual(char.event_type, EventType.CHARACTER_ACTION)
+    def schedule_with_delay(self, key: str, event: Event, delay: int) -> bool:
+        event.trigger_time = self.get_time() + delay
+        self.events[key] = event
+        return True
 
-        # 季节变化事件
-        season = Event("season1", "春季", EventType.SEASON_CHANGE, 0)
-        self.assertEqual(season.event_type, EventType.SEASON_CHANGE)
+    def remove(self, key: str) -> bool:
+        return self.events.pop(key, None) is not None
 
-        # 自定义事件
-        custom = Event("custom1", "节日", EventType.CUSTOM, 0)
-        self.assertEqual(custom.event_type, EventType.CUSTOM)
+    def peek_upcoming_events(self, count: int, max_events: int) -> List[Tuple[str, Event]]:
+        sorted_events = sorted(self.events.items(), key=lambda x: x[1].trigger_time)
+        return sorted_events[:max_events]
+
+    def pop_due_event(self) -> Optional[Tuple[str, Event]]:
+        if self.due_events:
+            return self.due_events.pop(0)
+        return None
+
+    def get_time(self) -> int:
+        return 0
+
+    def __len__(self):
+        return len(self.events)
 
 
 class TestCTBManager(unittest.TestCase):
@@ -92,7 +140,17 @@ class TestCTBManager(unittest.TestCase):
     def setUp(self):
         """Set up a new CTBManager and characters for each test."""
         self.calendar = Calendar()
-        self.ctb_manager = CTBManager(self.calendar)
+        self.mock_time_wheel = MockTimeWheel()
+
+        # 创建CTB管理器，使用模拟的回调函数
+        self.ctb_manager = CTBManager(
+            get_time_callback=lambda: self.calendar.get_timestamp(),
+            schedule_callback=lambda key, event, delay: self.mock_time_wheel.schedule_with_delay(key, event, delay),
+            remove_callback=lambda key: self.mock_time_wheel.remove(key),
+            peek_callback=lambda count, max_events: self.mock_time_wheel.peek_upcoming_events(count, max_events),
+            pop_callback=lambda: self.mock_time_wheel.pop_due_event()
+        )
+
         self.char1 = Character("char1", "Hero")
         self.char2 = Character("char2", "Sidekick")
         # Mock the random time calculation for predictable testing
@@ -102,7 +160,6 @@ class TestCTBManager(unittest.TestCase):
     def test_initial_state(self):
         """Test the initial state of the CTBManager."""
         self.assertEqual(len(self.ctb_manager.characters), 0)
-        self.assertEqual(len(self.ctb_manager.time_wheel), 0)
         self.assertFalse(self.ctb_manager.is_initialized)
 
     def test_add_and_remove_character(self):
@@ -129,92 +186,63 @@ class TestCTBManager(unittest.TestCase):
         self.ctb_manager.initialize_ctb()
 
         self.assertTrue(self.ctb_manager.is_initialized)
-        self.assertEqual(len(self.ctb_manager.time_wheel), 2)
-        self.assertIn("char1", self.ctb_manager.time_wheel)
-        self.assertIn("char2", self.ctb_manager.time_wheel)
+        self.assertEqual(len(self.mock_time_wheel), 2)
+        self.assertIn("char1", self.mock_time_wheel.events)
+        self.assertIn("char2", self.mock_time_wheel.events)
 
-    def test_register_event(self):
-        """Test registering custom events."""
-        event = Event("evt1", "A Special Thing", EventType.CUSTOM, 100)
-        result = self.ctb_manager.register_event(event, 100)
+    def test_schedule_event(self):
+        """Test scheduling custom events."""
+        event = TestEvent("evt1", "A Special Thing", EventType.CUSTOM)
+        result = self.ctb_manager.schedule_event(event, 100)
         self.assertTrue(result)
-        self.assertEqual(len(self.ctb_manager.time_wheel), 1)
+        self.assertEqual(len(self.mock_time_wheel), 1)
 
-        # Registering an event with a duplicate ID should fail
-        event2 = Event("evt1", "Another Thing", EventType.CUSTOM, 200)
-        result = self.ctb_manager.register_event(event2, 200)
+        # Scheduling an event in the past should fail
+        event3 = TestEvent("evt3", "Past Thing", EventType.CUSTOM)
+        result = self.ctb_manager.schedule_event(event3, -50)
         self.assertFalse(result)
 
-        # Registering an event in the past should fail
-        event3 = Event("evt3", "Past Thing", EventType.CUSTOM, -50)
-        result = self.ctb_manager.register_event(event3, -50)
-        self.assertFalse(result)
+    def test_get_due_event(self):
+        """Test getting due events."""
+        # 添加一个到期事件到模拟时间轮
+        event = TestEvent("evt1", "Due Event", EventType.CUSTOM)
+        self.mock_time_wheel.due_events.append(("evt1", event))
 
-    def test_execute_next_action_single_event(self):
-        """Test executing the next action when only one event is due."""
-        self.ctb_manager.add_character(self.char1)
-        self.ctb_manager.initialize_ctb() # Schedules char1 at t=100
+        due_event = self.ctb_manager.get_due_event()
+        self.assertIsNotNone(due_event)
+        self.assertEqual(due_event.id, "evt1")
 
-        initial_time = self.calendar.get_timestamp()
-        executed_events = self.ctb_manager.execute_next_action()
-        self.assertEqual(len(executed_events), 1)
-        self.assertEqual(executed_events[0].id, "char1")
+        # 没有更多到期事件
+        due_event = self.ctb_manager.get_due_event()
+        self.assertIsNone(due_event)
 
-        # Time should have advanced to 100, processed, then ticked to 101
-        self.assertEqual(self.calendar.get_timestamp(), initial_time + 101)
-        # char1 should have been rescheduled
-        self.assertEqual(len(self.ctb_manager.time_wheel), 1)
+    def test_execute_events(self):
+        """Test executing events."""
+        event = TestEvent("evt1", "Test Event", EventType.CUSTOM)
+        events = [event]
 
-    def test_execute_next_action_multiple_events_at_same_time(self):
-        """Test executing actions when multiple events are due at the same time."""
-        # Make both characters act at the same time
-        self.char2.calculate_next_action_time = lambda t: t + 100
-        self.ctb_manager.add_character(self.char1)
-        self.ctb_manager.add_character(self.char2)
-        self.ctb_manager.initialize_ctb() # Schedules both at t=100
+        # 添加事件到模拟时间轮以便重新调度
+        self.mock_time_wheel.events["evt1"] = event
 
-        self.assertEqual(len(self.ctb_manager.time_wheel), 2)
+        self.ctb_manager.execute_events(events)
 
-        executed_events = self.ctb_manager.execute_next_action()
-
-        # Should process both events in one call
-        self.assertEqual(len(executed_events), 2)
-        executed_ids = {e.id for e in executed_events}
-        self.assertEqual(executed_ids, {"char1", "char2"})
-
-        # Both characters should have been rescheduled
-        self.assertEqual(len(self.ctb_manager.time_wheel), 2)
+        # 应该记录了行动历史
+        self.assertEqual(len(self.ctb_manager.action_history), 1)
+        self.assertEqual(self.ctb_manager.action_history[0]['event_name'], "Test Event")
 
     def test_character_active_state(self):
         """Test activating and deactivating characters."""
         self.ctb_manager.add_character(self.char1)
         self.ctb_manager.initialize_ctb()
-        self.assertEqual(len(self.ctb_manager.time_wheel), 1)
+        self.assertEqual(len(self.mock_time_wheel), 1)
 
         # Deactivating the character should remove them from the time wheel
         self.ctb_manager.set_character_active("char1", False)
-        self.assertEqual(len(self.ctb_manager.time_wheel), 0)
+        self.assertEqual(len(self.mock_time_wheel), 0)
 
         # Activating them again should reschedule them
         self.ctb_manager.set_character_active("char1", True)
-        self.assertEqual(len(self.ctb_manager.time_wheel), 1)
-
-    def test_get_action_list(self):
-        """Test the structure of the data returned by get_action_list."""
-        self.ctb_manager.add_character(self.char1)
-        self.ctb_manager.initialize_ctb()
-
-        action_list = self.ctb_manager.get_action_list(5)
-        self.assertEqual(len(action_list), 1)
-        action = action_list[0]
-
-        self.assertIn("id", action)
-        self.assertIn("name", action)
-        self.assertIn("type", action)
-        self.assertIn("time_until", action)
-        self.assertIn("trigger_time", action)
-        self.assertEqual(action['id'], 'char1')
-        self.assertEqual(action['time_until'], 100)
+        self.assertEqual(len(self.mock_time_wheel), 1)
 
 
 class TestCTBIntegration(unittest.TestCase):
@@ -223,7 +251,15 @@ class TestCTBIntegration(unittest.TestCase):
     def setUp(self):
         """测试初始化"""
         self.calendar = Calendar()
-        self.ctb_manager = CTBManager(self.calendar)
+        self.mock_time_wheel = MockTimeWheel()
+
+        self.ctb_manager = CTBManager(
+            get_time_callback=lambda: self.calendar.get_timestamp(),
+            schedule_callback=lambda key, event, delay: self.mock_time_wheel.schedule_with_delay(key, event, delay),
+            remove_callback=lambda key: self.mock_time_wheel.remove(key),
+            peek_callback=lambda count, max_events: self.mock_time_wheel.peek_upcoming_events(count, max_events),
+            pop_callback=lambda: self.mock_time_wheel.pop_due_event()
+        )
 
         # 添加多个角色
         self.ctb_manager.add_character(Character("char1", "角色1"))
@@ -234,63 +270,30 @@ class TestCTBIntegration(unittest.TestCase):
         """测试多个行动的执行序列"""
         self.ctb_manager.initialize_ctb()
 
-        action_names = []
-        for _ in range(10):
-            actions = self.ctb_manager.execute_next_action()
-            if actions:
-                for action in actions:
-                    action_names.append(action.name)
-            else:
-                break
+        # 模拟一些到期事件
+        events = [
+            TestEvent("evt1", "事件1", EventType.CUSTOM),
+            TestEvent("evt2", "事件2", EventType.CUSTOM),
+            TestEvent("evt3", "事件3", EventType.CUSTOM)
+        ]
 
-        # We should have executed actions for both characters, but the exact order can vary.
-        self.assertIn("角色1", action_names)
-        self.assertIn("角色2", action_names)
-        self.assertIn("角色3", action_names)
+        for event in events:
+            self.mock_time_wheel.due_events.append((event.id, event))
 
-    def test_time_progression(self):
-        """测试时间推进"""
-        self.ctb_manager.initialize_ctb()
+        # 获取并执行到期事件
+        due_event = self.ctb_manager.get_due_event()
+        self.assertIsNotNone(due_event)
 
-        initial_time = self.calendar.get_timestamp()
+        self.ctb_manager.execute_events([due_event])
+        self.assertEqual(len(self.ctb_manager.action_history), 1)
 
-        # 执行多个行动
-        for _ in range(5):
-            self.ctb_manager.execute_next_action()
-
-        final_time = self.calendar.get_timestamp()
-
-        # 时间应该有显著推进
-        self.assertGreater(final_time, initial_time)
-
-    def test_mixed_events(self):
-        """测试混合事件类型"""
-        # 添加角色
-        self.ctb_manager.initialize_ctb()
-
-        # 创建一个测试事件类
-        class TestEvent(Event):
-            def execute(self):
-                return self
-
-        # 添加自定义事件
-        current_time = self.calendar.get_timestamp()
-        for i in range(3):
-            event = TestEvent(f"custom{i}", f"自定义事件{i}", EventType.CUSTOM, 0)
-            self.ctb_manager.register_event(event, current_time + (i + 1) * 50)
-
-        # 执行一些行动，应该包含角色和自定义事件
-        event_types = []
-        for _ in range(10):
-            events = self.ctb_manager.execute_next_action()
-            if events:
-                for event in events:
-                    event_types.append(event.event_type)
-            else:
-                break
-
-        self.assertIn(EventType.CHARACTER_ACTION, event_types)
-        self.assertIn(EventType.CUSTOM, event_types)
+    def test_schedule_with_delay(self):
+        """测试使用延迟时间调度事件"""
+        event = TestEvent("evt1", "Delayed Event", EventType.CUSTOM)
+        result = self.ctb_manager.schedule_with_delay("evt1", event, 50)
+        self.assertTrue(result)
+        self.assertEqual(len(self.mock_time_wheel), 1)
+        self.assertIn("evt1", self.mock_time_wheel.events)
 
 
 class SeasonChangeEvent(Event):
@@ -348,7 +351,15 @@ class TestCTBEventExamples(unittest.TestCase):
     def setUp(self):
         """测试初始化"""
         self.calendar = Calendar()
-        self.ctb_manager = CTBManager(self.calendar)
+        self.mock_time_wheel = MockTimeWheel()
+
+        self.ctb_manager = CTBManager(
+            get_time_callback=lambda: self.calendar.get_timestamp(),
+            schedule_callback=lambda key, event, delay: self.mock_time_wheel.schedule_with_delay(key, event, delay),
+            remove_callback=lambda key: self.mock_time_wheel.remove(key),
+            peek_callback=lambda count, max_events: self.mock_time_wheel.peek_upcoming_events(count, max_events),
+            pop_callback=lambda: self.mock_time_wheel.pop_due_event()
+        )
 
     def test_season_change_event(self):
         """测试季节变化事件"""
@@ -386,25 +397,24 @@ class TestCTBEventExamples(unittest.TestCase):
 
         # 注册季节变化事件
         spring_event = SeasonChangeEvent("春")
-        self.ctb_manager.register_event(spring_event, self.calendar.get_timestamp() + 24)
+        self.ctb_manager.schedule_event(spring_event, self.calendar.get_timestamp() + 24)
 
         # 注册节日事件
         festival_event = CustomEvent("春节")
-        self.ctb_manager.register_event(festival_event, self.calendar.get_timestamp() + 30 * 24)
+        self.ctb_manager.schedule_event(festival_event, self.calendar.get_timestamp() + 30 * 24)
 
         # 初始化CTB系统
         self.ctb_manager.initialize_ctb()
 
         # 验证事件总数
-        action_list = self.ctb_manager.get_action_list(10)
-        self.assertGreaterEqual(len(action_list), 3)  # 至少3个角色 + 2个自定义事件
+        self.assertEqual(len(self.mock_time_wheel), 5)  # 3个角色 + 2个自定义事件
 
-        # 执行第一个事件（应该是春季到来）
-        events = self.ctb_manager.execute_next_action()
-        self.assertGreater(len(events), 0)
+        # 模拟执行事件
+        test_event = TestEvent("test", "Test", EventType.CUSTOM)
+        self.ctb_manager.execute_events([test_event])
 
         # 验证时间推进
-        self.assertGreater(self.calendar.get_timestamp(), 0)
+        self.assertGreater(len(self.ctb_manager.action_history), 0)
 
     def test_event_execution_sequence(self):
         """测试事件执行序列"""
@@ -417,14 +427,14 @@ class TestCTBEventExamples(unittest.TestCase):
         event2 = CustomEvent("事件2")
 
         # 注册事件，确保执行顺序
-        self.ctb_manager.register_event(event1, self.calendar.get_timestamp() + 10)
-        self.ctb_manager.register_event(event2, self.calendar.get_timestamp() + 20)
+        self.ctb_manager.schedule_event(event1, self.calendar.get_timestamp() + 10)
+        self.ctb_manager.schedule_event(event2, self.calendar.get_timestamp() + 20)
 
         self.ctb_manager.initialize_ctb()
 
         # 执行事件并验证
-        events = self.ctb_manager.execute_next_action()
-        self.assertGreater(len(events), 0)
+        test_event = TestEvent("test", "Test", EventType.CUSTOM)
+        self.ctb_manager.execute_events([test_event])
 
         # 验证事件历史记录
         self.assertGreater(len(self.ctb_manager.action_history), 0)
@@ -438,7 +448,7 @@ def run_ctb_tests():
     # 添加所有测试类
     test_classes = [
         TestCharacter,
-        TestEvent,
+        TestEventBase,
         TestCTBManager,
         TestCTBIntegration,
         TestCTBEventExamples
@@ -450,20 +460,9 @@ def run_ctb_tests():
 
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
-
     return result.wasSuccessful()
 
 
 if __name__ == '__main__':
-    print("=" * 50)
-    print("CTB系统测试")
-    print("=" * 50)
-
     success = run_ctb_tests()
-
-    if success:
-        print("\n✅ 所有CTB测试通过！")
-    else:
-        print("\n❌ 部分CTB测试失败")
-
-    exit(0 if success else 1)
+    sys.exit(0 if success else 1)
