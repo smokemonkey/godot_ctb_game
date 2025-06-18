@@ -125,22 +125,23 @@ class IndexedTimeWheel(Generic[T]):
             return node_to_pop.key, node_to_pop.value
 
     def _tick(self):
-        """推进时间轮一小时，并移动接近的远期事件到主轮。"""
-        self.total_ticks += 1
-        self.offset = self.total_ticks % self.buffer_size
+        with self._lock:
+            """推进时间轮一小时，并移动接近的远期事件到主轮。"""
+            self.total_ticks += 1
+            self.offset = self.total_ticks % self.buffer_size
 
-        # 检查是否有远期事件需要移动到主轮
-        # 由于列表已按absolute_hour排序，只需要检查第一个元素
-        while self.future_events and self.future_events[0][0] <= self.total_ticks:
-            absolute_hour, node = self.future_events.pop(0)
+            # 检查是否有远期事件需要移动到主轮
+            # 由于列表已按absolute_hour排序，只需要检查第一个元素
+            while self.future_events and self.future_events[0][0] <= self.total_ticks:
+                absolute_hour, node = self.future_events.pop(0)
 
-            # 将到期的远期事件插入时间轮的最远端槽位 (offset-1)
-            # 这样事件会在时间轮中正确的时间点被触发
-            target_index = (self.offset - 1) % self.buffer_size
-            node.slot_index = target_index
-            self._schedule(node, target_index)
+                # 将到期的远期事件插入时间轮的最远端槽位 (offset-1)
+                # 这样事件会在时间轮中正确的时间点被触发
+                target_index = (self.offset - 1) % self.buffer_size
+                node.slot_index = target_index
+                self._schedule(node, target_index)
 
-        assert not self.future_events or self.future_events[0][0] > self.total_ticks
+            assert not self.future_events or self.future_events[0][0] > self.total_ticks
 
     def advance_to_next_event(self) -> int:
         """
@@ -153,20 +154,19 @@ class IndexedTimeWheel(Generic[T]):
         Returns:
             int: 时间推进的小时数。
         """
-        with self._lock:
-            ticks = 0
-            # 最多检查 buffer_size 次，防止无限循环
-            for _ in range(self.buffer_size):
-                if not self._is_current_slot_empty():
-                    # TODO: 时间推进，数据已改变，通知UI重新渲染
-                    return ticks
-                self._tick()
-                ticks += 1
+        ticks = 0
+        # 最多检查 buffer_size 次，防止无限循环
+        for _ in range(self.buffer_size):
+            if not self._is_current_slot_empty():
+                # TODO: 时间推进，数据已改变，通知UI重新渲染
+                return ticks
+            self._tick()
+            ticks += 1
 
-            # TODO: 这种情况可能意味着所有剩余的事件都在远期事件堆中，
-            # 且它们的触发时间超出了当前时间轮的一整圈。
-            # 未来的版本需要更完善的逻辑来处理这种情况, 但目前，这被视为一个异常状态。
-            raise RuntimeError("advance_to_next_event completed a full cycle without finding any event in the wheel.")
+        # TODO: 这种情况可能意味着所有剩余的事件都在远期事件堆中，
+        # 且它们的触发时间超出了当前时间轮的一整圈。
+        # 未来的版本需要更完善的逻辑来处理这种情况, 但目前，这被视为一个异常状态。
+        raise RuntimeError("advance_to_next_event completed a full cycle without finding any event in the wheel.")
 
     def remove(self, key: Any) -> Optional[T]:
         """从时间轮或远期事件列表中移除一个事件。"""
