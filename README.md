@@ -311,7 +311,7 @@ time_manager.advance_time(100, TimeUnit.DAY)
 
 # 3. 获取时间信息
 info = time_manager.get_time_info()
-print(f"当前年份: {info['year']}")  # 输出: -1998 (经过了100天)
+print(f"当前年份: {info['gregorian_year']}")  # 输出: -1998 (经过了100天)
 gregorian_date = time_manager.get_formatted_time(0)
 print(gregorian_date)  # "公元前2000年1月1日"
 

@@ -81,7 +81,7 @@ class GameWorld:
         # 2. 初始化时间轮，传入全局时间戳回调
         self._time_wheel = IndexedTimeWheel(
             self.config.time_wheel_size,
-            get_time_callback=lambda: self._calendar.get_time_info()['total_hours']
+            get_time_callback=lambda: self._calendar.get_timestamp()
         )
 
         # 3. 设置组件间的协作关系
@@ -116,27 +116,6 @@ class GameWorld:
         self._trigger_event('game_stopped')
         print(f"游戏世界已停止 - 当前时间: {self._calendar.format_date_gregorian()}")
 
-    def schedule_event(self, event_id: str, event_data: Any, delay_hours: int) -> bool:
-        """调度游戏事件"""
-        try:
-            self._time_wheel.schedule_with_delay(event_id, event_data, delay_hours)
-            self._trigger_event('event_scheduled', {'event_id': event_id, 'delay': delay_hours})
-            return True
-        except (ValueError, AssertionError):
-            return False
-
-    def remove_event(self, event_id: str) -> Optional[Any]:
-        """移除游戏事件"""
-        result = self._time_wheel.remove(event_id)
-        if result is not None:
-            self._trigger_event('event_removed', {'event_id': event_id})
-        return result
-
-    def start_new_era(self, era_name: str) -> None:
-        """开始新纪元"""
-        self._calendar.start_new_era(era_name)
-        self._trigger_event('era_changed', {'era_name': era_name})
-
     # ==================== 查询接口 ====================
 
     @property
@@ -157,13 +136,13 @@ class GameWorld:
     @property
     def turn_count(self) -> int:
         """当前回合数（基于calendar的total_hours）"""
-        return self._calendar.get_time_info()['total_hours']
+        return self._calendar.get_timestamp()
 
     def get_game_status(self) -> Dict[str, Any]:
         """获取游戏状态信息"""
         return {
             'is_running': self._game_running,
-            'turn_count': self._calendar.get_time_info()['total_hours'],
+            'turn_count': self._calendar.get_timestamp(),
             'current_time': self._calendar.get_time_info(),
             'character_count': 0,  # 暂时设为0
             'pending_events': len(self._time_wheel),
@@ -216,13 +195,13 @@ class GameWorld:
     def _auto_save(self) -> None:
         """自动保存游戏状态"""
         # TODO: 实现自动保存逻辑
-        self._trigger_event('auto_save', {'turn': self._calendar.get_time_info()['total_hours']})
+        self._trigger_event('auto_save', {'turn': self._calendar.get_timestamp()})
 
     def _advance_tick(self) -> None:
         # 1. 原子推进 - 所有时间相关操作都在锁内
         with self._lock:
             # 只通过Calendar推进时间，Calendar是唯一的时间源
-            self._calendar.advance_time(1, TimeUnit.HOUR)
+            self._calendar.advance_time_tick()
             # 时间轮从Calendar获取当前时间并更新
             self._time_wheel.advance_wheel()
 
@@ -232,7 +211,7 @@ class GameWorld:
             self._auto_save()
             self._auto_save_counter = 0
         self._trigger_event('tick_ended', {
-            'tick_number': self._calendar.get_time_info()['total_hours'],
+            'tick_number': self._calendar.get_timestamp(),
             'ticks_advanced': 1,
             'events_executed': 0,
             'current_time': self._calendar.get_time_info(),
@@ -264,7 +243,7 @@ class GameWorld:
         self._calendar.reset()
         self._time_wheel = IndexedTimeWheel(
             self.config.time_wheel_size,
-            get_time_callback=lambda: self._calendar.get_time_info()['total_hours']
+            get_time_callback=lambda: self._calendar.get_timestamp()
         )
 
         # 重新设置协作关系

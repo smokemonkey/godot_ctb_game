@@ -154,7 +154,7 @@ class CTBManager:
         self.TIME_WHEEL_SIZE = time_wheel_size
         self.time_wheel = IndexedTimeWheel[Event](
             self.TIME_WHEEL_SIZE,
-            get_time_callback=lambda: self.calendar.get_time_info()['total_hours']
+            get_time_callback=lambda: self.calendar.get_timestamp()
         )
         self.characters: Dict[str, Character] = {}
         self.is_initialized = False
@@ -222,7 +222,7 @@ class CTBManager:
         if not self.characters:
             raise ValueError("Cannot initialize CTB without characters")
 
-        current_time = self.calendar._total_hours
+        current_time = self.calendar.get_timestamp()
 
         # 为每个活跃角色安排初始行动
         for character in self.characters.values():
@@ -248,7 +248,7 @@ class CTBManager:
         Returns:
             bool: 如果成功注册返回True，否则返回False
         """
-        current_time = self.calendar._total_hours
+        current_time = self.calendar.get_timestamp()
         if trigger_time < current_time:
             return False  # 不能在过去注册事件
 
@@ -313,7 +313,7 @@ class CTBManager:
         if event.event_type == EventType.CHARACTER_ACTION and isinstance(event, Character):
             character = event
             if character.is_active:
-                current_time = self.calendar._total_hours
+                current_time = self.calendar.get_timestamp()
                 next_time = character.calculate_next_action_time(current_time)
                 character.trigger_time = next_time
                 delay = next_time - current_time
@@ -329,11 +329,11 @@ class CTBManager:
         record = {
             'event_name': event.name,
             'event_type': event.event_type.name,
-            'timestamp': self.calendar._total_hours,
-            'year': self.calendar.current_year,
+            'timestamp': self.calendar.get_timestamp(),
+            'gregorian_year': self.calendar.current_gregorian_year,
             'month': self.calendar.current_month,
             'day': self.calendar.current_day_in_month,
-            'hour': self.calendar.current_hour
+            'hour_in_day': self.calendar.current_hour_in_day
         }
         self.action_history.append(record)
 
@@ -357,7 +357,7 @@ class CTBManager:
         # 如果角色被重新激活，需要手动为他安排下一次行动
         # 否则他会等到自然触发的execute才被重新调度
         elif active and character_id not in self.time_wheel:
-            current_time = self.calendar._total_hours
+            current_time = self.calendar.get_timestamp()
             next_time = character.calculate_next_action_time(current_time)
             character.trigger_time = next_time
             delay = next_time - current_time
@@ -382,7 +382,7 @@ class CTBManager:
         )
 
         action_list = []
-        current_time = self.calendar._total_hours
+        current_time = self.calendar.get_timestamp()
 
         for key, event in events_tuples:
             if isinstance(event, Character):
@@ -415,7 +415,7 @@ class CTBManager:
         next_events = self.time_wheel.peek_upcoming_events(count=self.time_wheel.buffer_size, max_events=1)
         if next_events:
             _key, next_event = next_events[0]
-            current_time = self.calendar._total_hours
+            current_time = self.calendar.get_timestamp()
             delay = next_event.trigger_time - current_time
             if delay <= 0:
                 status_lines.append(f"  下个行动: 立即执行 ({next_event.name})")
@@ -446,7 +446,7 @@ class CTBManager:
             # 尝试从时间轮中获取下次行动时间
             event = self.time_wheel.get(character.id)
             if event:
-                current_time = self.calendar._total_hours
+                current_time = self.calendar.get_timestamp()
                 info['next_action_time'] = event.trigger_time
                 info['time_until_action'] = event.trigger_time - current_time
 
@@ -460,7 +460,7 @@ class CTBManager:
         next_events = self.time_wheel.peek_upcoming_events(count=self.time_wheel.buffer_size, max_events=1)
         if next_events:
             _key, next_event = next_events[0]
-            current_time = self.calendar._total_hours
+            current_time = self.calendar.get_timestamp()
             delay = next_event.trigger_time - current_time
             if delay <= 0:
                 # 如果有事件已经到期（或即将到期），返回格式化的时间

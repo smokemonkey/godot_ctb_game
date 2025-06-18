@@ -67,7 +67,7 @@ def demo_event_system():
 
     def on_tick_ended(data):
         print(f"事件: tick {data['tick_number']} 结束，"
-              f"时间: {data['current_time']['year']}年{data['current_time']['month']}月")
+              f"时间: {data['current_time']['gregorian_year']}年{data['current_time']['month']}月")
 
     world.register_event_callback('event_scheduled', on_event_scheduled)
     world.register_event_callback('tick_ended', on_tick_ended)

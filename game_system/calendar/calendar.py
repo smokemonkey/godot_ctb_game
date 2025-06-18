@@ -21,7 +21,7 @@
 from typing import Optional, Tuple
 from enum import Enum
 
-from ..config import EPOCH_START_YEAR
+from ..config import EPOCH_START_YEAR, HOURS_PER_DAY, DAYS_PER_YEAR
 
 
 class TimeUnit(Enum):
@@ -48,33 +48,34 @@ class Calendar:
         >>> calendar.anchor_era("开元", 713)  # 开元元年=公元713年
     """
 
-    HOURS_PER_DAY = 24
-    DAYS_PER_YEAR = 360  # 简化为12个月，每月30天
+    HOURS_PER_DAY = HOURS_PER_DAY
+    DAYS_PER_YEAR = DAYS_PER_YEAR
 
-    BASE_YEAR = EPOCH_START_YEAR  # 公元前722年，鲁隐公元年（春秋开始）
+    BASE_YEAR = EPOCH_START_YEAR
 
     def __init__(self):
         # 当前时间（以小时为最小单位）
-        self._total_hours = 0
+        self._timestamp_hour = 0
+
         # 当前锚定：(纪元名, 元年公元年份)
-        self._current_anchor: Optional[Tuple[str, int]] = None
+        self._current_anchor: Optional[Tuple[str, int]] = ('uninitialized', self.BASE_YEAR)
 
     @property
-    def current_year(self) -> int:
+    def current_gregorian_year(self) -> int:
         """当前年份（公元年）"""
-        total_days = self._total_hours // self.HOURS_PER_DAY
+        total_days = self._timestamp_hour // self.HOURS_PER_DAY
         return self.BASE_YEAR + (total_days // self.DAYS_PER_YEAR)
 
     @property
     def current_day_in_year(self) -> int:
         """当前年中的第几天（1-360）"""
-        total_days = self._total_hours // self.HOURS_PER_DAY
+        total_days = self._timestamp_hour // self.HOURS_PER_DAY
         return (total_days % self.DAYS_PER_YEAR) + 1
 
     @property
-    def current_hour(self) -> int:
+    def current_hour_in_day(self) -> int:
         """当前小时（0-23）"""
-        return self._total_hours % self.HOURS_PER_DAY
+        return self._timestamp_hour % self.HOURS_PER_DAY
 
     @property
     def current_month(self) -> int:
@@ -85,22 +86,6 @@ class Calendar:
     def current_day_in_month(self) -> int:
         """当前月中的第几天（1-30）"""
         return ((self.current_day_in_year - 1) % 30) + 1
-
-    def advance_time(self, amount: int, unit: TimeUnit = TimeUnit.DAY) -> None:
-        """推进时间
-
-        Args:
-            amount (int): 推进的时间数量
-            unit (TimeUnit): 时间单位，默认为天
-
-        Example:
-            >>> calendar.advance_time(5, TimeUnit.DAY)   # 推进5天
-            >>> calendar.advance_time(3, TimeUnit.HOUR)  # 推进3小时
-        """
-        if unit == TimeUnit.DAY:
-            self._total_hours += amount * self.HOURS_PER_DAY
-        elif unit == TimeUnit.HOUR:
-            self._total_hours += amount
 
     def anchor_era(self, era_name: str, gregorian_year: int) -> None:
         """锚定纪元
@@ -118,7 +103,7 @@ class Calendar:
         Example:
             >>> calendar.anchor_era("开元", 713)  # 开元元年=公元713年
         """
-        current_year = self.current_year
+        current_year = self.current_gregorian_year
         if gregorian_year > current_year:
             raise ValueError(f"不能锚定到未来时期：锚定年份{gregorian_year}晚于当前年份{current_year}")
 
@@ -137,41 +122,57 @@ class Calendar:
             >>> calendar.start_new_era("永徽")  # 从当前年份开始永徽纪元
         """
         # 改元就是锚定当前年份为新纪元的元年
-        self.anchor_era(name, self.current_year)
+        self.anchor_era(name, self.current_gregorian_year)
 
     def get_current_era_name(self) -> Optional[str]:
         """获取当前纪元名称"""
         if self._current_anchor:
             era_name, gregorian_year = self._current_anchor
-            current_year = self.current_year
+            current_year = self.current_gregorian_year
 
             # 如果当前年份在纪元范围内
             if current_year >= gregorian_year:
                 return era_name
 
-        return None
+        raise Exception("current year earlier than anchor year")
 
     def get_current_era_year(self) -> Optional[int]:
         """获取当前纪元年份"""
         if self._current_anchor:
             era_name, gregorian_year = self._current_anchor
-            current_year = self.current_year
+            current_year = self.current_gregorian_year
 
             # 如果当前年份在纪元范围内
             if current_year >= gregorian_year:
                 return current_year - gregorian_year + 1
 
-        return None
+        raise Exception("current year earlier than anchor year")
+
+    def get_timestamp(self) -> int:
+        """获取当前时间戳（小时数）
+
+        Returns:
+            int: 从起始时间开始的总小时数
+        """
+        return self._timestamp_hour
+
+    def advance_time_tick(self, hours: int = 1) -> None:
+        """推进时间一个tick（默认1小时）
+
+        Args:
+            hours (int): 推进的小时数，默认为1小时
+        """
+        self.advance_time(hours, TimeUnit.HOUR)
 
     def get_time_info(self) -> dict:
         """获取当前时间信息"""
         return {
-            'total_hours': self._total_hours,
-            'year': self.current_year,
+            'timestamp': self._timestamp_hour,
+            'gregorian_year': self.current_gregorian_year,
             'month': self.current_month,
             'day_in_month': self.current_day_in_month,
             'day_in_year': self.current_day_in_year,
-            'hour': self.current_hour,
+            'hour_in_day': self.current_hour_in_day,
             'current_era_name': self.get_current_era_name(),
             'current_era_year': self.get_current_era_year(),
             'current_anchor': self._current_anchor
@@ -179,8 +180,8 @@ class Calendar:
 
     def reset(self) -> None:
         """重置时间到起始状态"""
-        self._total_hours = 0
-        self._current_anchor = None
+        self._timestamp_hour = 0
+        self._current_anchor = ('uninitialized', self.BASE_YEAR)
 
     def format_date_gregorian(self, show_hour: bool = False) -> str:
         """格式化为公历日期显示
@@ -191,10 +192,10 @@ class Calendar:
         Returns:
             格式化的日期字符串
         """
-        year = self.current_year
+        year = self.current_gregorian_year
         month = self.current_month
         day = self.current_day_in_month
-        hour = self.current_hour
+        hour = self.current_hour_in_day
 
         # 处理公元前年份
         if year < 0:
@@ -224,7 +225,7 @@ class Calendar:
 
         month = self.current_month
         day = self.current_day_in_month
-        hour = self.current_hour
+        hour = self.current_hour_in_day
 
         if show_hour:
             return f"{era_name}{era_year}年{month}月{day}日{hour}点"
@@ -241,7 +242,7 @@ class Calendar:
             f"公历: {gregorian}",
             f"纪年: {era}",
             f"年内第{info['day_in_year']}天",
-            f"总计: {info['total_hours']}小时"
+            f"总计: {info['timestamp']}小时"
         ]
 
         # 显示锚定信息

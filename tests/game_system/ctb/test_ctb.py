@@ -91,8 +91,8 @@ class TestCTBManager(unittest.TestCase):
 
     def setUp(self):
         """Set up a new CTBManager and characters for each test."""
-        self.time_manager = Calendar()
-        self.ctb_manager = CTBManager(self.time_manager)
+        self.calendar = Calendar()
+        self.ctb_manager = CTBManager(self.calendar)
         self.char1 = Character("char1", "Hero")
         self.char2 = Character("char2", "Sidekick")
         # Mock the random time calculation for predictable testing
@@ -155,13 +155,13 @@ class TestCTBManager(unittest.TestCase):
         self.ctb_manager.add_character(self.char1)
         self.ctb_manager.initialize_ctb() # Schedules char1 at t=100
 
-        initial_time = self.time_manager._total_hours
+        initial_time = self.calendar.get_timestamp()
         executed_events = self.ctb_manager.execute_next_action()
         self.assertEqual(len(executed_events), 1)
         self.assertEqual(executed_events[0].id, "char1")
 
         # Time should have advanced to 100, processed, then ticked to 101
-        self.assertEqual(self.time_manager._total_hours, initial_time + 101)
+        self.assertEqual(self.calendar.get_timestamp(), initial_time + 101)
         # char1 should have been rescheduled
         self.assertEqual(len(self.ctb_manager.time_wheel), 1)
 
@@ -222,8 +222,8 @@ class TestCTBIntegration(unittest.TestCase):
 
     def setUp(self):
         """测试初始化"""
-        self.time_manager = Calendar()
-        self.ctb_manager = CTBManager(self.time_manager)
+        self.calendar = Calendar()
+        self.ctb_manager = CTBManager(self.calendar)
 
         # 添加多个角色
         self.ctb_manager.add_character(Character("char1", "角色1"))
@@ -252,13 +252,13 @@ class TestCTBIntegration(unittest.TestCase):
         """测试时间推进"""
         self.ctb_manager.initialize_ctb()
 
-        initial_time = self.time_manager._total_hours
+        initial_time = self.calendar.get_timestamp()
 
         # 执行多个行动
         for _ in range(5):
             self.ctb_manager.execute_next_action()
 
-        final_time = self.time_manager._total_hours
+        final_time = self.calendar.get_timestamp()
 
         # 时间应该有显著推进
         self.assertGreater(final_time, initial_time)
@@ -274,7 +274,7 @@ class TestCTBIntegration(unittest.TestCase):
                 return self
 
         # 添加自定义事件
-        current_time = self.time_manager._total_hours
+        current_time = self.calendar.get_timestamp()
         for i in range(3):
             event = TestEvent(f"custom{i}", f"自定义事件{i}", EventType.CUSTOM, 0)
             self.ctb_manager.register_event(event, current_time + (i + 1) * 50)
@@ -347,8 +347,8 @@ class TestCTBEventExamples(unittest.TestCase):
 
     def setUp(self):
         """测试初始化"""
-        self.time_manager = Calendar()
-        self.ctb_manager = CTBManager(self.time_manager)
+        self.calendar = Calendar()
+        self.ctb_manager = CTBManager(self.calendar)
 
     def test_season_change_event(self):
         """测试季节变化事件"""
@@ -386,11 +386,11 @@ class TestCTBEventExamples(unittest.TestCase):
 
         # 注册季节变化事件
         spring_event = SeasonChangeEvent("春")
-        self.ctb_manager.register_event(spring_event, self.time_manager._total_hours + 24)
+        self.ctb_manager.register_event(spring_event, self.calendar.get_timestamp() + 24)
 
         # 注册节日事件
         festival_event = CustomEvent("春节")
-        self.ctb_manager.register_event(festival_event, self.time_manager._total_hours + 30 * 24)
+        self.ctb_manager.register_event(festival_event, self.calendar.get_timestamp() + 30 * 24)
 
         # 初始化CTB系统
         self.ctb_manager.initialize_ctb()
@@ -404,7 +404,7 @@ class TestCTBEventExamples(unittest.TestCase):
         self.assertGreater(len(events), 0)
 
         # 验证时间推进
-        self.assertGreater(self.time_manager._total_hours, 0)
+        self.assertGreater(self.calendar.get_timestamp(), 0)
 
     def test_event_execution_sequence(self):
         """测试事件执行序列"""
@@ -417,8 +417,8 @@ class TestCTBEventExamples(unittest.TestCase):
         event2 = CustomEvent("事件2")
 
         # 注册事件，确保执行顺序
-        self.ctb_manager.register_event(event1, self.time_manager._total_hours + 10)
-        self.ctb_manager.register_event(event2, self.time_manager._total_hours + 20)
+        self.ctb_manager.register_event(event1, self.calendar.get_timestamp() + 10)
+        self.ctb_manager.register_event(event2, self.calendar.get_timestamp() + 20)
 
         self.ctb_manager.initialize_ctb()
 
