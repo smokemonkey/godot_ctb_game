@@ -95,12 +95,11 @@ class IndexedTimeWheel(Generic[T]):
     def _insert_future_event(self, absolute_hour: int, node: _EventNode[T]):
         """将远期事件插入到列表中，从后往前找到正确位置直接插入。"""
         # 从后往前找到插入位置
-        insert_index = len(self.future_events)
+        insert_index = 0
         for i in range(len(self.future_events) - 1, -1, -1):
             if self.future_events[i][0] <= absolute_hour:
                 insert_index = i + 1
                 break
-            insert_index = i
 
         # 在正确位置插入
         self.future_events.insert(insert_index, (absolute_hour, node))
