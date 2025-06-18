@@ -20,7 +20,7 @@ from dataclasses import dataclass
 
 from .calendar.calendar import Calendar, TimeUnit
 from .indexed_time_wheel.indexed_time_wheel import IndexedTimeWheel
-from .ctb.ctb import CTBManager
+from .ctb_manager.ctb_manager import CTBManager
 
 
 @dataclass

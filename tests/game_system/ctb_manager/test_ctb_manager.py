@@ -19,7 +19,7 @@ from typing import List, Tuple, Optional
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 
 from game_system.calendar import Calendar
-from game_system.ctb.ctb import CTBManager, Character, Event, EventType
+from game_system.ctb_manager.ctb_manager import CTBManager, Character, Event, EventType
 
 
 class TestEventBase(unittest.TestCase):
@@ -55,7 +55,7 @@ class TestEventBase(unittest.TestCase):
             event.execute()
 
 
-class TestEvent(Event):
+class MockEvent(Event):
     """测试用事件类"""
 
     def __init__(self, event_id: str, name: str, event_type: EventType = EventType.CUSTOM):
@@ -192,20 +192,20 @@ class TestCTBManager(unittest.TestCase):
 
     def test_schedule_event(self):
         """Test scheduling custom events."""
-        event = TestEvent("evt1", "A Special Thing", EventType.CUSTOM)
+        event = MockEvent("evt1", "A Special Thing", EventType.CUSTOM)
         result = self.ctb_manager.schedule_event(event, 100)
         self.assertTrue(result)
         self.assertEqual(len(self.mock_time_wheel), 1)
 
         # Scheduling an event in the past should fail
-        event3 = TestEvent("evt3", "Past Thing", EventType.CUSTOM)
+        event3 = MockEvent("evt3", "Past Thing", EventType.CUSTOM)
         result = self.ctb_manager.schedule_event(event3, -50)
         self.assertFalse(result)
 
     def test_get_due_event(self):
         """Test getting due events."""
         # 添加一个到期事件到模拟时间轮
-        event = TestEvent("evt1", "Due Event", EventType.CUSTOM)
+        event = MockEvent("evt1", "Due Event", EventType.CUSTOM)
         self.mock_time_wheel.due_events.append(("evt1", event))
 
         due_event = self.ctb_manager.get_due_event()
@@ -218,7 +218,7 @@ class TestCTBManager(unittest.TestCase):
 
     def test_execute_events(self):
         """Test executing events."""
-        event = TestEvent("evt1", "Test Event", EventType.CUSTOM)
+        event = MockEvent("evt1", "Test Event", EventType.CUSTOM)
         events = [event]
 
         # 添加事件到模拟时间轮以便重新调度
@@ -272,9 +272,9 @@ class TestCTBIntegration(unittest.TestCase):
 
         # 模拟一些到期事件
         events = [
-            TestEvent("evt1", "事件1", EventType.CUSTOM),
-            TestEvent("evt2", "事件2", EventType.CUSTOM),
-            TestEvent("evt3", "事件3", EventType.CUSTOM)
+            MockEvent("evt1", "事件1", EventType.CUSTOM),
+            MockEvent("evt2", "事件2", EventType.CUSTOM),
+            MockEvent("evt3", "事件3", EventType.CUSTOM)
         ]
 
         for event in events:
@@ -289,7 +289,7 @@ class TestCTBIntegration(unittest.TestCase):
 
     def test_schedule_with_delay(self):
         """测试使用延迟时间调度事件"""
-        event = TestEvent("evt1", "Delayed Event", EventType.CUSTOM)
+        event = MockEvent("evt1", "Delayed Event", EventType.CUSTOM)
         result = self.ctb_manager.schedule_with_delay("evt1", event, 50)
         self.assertTrue(result)
         self.assertEqual(len(self.mock_time_wheel), 1)
@@ -410,7 +410,7 @@ class TestCTBEventExamples(unittest.TestCase):
         self.assertEqual(len(self.mock_time_wheel), 5)  # 3个角色 + 2个自定义事件
 
         # 模拟执行事件
-        test_event = TestEvent("test", "Test", EventType.CUSTOM)
+        test_event = MockEvent("test", "Test", EventType.CUSTOM)
         self.ctb_manager.execute_events([test_event])
 
         # 验证时间推进
@@ -433,7 +433,7 @@ class TestCTBEventExamples(unittest.TestCase):
         self.ctb_manager.initialize_ctb()
 
         # 执行事件并验证
-        test_event = TestEvent("test", "Test", EventType.CUSTOM)
+        test_event = MockEvent("test", "Test", EventType.CUSTOM)
         self.ctb_manager.execute_events([test_event])
 
         # 验证事件历史记录

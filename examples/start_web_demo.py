@@ -4,7 +4,7 @@
 
 用法:
   python examples/start_web_demo.py           # 默认打开两个演示页面
-  python examples/start_web_demo.py ctb       # 只打开CTB演示
+  python examples/start_web_demo.py ctb_manager       # 只打开CTB演示
   python examples/start_web_demo.py time      # 只打开时间系统演示
   python examples/start_web_demo.py both      # 明确打开两个页面
 """
@@ -88,7 +88,7 @@ def parse_arguments():
         epilog="""
 示例:
   %(prog)s           # 默认打开两个演示页面
-  %(prog)s ctb       # 只打开CTB演示
+  %(prog)s ctb_manager       # 只打开CTB演示
   %(prog)s time      # 只打开时间系统演示
   %(prog)s both      # 明确打开两个页面
         """
@@ -97,7 +97,7 @@ def parse_arguments():
     parser.add_argument(
         'demo',
         nargs='?',
-        choices=['ctb', 'time', 'both'],
+        choices=['ctb_manager', 'time', 'both'],
         default='both',
         help='选择要打开的演示页面 (默认: both)'
     )
@@ -166,7 +166,7 @@ def main():
             try:
                 import time
 
-                if args.demo in ['ctb', 'both']:
+                if args.demo in ['ctb_manager', 'both']:
                     webbrowser.open(ctb_url)
                     print("✅ 已打开CTB演示页面")
 
@@ -179,7 +179,7 @@ def main():
             except Exception as e:
                 print(f"⚠️  无法自动打开浏览器: {e}")
                 print(f"   请手动访问:")
-                if args.demo in ['ctb', 'both']:
+                if args.demo in ['ctb_manager', 'both']:
                     print(f"   CTB演示: {ctb_url}")
                 if args.demo in ['time', 'both']:
                     print(f"   时间演示: {time_url}")

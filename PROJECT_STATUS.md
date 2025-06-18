@@ -154,12 +154,13 @@ print(f"当前：{calendar.format_date_era()}")  # 天宝1年1月1日
 game_system/
 ├── __init__.py                    # 游戏系统根模块
 ├── config.py                      # 配置文件
+├── game_world.py                  # 游戏世界管理器
 ├── calendar/                      # 日历系统模块
 │   ├── __init__.py               # 日历模块导出
 │   └── calendar.py               # 核心日历系统
-├── ctb/                          # CTB战斗系统模块
+├── ctb_manager/                   # CTB战斗系统模块
 │   ├── __init__.py               # CTB模块导出
-│   └── ctb.py                    # CTB战斗系统
+│   └── ctb_manager.py            # CTB战斗系统
 └── indexed_time_wheel/           # 索引时间轮模块
     ├── __init__.py               # 索引时间轮模块导出
     └── indexed_time_wheel.py     # 索引时间轮实现
@@ -171,19 +172,22 @@ tests/
     ├── __init__.py              # 测试根模块
     ├── calendar/                # 日历系统测试
     │   └── test_calendar.py     # 日历系统测试套件
-    ├── ctb/                     # CTB系统测试
+    ├── ctb_manager/             # CTB系统测试
     │   ├── __init__.py          # CTB测试模块
-    │   └── test_ctb.py          # CTB系统测试套件
-    └── indexed_time_wheel/      # 索引时间轮测试
-        ├── __init__.py          # 索引时间轮测试模块
-        └── test_indexed_time_wheel.py  # 索引时间轮测试套件
+    │   └── test_ctb_manager.py  # CTB系统测试套件
+    ├── indexed_time_wheel/      # 索引时间轮测试
+    │   ├── __init__.py          # 索引时间轮测试模块
+    │   └── test_indexed_time_wheel.py  # 索引时间轮测试套件
+    └── test_game_world.py       # 游戏世界测试
 
 examples/
 ├── calendar_demo.html            # 时间系统Web演示
 ├── ctb_web_demo.html             # CTB系统Web演示
-├── ctb_event_examples.py         # CTB事件示例
+├── game_world_demo.py            # 游戏世界演示
 ├── start_web_demo.py             # 演示服务器
 └── data/                         # 示例数据
+    ├── __init__.py              # 数据模块
+    └── ctb_characters.py        # CTB角色数据
 
 docs/
 ├── PROJECT_STATUS.md             # 项目状态 (本文件)
@@ -211,7 +215,7 @@ wheel = IndexedTimeWheel(size=24*30, key_func=lambda e: e['id'])
 wheel.add({'id': 1, 'action': 'attack'}, 10)
 
 time_manager = TimeManager()  # 默认公元前2000年
-ctb = CTBManager(time_manager)
+ctb_manager = CTBManager(time_manager)
 ```
 
 ## 里程碑

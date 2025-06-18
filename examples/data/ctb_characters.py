@@ -14,7 +14,7 @@ import os
 # 添加项目根目录到路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from ctb import Character
+from game_system.ctb_manager.ctb_manager import Character
 
 # 基础测试角色数据
 BASIC_CHARACTERS = [
@@ -26,7 +26,7 @@ BASIC_CHARACTERS = [
         is_active=True
     ),
     Character(
-        id="char_li", 
+        id="char_li",
         name="李四",
         speed=7,
         faction="魏国",
@@ -36,7 +36,7 @@ BASIC_CHARACTERS = [
         id="char_wang",
         name="王五",
         speed=10,
-        faction="吴国", 
+        faction="吴国",
         is_active=True
     )
 ]
@@ -129,16 +129,16 @@ CTB_CONFIGS = {
 def get_characters(group_name: str = "basic"):
     """
     获取指定组的角色列表
-    
+
     Args:
         group_name: 角色组名称 ("basic", "extended", "extreme", "all")
-        
+
     Returns:
         角色列表的深拷贝
     """
     if group_name not in CHARACTER_GROUPS:
         raise ValueError(f"未知的角色组: {group_name}. 可用组: {list(CHARACTER_GROUPS.keys())}")
-    
+
     # 返回深拷贝，避免修改原始数据
     import copy
     return copy.deepcopy(CHARACTER_GROUPS[group_name])
@@ -146,23 +146,23 @@ def get_characters(group_name: str = "basic"):
 def get_ctb_config(config_name: str = "default"):
     """
     获取CTB配置参数
-    
+
     Args:
         config_name: 配置名称
-        
+
     Returns:
         配置字典
     """
     if config_name not in CTB_CONFIGS:
         raise ValueError(f"未知的配置: {config_name}. 可用配置: {list(CTB_CONFIGS.keys())}")
-    
+
     return CTB_CONFIGS[config_name].copy()
 
 def print_character_info(characters=None):
     """打印角色信息，用于调试"""
     if characters is None:
         characters = BASIC_CHARACTERS
-    
+
     print("=== 角色信息 ===")
     for char in characters:
         active_status = "活跃" if char.is_active else "非活跃"
@@ -178,9 +178,9 @@ if __name__ == "__main__":
     # 运行此文件时显示所有角色信息
     print("基础角色组:")
     print_character_info(get_characters("basic"))
-    
+
     print("\n扩展角色组:")
     print_character_info(get_characters("extended"))
-    
+
     print("\n极值速度角色组:")
-    print_character_info(get_characters("extreme")) 
+    print_character_info(get_characters("extreme"))

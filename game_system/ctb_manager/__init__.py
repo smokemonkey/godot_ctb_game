@@ -11,12 +11,18 @@ CTB (Conditional Turn-Based) 战斗系统
 - CTBManager: CTB系统管理器，协调所有组件
 
 使用示例:
-    >>> from game_time import TimeManager
-    >>> from ctb import CTBManager, Character
+    >>> from game_system.calendar import Calendar
+    >>> from game_system.ctb_manager import CTBManager, Character
     >>>
-    >>> # 创建时间和CTB管理器
-    >>> time_mgr = TimeManager()
-    >>> ctb_mgr = CTBManager(time_mgr)
+    >>> # 创建日历和CTB管理器
+    >>> calendar = Calendar()
+    >>> ctb_mgr = CTBManager(
+    ...     get_time_callback=lambda: calendar.get_timestamp(),
+    ...     schedule_callback=lambda key, event, delay: True,
+    ...     remove_callback=lambda key: True,
+    ...     peek_callback=lambda count, max_events: [],
+    ...     pop_callback=lambda: None
+    ... )
     >>>
     >>> # 添加角色
     >>> hero = Character("hero", "英雄")
@@ -28,8 +34,9 @@ CTB (Conditional Turn-Based) 战斗系统
     >>> ctb_mgr.initialize_ctb()
     >>>
     >>> # 执行下一个行动
-    >>> next_action = ctb_mgr.execute_next_action()
-    >>> print(f"{next_action.name} 行动了！")
+    >>> next_action = ctb_mgr.get_due_event()
+    >>> if next_action:
+    ...     print(f"{next_action.name} 行动了！")
 
 最后更新: 2024-12-17
 """
@@ -39,7 +46,7 @@ __version__ = "2.0.0"
 __author__ = "CTB Development Team"
 
 # 导入核心组件
-from .ctb import (
+from .ctb_manager import (
     Character,
     CTBManager,
     Event,
