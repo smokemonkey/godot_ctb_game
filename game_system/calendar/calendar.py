@@ -30,8 +30,8 @@ class TimeUnit(Enum):
     DAY = "day"
 
 
-class TimeManager:
-    """时间管理器 - 负责游戏时间的流逝和控制
+class Calendar:
+    """日历显示器 - 负责时间的格式化显示和时间管理
 
     专为回合制游戏设计的时间系统，支持非匀速时间流逝、精确时间控制和纪年管理。
 
@@ -41,11 +41,11 @@ class TimeManager:
         BASE_YEAR (int): 起始年份，默认公元前722年
 
     Example:
-        >>> time_manager = TimeManager()
-        >>> time_manager.advance_time(30, TimeUnit.DAY)
-        >>> print(f"当前年份: {time_manager.current_year}")
-        >>> time_manager.start_new_era("开元")
-        >>> time_manager.anchor_era("开元", 713)  # 开元元年=公元713年
+        >>> calendar = Calendar()
+        >>> calendar.advance_time(30, TimeUnit.DAY)
+        >>> print(f"当前年份: {calendar.current_year}")
+        >>> calendar.start_new_era("开元")
+        >>> calendar.anchor_era("开元", 713)  # 开元元年=公元713年
     """
 
     HOURS_PER_DAY = 24
@@ -94,8 +94,8 @@ class TimeManager:
             unit (TimeUnit): 时间单位，默认为天
 
         Example:
-            >>> time_manager.advance_time(5, TimeUnit.DAY)   # 推进5天
-            >>> time_manager.advance_time(3, TimeUnit.HOUR)  # 推进3小时
+            >>> calendar.advance_time(5, TimeUnit.DAY)   # 推进5天
+            >>> calendar.advance_time(3, TimeUnit.HOUR)  # 推进3小时
         """
         if unit == TimeUnit.DAY:
             self._total_hours += amount * self.HOURS_PER_DAY
@@ -116,7 +116,7 @@ class TimeManager:
             ValueError: 当锚定年份晚于当前年份时
 
         Example:
-            >>> time_manager.anchor_era("开元", 713)  # 开元元年=公元713年
+            >>> calendar.anchor_era("开元", 713)  # 开元元年=公元713年
         """
         current_year = self.current_year
         if gregorian_year > current_year:
@@ -134,7 +134,7 @@ class TimeManager:
             name: 新纪元名称，如"永徽"、"开元"等
 
         Example:
-            >>> time_manager.start_new_era("永徽")  # 从当前年份开始永徽纪元
+            >>> calendar.start_new_era("永徽")  # 从当前年份开始永徽纪元
         """
         # 改元就是锚定当前年份为新纪元的元年
         self.anchor_era(name, self.current_year)
@@ -182,13 +182,6 @@ class TimeManager:
         self._total_hours = 0
         self._current_anchor = None
 
-
-class Calendar:
-    """日历显示器 - 负责时间的格式化显示"""
-
-    def __init__(self, time_manager: TimeManager):
-        self.time_manager = time_manager
-
     def format_date_gregorian(self, show_hour: bool = False) -> str:
         """格式化为公历日期显示
 
@@ -198,10 +191,10 @@ class Calendar:
         Returns:
             格式化的日期字符串
         """
-        year = self.time_manager.current_year
-        month = self.time_manager.current_month
-        day = self.time_manager.current_day_in_month
-        hour = self.time_manager.current_hour
+        year = self.current_year
+        month = self.current_month
+        day = self.current_day_in_month
+        hour = self.current_hour
 
         # 处理公元前年份
         if year < 0:
@@ -223,15 +216,15 @@ class Calendar:
         Returns:
             格式化的日期字符串
         """
-        era_name = self.time_manager.get_current_era_name()
-        era_year = self.time_manager.get_current_era_year()
+        era_name = self.get_current_era_name()
+        era_year = self.get_current_era_year()
 
         if era_name is None or era_year is None:
             return self.format_date_gregorian(show_hour)
 
-        month = self.time_manager.current_month
-        day = self.time_manager.current_day_in_month
-        hour = self.time_manager.current_hour
+        month = self.current_month
+        day = self.current_day_in_month
+        hour = self.current_hour
 
         if show_hour:
             return f"{era_name}{era_year}年{month}月{day}日{hour}点"
@@ -240,7 +233,7 @@ class Calendar:
 
     def get_time_status_text(self) -> str:
         """获取详细的时间状态文本"""
-        info = self.time_manager.get_time_info()
+        info = self.get_time_info()
         gregorian = self.format_date_gregorian(True)
         era = self.format_date_era(True)
 

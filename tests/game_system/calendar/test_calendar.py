@@ -5,7 +5,7 @@ import os
 # 将项目根目录添加到Python路径
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 
-from game_system.calendar.calendar import TimeManager, TimeUnit, Calendar
+from game_system.calendar.calendar import Calendar, TimeUnit
 from game_system.config import EPOCH_START_YEAR
 
 
@@ -14,8 +14,7 @@ class TestTimeManager(unittest.TestCase):
 
     def setUp(self):
         """测试初始化"""
-        # TimeManager 默认使用 config 中的年份
-        self.time_manager = TimeManager()
+        self.time_manager = Calendar()
 
     def test_initial_state(self):
         """测试初始状态"""
@@ -60,8 +59,7 @@ class TestEraSystem(unittest.TestCase):
     """测试年号系统"""
 
     def setUp(self):
-        self.time_manager = TimeManager()
-        self.calendar = Calendar(self.time_manager)
+        self.time_manager = Calendar()
         # Set current year to -104 for testing
         # To get to year -104 from -2000, we need to advance -104 - (-2000) = 1896 years
         self.time_manager.advance_time(1896 * 360, TimeUnit.DAY)
@@ -83,7 +81,7 @@ class TestEraSystem(unittest.TestCase):
         """测试重置后格式化"""
         self.time_manager.advance_time(100, TimeUnit.DAY)
         self.time_manager.reset()
-        date_str = self.calendar.format_date_gregorian()
+        date_str = self.time_manager.format_date_gregorian()
         self.assertEqual(date_str, f"公元前{abs(EPOCH_START_YEAR)}年1月1日")
 
     def test_format_with_era(self):
@@ -94,13 +92,13 @@ class TestEraSystem(unittest.TestCase):
         self.time_manager.advance_time(5, TimeUnit.HOUR)
 
         # Era is 开元, year is 2 (713 is the 2nd year of the era started in 712)
-        date_str = self.calendar.format_date_era(show_hour=True)
+        date_str = self.time_manager.format_date_era(show_hour=True)
         self.assertEqual(date_str, "开元2年1月6日5点")
 
     def test_start_from_bc_era(self):
         """测试从其他公元前年份开始"""
-        TimeManager.BASE_YEAR = -100
-        time_manager = TimeManager()
+        Calendar.BASE_YEAR = -100
+        time_manager = Calendar()
         self.assertEqual(time_manager.current_year, -100)
         time_manager.advance_time(360 * 100, TimeUnit.DAY) # 推进100年
         # 从-100年推进100年，会到达公元0年 (我们的日历系统包含0年)
@@ -112,13 +110,12 @@ class TestCalendarIntegration(unittest.TestCase):
 
     def setUp(self):
         # Reset BASE_YEAR before each test in this class to ensure isolation
-        TimeManager.BASE_YEAR = EPOCH_START_YEAR
-        self.time_manager = TimeManager()
-        self.calendar = Calendar(self.time_manager)
+        Calendar.BASE_YEAR = EPOCH_START_YEAR
+        self.time_manager = Calendar()
 
     def test_initial_date(self):
         """测试初始日期"""
-        date_str = self.calendar.format_date_gregorian()
+        date_str = self.time_manager.format_date_gregorian()
         self.assertEqual(date_str, f"公元前{abs(EPOCH_START_YEAR)}年1月1日")
 
     def test_advancing_time_and_format(self):
@@ -127,7 +124,7 @@ class TestCalendarIntegration(unittest.TestCase):
         # After 365 days from start of -2000, it's year -1999, day 6
         self.assertEqual(self.time_manager.current_year, EPOCH_START_YEAR + 1)
         self.assertEqual(self.time_manager.current_day_in_year, 6)
-        date_str = self.calendar.format_date_gregorian()
+        date_str = self.time_manager.format_date_gregorian()
         self.assertEqual(date_str, f"公元前{abs(EPOCH_START_YEAR) - 1}年1月6日")
 
     def test_reset_and_format(self):
@@ -135,7 +132,7 @@ class TestCalendarIntegration(unittest.TestCase):
         self.time_manager.advance_time(100, TimeUnit.DAY)
         self.time_manager.reset()
         self.assertEqual(self.time_manager.current_year, EPOCH_START_YEAR)
-        date_str = self.calendar.format_date_gregorian()
+        date_str = self.time_manager.format_date_gregorian()
         self.assertEqual(date_str, f"公元前{abs(EPOCH_START_YEAR)}年1月1日")
 
     def test_format_with_era(self):
@@ -150,7 +147,7 @@ class TestCalendarIntegration(unittest.TestCase):
         self.time_manager.advance_time(5 * 24 + 5, TimeUnit.HOUR) # day 6, 5:00
 
         # Year is 713, which is the 1st year of the Kaiyuan era
-        date_str = self.calendar.format_date_era(show_hour=True)
+        date_str = self.time_manager.format_date_era(show_hour=True)
         self.assertEqual(date_str, "开元1年1月6日5点")
 
 
@@ -159,16 +156,16 @@ class TestTimeManagerWithDifferentStart(unittest.TestCase):
 
     def setUp(self):
         # Save the original BASE_YEAR
-        self.original_base_year = TimeManager.BASE_YEAR
+        self.original_base_year = Calendar.BASE_YEAR
 
     def tearDown(self):
         # Restore the original BASE_YEAR after each test
-        TimeManager.BASE_YEAR = self.original_base_year
+        Calendar.BASE_YEAR = self.original_base_year
 
     def test_start_from_ad_1(self):
         """测试从公元1年开始"""
-        TimeManager.BASE_YEAR = 1
-        time_manager = TimeManager()
+        Calendar.BASE_YEAR = 1
+        time_manager = Calendar()
         self.assertEqual(time_manager.current_year, 1)
         time_manager.advance_time(365, TimeUnit.DAY)
         # 我们的年份是360天，所以365天后是2年第6天 (day 1 to 5 are in year 2)
@@ -177,8 +174,8 @@ class TestTimeManagerWithDifferentStart(unittest.TestCase):
 
     def test_start_from_bc_era(self):
         """测试从其他公元前年份开始"""
-        TimeManager.BASE_YEAR = -100
-        time_manager = TimeManager()
+        Calendar.BASE_YEAR = -100
+        time_manager = Calendar()
         self.assertEqual(time_manager.current_year, -100)
         time_manager.advance_time(360 * 100, TimeUnit.DAY) # 推进100年
         # 从-100年推进100年，会到达公元0年 (我们的日历系统包含0年)

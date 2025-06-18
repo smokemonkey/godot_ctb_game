@@ -17,7 +17,7 @@ import os
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 
-from game_system.calendar import TimeManager
+from game_system.calendar import Calendar
 from game_system.ctb.ctb import CTBManager, Character, Event, EventType
 
 
@@ -91,7 +91,7 @@ class TestCTBManager(unittest.TestCase):
 
     def setUp(self):
         """Set up a new CTBManager and characters for each test."""
-        self.time_manager = TimeManager()
+        self.time_manager = Calendar()
         self.ctb_manager = CTBManager(self.time_manager)
         self.char1 = Character("char1", "Hero")
         self.char2 = Character("char2", "Sidekick")
@@ -222,7 +222,7 @@ class TestCTBIntegration(unittest.TestCase):
 
     def setUp(self):
         """测试初始化"""
-        self.time_manager = TimeManager()
+        self.time_manager = Calendar()
         self.ctb_manager = CTBManager(self.time_manager)
 
         # 添加多个角色
@@ -293,6 +293,143 @@ class TestCTBIntegration(unittest.TestCase):
         self.assertIn(EventType.CUSTOM, event_types)
 
 
+class SeasonChangeEvent(Event):
+    """季节变化事件"""
+
+    def __init__(self, season_name: str, next_season_days: int = 90):
+        """
+        初始化季节变化事件
+
+        Args:
+            season_name: 季节名称
+            next_season_days: 下一个季节的天数后
+        """
+        super().__init__(
+            id=f"season_{season_name}",
+            name=f"{season_name}季到来",
+            event_type=EventType.SEASON_CHANGE,
+            trigger_time=0,  # 将在注册时设置
+            description=f"季节变化：进入{season_name}季"
+        )
+        self.season_name = season_name
+        self.next_season_days = next_season_days
+
+    def execute(self) -> None:
+        """执行季节变化"""
+        # 在测试中不打印，只返回执行结果
+        return f"季节变化：{self.season_name}季到来了！"
+
+
+class CustomEvent(Event):
+    """自定义事件示例 - 节日"""
+
+    def __init__(self, festival_name: str, callback=None):
+        super().__init__(
+            id=f"festival_{festival_name}",
+            name=f"{festival_name}节",
+            event_type=EventType.CUSTOM,
+            trigger_time=0,
+            description=f"节日庆典：{festival_name}节"
+        )
+        self.festival_name = festival_name
+        self.callback = callback
+
+    def execute(self) -> None:
+        """执行节日事件"""
+        result = f"节日：{self.festival_name}节到了！全民欢庆！"
+        if self.callback:
+            self.callback(self)
+        return result
+
+
+class TestCTBEventExamples(unittest.TestCase):
+    """测试CTB系统事件示例功能"""
+
+    def setUp(self):
+        """测试初始化"""
+        self.time_manager = Calendar()
+        self.ctb_manager = CTBManager(self.time_manager)
+
+    def test_season_change_event(self):
+        """测试季节变化事件"""
+        # 创建季节变化事件
+        spring_event = SeasonChangeEvent("春")
+        self.assertEqual(spring_event.season_name, "春")
+        self.assertEqual(spring_event.event_type, EventType.SEASON_CHANGE)
+
+        # 测试执行
+        result = spring_event.execute()
+        self.assertIn("春季到来了", result)
+
+    def test_custom_festival_event(self):
+        """测试自定义节日事件"""
+        # 创建节日事件
+        festival_event = CustomEvent("春节")
+        self.assertEqual(festival_event.festival_name, "春节")
+        self.assertEqual(festival_event.event_type, EventType.CUSTOM)
+
+        # 测试执行
+        result = festival_event.execute()
+        self.assertIn("春节节到了", result)
+
+    def test_complex_event_integration(self):
+        """测试复杂事件集成场景"""
+        # 添加角色
+        characters = [
+            Character("warrior", "战士", faction="王国"),
+            Character("mage", "法师", faction="魔法学院"),
+            Character("rogue", "盗贼", faction="盗贼公会")
+        ]
+
+        for char in characters:
+            self.ctb_manager.add_character(char)
+
+        # 注册季节变化事件
+        spring_event = SeasonChangeEvent("春")
+        self.ctb_manager.register_event(spring_event, self.time_manager._total_hours + 24)
+
+        # 注册节日事件
+        festival_event = CustomEvent("春节")
+        self.ctb_manager.register_event(festival_event, self.time_manager._total_hours + 30 * 24)
+
+        # 初始化CTB系统
+        self.ctb_manager.initialize_ctb()
+
+        # 验证事件总数
+        action_list = self.ctb_manager.get_action_list(10)
+        self.assertGreaterEqual(len(action_list), 3)  # 至少3个角色 + 2个自定义事件
+
+        # 执行第一个事件（应该是春季到来）
+        events = self.ctb_manager.execute_next_action()
+        self.assertGreater(len(events), 0)
+
+        # 验证时间推进
+        self.assertGreater(self.time_manager._total_hours, 0)
+
+    def test_event_execution_sequence(self):
+        """测试事件执行序列"""
+        # 添加角色
+        char = Character("test_char", "测试角色")
+        self.ctb_manager.add_character(char)
+
+        # 注册自定义事件
+        event1 = CustomEvent("事件1")
+        event2 = CustomEvent("事件2")
+
+        # 注册事件，确保执行顺序
+        self.ctb_manager.register_event(event1, self.time_manager._total_hours + 10)
+        self.ctb_manager.register_event(event2, self.time_manager._total_hours + 20)
+
+        self.ctb_manager.initialize_ctb()
+
+        # 执行事件并验证
+        events = self.ctb_manager.execute_next_action()
+        self.assertGreater(len(events), 0)
+
+        # 验证事件历史记录
+        self.assertGreater(len(self.ctb_manager.action_history), 0)
+
+
 def run_ctb_tests():
     """运行所有CTB测试"""
     loader = unittest.TestLoader()
@@ -303,7 +440,8 @@ def run_ctb_tests():
         TestCharacter,
         TestEvent,
         TestCTBManager,
-        TestCTBIntegration
+        TestCTBIntegration,
+        TestCTBEventExamples
     ]
 
     for test_class in test_classes:
