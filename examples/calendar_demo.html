@@ -4,21 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>日历系统演示 - 春秋时代时间管理</title>
-    <!-- 
+    <!--
     时间系统Web演示界面
-    
+
     功能特性:
     - 现代化UI: 蓝色渐变主题，三栏响应式布局
     - 时间推进: 天数/小时推进，快速推进按钮
     - 锚定功能: 指定纪元元年对应的公元年份
     - 改元功能: 将当前年份设为新纪元元年
     - 实时状态: 锚定状态显示，操作日志记录
-    
+
     核心逻辑:
     - TimeManager类: 模拟后端时间管理逻辑
     - 纯锚定系统: 只使用锚定机制，不再维护纪元节点列表
     - 改元=锚定当前年: changeEra()调用anchor_era(name, currentYear)
-    
+
     最后更新: 2025-06-12 - 简化改元功能，删除冗余控件
     -->
     <style>
@@ -321,165 +321,180 @@
     </div>
 
     <script>
-        // 模拟TimeManager和Calendar类
-        class TimeManager {
+        // 模拟真实的Calendar类API
+        class Calendar {
             constructor() {
-                this.currentYear = -722;
-                this.currentMonth = 1;
-                this.currentDay = 1;
-                this.currentHour = 0;
-                this._totalHours = 0;
-                this._currentAnchor = null; // [纪元名, 元年公元年份]
+                this.HOURS_PER_DAY = 24;
+                this.DAYS_PER_YEAR = 360;
+                this.BASE_YEAR = -722;
+
+                // 当前时间（以小时为最小单位）
+                this._timestamp_hour = 0;
+
+                // 当前锚定：(纪元名, 元年公元年份)
+                this._current_anchor = ['uninitialized', this.BASE_YEAR];
             }
 
-            advanceTime(amount, unit) {
-                let hours = 0;
-                if (unit === 'hour') {
-                    hours = amount;
-                } else if (unit === 'day') {
-                    hours = amount * 24;
-                } else if (unit === 'year') {
-                    hours = amount * 360 * 24;
+            get current_gregorian_year() {
+                const total_days = Math.floor(this._timestamp_hour / this.HOURS_PER_DAY);
+                return this.BASE_YEAR + Math.floor(total_days / this.DAYS_PER_YEAR);
+            }
+
+            get current_day_in_year() {
+                const total_days = Math.floor(this._timestamp_hour / this.HOURS_PER_DAY);
+                return (total_days % this.DAYS_PER_YEAR) + 1;
+            }
+
+            get current_hour_in_day() {
+                return this._timestamp_hour % this.HOURS_PER_DAY;
+            }
+
+            get current_month() {
+                return Math.floor((this.current_day_in_year - 1) / 30) + 1;
+            }
+
+            get current_day_in_month() {
+                return ((this.current_day_in_year - 1) % 30) + 1;
+            }
+
+            advance_time_tick() {
+                this._timestamp_hour += 1;
+            }
+
+            anchor_era(era_name, gregorian_year) {
+                if (!era_name.trim()) {
+                    throw new Error("era_name cannot be empty or whitespace");
                 }
 
-                this._totalHours += hours;
-                this.updateDateFromTotalHours();
-                return true;
-            }
-
-
-
-            updateDateFromTotalHours() {
-                const totalDays = Math.floor(this._totalHours / 24);
-                const hours = this._totalHours % 24;
-                
-                // 从起始年-722开始计算
-                const startYear = -722;
-                const years = Math.floor(totalDays / 360);
-                const remainingDays = totalDays % 360;
-                const months = Math.floor(remainingDays / 30) + 1;
-                const days = (remainingDays % 30) + 1;
-                
-                this.currentYear = startYear + years;
-                this.currentMonth = months;
-                this.currentDay = days;
-                this.currentHour = hours;
-            }
-
-            // 改元功能：基于锚定的wrapper
-            startNewEra(eraName) {
-                // 改元就是将当前年份锚定为新纪元的元年
-                this.anchorEra(eraName, this.currentYear);
-            }
-            
-            // 为了兼容，保留旧名称
-            changeEra(eraName) {
-                this.startNewEra(eraName);
-            }
-
-            // 新增：锚定功能
-            anchorEra(eraName, gregorianYear) {
-                const currentYear = this.currentYear;
-                if (gregorianYear > currentYear) {
-                    throw new Error(`不能锚定到未来时期：锚定年份${gregorianYear}晚于当前年份${currentYear}`);
+                const current_year = this.current_gregorian_year;
+                if (gregorian_year > current_year) {
+                    throw new Error(`不能锚定到未来时期：锚定年份${gregorian_year}晚于当前年份${current_year}`);
                 }
-                this._currentAnchor = [eraName, gregorianYear];
+
+                this._current_anchor = [era_name, gregorian_year];
             }
 
-            getCurrentEraName() {
-                if (this._currentAnchor) {
-                    const [eraName, gregorianYear] = this._currentAnchor;
-                    const currentYear = this.currentYear;
-                    
-                    if (currentYear >= gregorianYear) {
-                        return eraName;
+            start_new_era(name) {
+                if (!name.trim()) {
+                    throw new Error("name cannot be empty or whitespace");
+                }
+
+                this.anchor_era(name, this.current_gregorian_year);
+            }
+
+            get_current_era_name() {
+                if (this._current_anchor) {
+                    const [era_name, gregorian_year] = this._current_anchor;
+                    const current_year = this.current_gregorian_year;
+
+                    if (current_year >= gregorian_year) {
+                        return era_name;
                     }
                 }
-                return null;
+                throw new Error("current year earlier than anchor year");
             }
 
-            getCurrentEraYear() {
-                if (this._currentAnchor) {
-                    const [eraName, gregorianYear] = this._currentAnchor;
-                    const currentYear = this.currentYear;
-                    
-                    if (currentYear >= gregorianYear) {
-                        return currentYear - gregorianYear + 1;
+            get_current_era_year() {
+                if (this._current_anchor) {
+                    const [era_name, gregorian_year] = this._current_anchor;
+                    const current_year = this.current_gregorian_year;
+
+                    if (current_year >= gregorian_year) {
+                        return current_year - gregorian_year + 1;
                     }
                 }
-                return null;
+                throw new Error("current year earlier than anchor year");
             }
 
-            getTotalDays() {
-                return Math.floor(this._totalHours / 24);
+            get_timestamp() {
+                return this._timestamp_hour;
             }
 
-            getTotalHours() {
-                return this._totalHours;
+            get_time_info() {
+                return {
+                    timestamp: this._timestamp_hour,
+                    gregorian_year: this.current_gregorian_year,
+                    month: this.current_month,
+                    day_in_month: this.current_day_in_month,
+                    day_in_year: this.current_day_in_year,
+                    hour_in_day: this.current_hour_in_day,
+                    current_era_name: this.get_current_era_name(),
+                    current_era_year: this.get_current_era_year(),
+                    current_anchor: this._current_anchor
+                };
             }
 
             reset() {
-                this.currentYear = -722;
-                this.currentMonth = 1;
-                this.currentDay = 1;
-                this.currentHour = 0;
-                this._totalHours = 0;
-                this._currentAnchor = null;
-            }
-        }
-
-        class Calendar {
-            constructor(timeManager) {
-                this.timeManager = timeManager;
+                this._timestamp_hour = 0;
+                this._current_anchor = ['uninitialized', this.BASE_YEAR];
             }
 
-            formatDateGregorian(showHour = false) {
-                const tm = this.timeManager;
-                const year = Math.abs(tm.currentYear);
-                const era = tm.currentYear < 0 ? "公元前" : "公元";
-                
-                if (showHour) {
-                    return `${era}${year}年${tm.currentMonth}月${tm.currentDay}日${tm.currentHour}点`;
+            format_date_gregorian(show_hour = false) {
+                const year = this.current_gregorian_year;
+                const month = this.current_month;
+                const day = this.current_day_in_month;
+                const hour = this.current_hour_in_day;
+
+                let year_str;
+                if (year < 0) {
+                    year_str = `公元前${Math.abs(year)}年`;
+                } else {
+                    year_str = `公元${year}年`;
                 }
-                return `${era}${year}年${tm.currentMonth}月${tm.currentDay}日`;
+
+                if (show_hour) {
+                    return `${year_str}${month}月${day}日${hour}点`;
+                } else {
+                    return `${year_str}${month}月${day}日`;
+                }
             }
 
-            formatDateEra(showHour = false) {
-                const tm = this.timeManager;
-                const eraName = tm.getCurrentEraName();
-                const eraYear = tm.getCurrentEraYear();
-                
-                if (!eraName || !eraYear) {
-                    return this.formatDateGregorian(showHour);
+            format_date_era(show_hour = false) {
+                try {
+                    const era_name = this.get_current_era_name();
+                    const era_year = this.get_current_era_year();
+
+                    if (era_name === null || era_year === null) {
+                        return this.format_date_gregorian(show_hour);
+                    }
+
+                    const month = this.current_month;
+                    const day = this.current_day_in_month;
+                    const hour = this.current_hour_in_day;
+
+                    if (show_hour) {
+                        return `${era_name}${era_year}年${month}月${day}日${hour}点`;
+                    } else {
+                        return `${era_name}${era_year}年${month}月${day}日`;
+                    }
+                } catch (error) {
+                    return this.format_date_gregorian(show_hour);
                 }
-                
-                if (showHour) {
-                    return `${eraName}${eraYear}年${tm.currentMonth}月${tm.currentDay}日${tm.currentHour}点`;
-                }
-                return `${eraName}${eraYear}年${tm.currentMonth}月${tm.currentDay}日`;
             }
 
-            getTimeStatusText() {
-                const tm = this.timeManager;
-                const gregorian = this.formatDateGregorian(true);
-                const era = this.formatDateEra(true);
-                const totalDays = tm.getTotalDays();
-                const totalHours = tm.getTotalHours();
-                const eraName = tm.getCurrentEraName();
-                
-                return `公历时间: ${gregorian}
-纪年时间: ${era}
-当前纪年: ${eraName || '无'}
-总计天数: ${totalDays}
-总计小时: ${totalHours}
-年内天数: ${Math.floor((tm._totalHours / 24) % 360) + 1}
-月内天数: ${tm.currentDay}`;
+            get_time_status_text() {
+                const info = this.get_time_info();
+                const gregorian = this.format_date_gregorian(true);
+                const era = this.format_date_era(true);
+
+                let status_lines = [
+                    `公历: ${gregorian}`,
+                    `纪年: ${era}`,
+                    `年内第${info.day_in_year}天`,
+                    `总计: ${info.timestamp}小时`
+                ];
+
+                if (info.current_anchor) {
+                    const [era_name, gregorian_year] = info.current_anchor;
+                    status_lines.push(`锚定: ${era_name}元年 = 公元${gregorian_year}年`);
+                }
+
+                return status_lines.join('\n');
             }
         }
 
         // 初始化系统
-        let timeManager = new TimeManager();
-        let calendar = new Calendar(timeManager);
+        let calendar = new Calendar();
 
         // 更新所有显示
         function updateAllDisplays() {
@@ -493,50 +508,62 @@
 
         // 更新当前时间显示
         function updateCurrentTime() {
-            const eraTime = calendar.formatDateEra(true);
+            const eraTime = calendar.format_date_era(true);
             document.getElementById('currentTime').textContent = eraTime;
         }
 
         // 更新时间详情
         function updateTimeDetails() {
-            const tm = timeManager;
-            const gregorian = calendar.formatDateGregorian(true);
-            const era = calendar.formatDateEra(true);
-            const eraName = tm.getCurrentEraName();
-            
+            const gregorian = calendar.format_date_gregorian(true);
+            const era = calendar.format_date_era(true);
+
             let anchorInfo = '';
-            if (tm._currentAnchor) {
-                const [name, year] = tm._currentAnchor;
-                anchorInfo = `\n锚定信息: ${name}元年 = 公元${year}年`;
-            }
-            
-            const detailText = `公历时间: ${gregorian}
+            try {
+                const eraName = calendar.get_current_era_name();
+                if (calendar._current_anchor) {
+                    const [name, year] = calendar._current_anchor;
+                    anchorInfo = `\n锚定信息: ${name}元年 = 公元${year}年`;
+                }
+
+                const detailText = `公历时间: ${gregorian}
 纪年时间: ${era}
 
-年份: ${tm.currentYear}
-月份: ${tm.currentMonth}
-日期: ${tm.currentDay}
-小时: ${tm.currentHour}
+年份: ${calendar.current_gregorian_year}
+月份: ${calendar.current_month}
+日期: ${calendar.current_day_in_month}
+小时: ${calendar.current_hour_in_day}
 
 当前纪年: ${eraName || '无'}${anchorInfo}`;
-            
-            document.getElementById('timeDetails').textContent = detailText;
+
+                document.getElementById('timeDetails').textContent = detailText;
+            } catch (error) {
+                const detailText = `公历时间: ${gregorian}
+纪年时间: ${era}
+
+年份: ${calendar.current_gregorian_year}
+月份: ${calendar.current_month}
+日期: ${calendar.current_day_in_month}
+小时: ${calendar.current_hour_in_day}
+
+当前纪年: 无${anchorInfo}`;
+
+                document.getElementById('timeDetails').textContent = detailText;
+            }
         }
 
         // 更新时间状态
         function updateTimeStatus() {
-            const statusText = calendar.getTimeStatusText();
+            const statusText = calendar.get_time_status_text();
             document.getElementById('timeStatus').textContent = statusText;
         }
 
         // 更新统计信息
         function updateStatistics() {
-            const tm = timeManager;
-            const totalDays = tm.getTotalDays();
-            const totalHours = tm.getTotalHours();
-            const yearDays = Math.floor((tm._totalHours / 24) % 360) + 1;
-            const monthDays = tm.currentDay;
-            
+            const totalDays = Math.floor(calendar.get_timestamp() / 24);
+            const totalHours = calendar.get_timestamp();
+            const yearDays = calendar.current_day_in_year;
+            const monthDays = calendar.current_day_in_month;
+
             const statsText = `总计统计:
 - 总天数: ${totalDays}
 - 总小时数: ${totalHours}
@@ -545,47 +572,48 @@
 当前统计:
 - 年内第${yearDays}天
 - 月内第${monthDays}天
-- 日内第${tm.currentHour + 1}小时
+- 日内第${calendar.current_hour_in_day + 1}小时
 
 历法信息:
 - 一年360天
 - 一月30天
 - 一天24小时`;
-            
+
             document.getElementById('statistics').textContent = statsText;
         }
 
         // 更新纪年列表
         function updateEraList() {
             let eraText = "=== 锚定状态 ===\n";
-            
-            if (timeManager._currentAnchor) {
-                const [eraName, gregorianYear] = timeManager._currentAnchor;
-                const eraYear = timeManager.getCurrentEraYear();
-                eraText += `>>> ${eraName} (元年=公元${gregorianYear}年)\n`;
-                eraText += `    当前: ${eraName}${eraYear}年\n`;
+
+            if (calendar._current_anchor && calendar._current_anchor[0] !== 'uninitialized') {
+                const [eraName, gregorianYear] = calendar._current_anchor;
+                try {
+                    const eraYear = calendar.get_current_era_year();
+                    eraText += `>>> ${eraName} (元年=公元${gregorianYear}年)\n`;
+                    eraText += `    当前: ${eraName}${eraYear}年\n`;
+                } catch (error) {
+                    eraText += `>>> ${eraName} (元年=公元${gregorianYear}年)\n`;
+                    eraText += `    当前: 未到达纪元起始年\n`;
+                }
             } else {
                 eraText += "    无锚定纪元\n";
             }
-            
+
             document.getElementById('eraList').textContent = eraText;
         }
 
         // 更新系统信息
         function updateSystemInfo() {
-            const tm = timeManager;
-            document.getElementById('totalDays').textContent = tm.getTotalDays();
-            document.getElementById('totalHours').textContent = tm.getTotalHours();
-            document.getElementById('eraCount').textContent = tm._currentAnchor ? 1 : 0;
-            document.getElementById('currentEra').textContent = tm.getCurrentEraName() || '无';
-            
-            // 更新锚定状态
-            let anchorText = "无";
-            if (tm._currentAnchor) {
-                const [eraName, gregorianYear] = tm._currentAnchor;
-                anchorText = `${eraName}元年 = 公元${gregorianYear}年`;
+            document.getElementById('totalDays').textContent = Math.floor(calendar.get_timestamp() / 24);
+            document.getElementById('totalHours').textContent = calendar.get_timestamp();
+            document.getElementById('eraCount').textContent = calendar._current_anchor && calendar._current_anchor[0] !== 'uninitialized' ? 1 : 0;
+
+            try {
+                document.getElementById('currentEra').textContent = calendar.get_current_era_name() || '无';
+            } catch (error) {
+                document.getElementById('currentEra').textContent = '无';
             }
-            document.getElementById('anchorStatus').textContent = anchorText;
         }
 
         // 添加操作日志
@@ -594,50 +622,64 @@
             const logEntry = document.createElement('div');
             logEntry.className = 'log-entry';
             logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-            
+
             logDiv.appendChild(logEntry);
             logDiv.scrollTop = logDiv.scrollHeight;
-            
+
             // 保持最新100条记录
             while (logDiv.children.length > 100) {
                 logDiv.removeChild(logDiv.firstChild);
             }
         }
 
-        // 控制函数
+        // 控制函数 - 使用tick方式
         function advanceDays() {
             const days = parseInt(document.getElementById('daysInput').value) || 1;
-            timeManager.advanceTime(days, 'day');
-            addLog(`时间推进 ${days} 天`);
+            const ticks = days * 24; // 1天 = 24小时 = 24个tick
+            for (let i = 0; i < ticks; i++) {
+                calendar.advance_time_tick();
+            }
+            addLog(`时间推进 ${days} 天 (通过${ticks}次tick)`);
             updateAllDisplays();
         }
 
         function advanceHours() {
             const hours = parseInt(document.getElementById('hoursInput').value) || 1;
-            timeManager.advanceTime(hours, 'hour');
-            addLog(`时间推进 ${hours} 小时`);
+            for (let i = 0; i < hours; i++) {
+                calendar.advance_time_tick();
+            }
+            addLog(`时间推进 ${hours} 小时 (通过${hours}次tick)`);
             updateAllDisplays();
         }
 
         function quickAdvance(amount, unit) {
-            timeManager.advanceTime(amount, unit);
+            let ticks = 0;
+            if (unit === 'day') {
+                ticks = amount * 24; // 1天 = 24小时
+            } else if (unit === 'year') {
+                ticks = amount * 360 * 24; // 1年 = 360天 * 24小时
+            }
+
+            for (let i = 0; i < ticks; i++) {
+                calendar.advance_time_tick();
+            }
             const unitText = unit === 'day' ? '天' : '年';
-            addLog(`快速推进 ${amount} ${unitText}`);
+            addLog(`快速推进 ${amount} ${unitText} (通过${ticks}次tick)`);
             updateAllDisplays();
         }
 
         // 改元功能
         function changeEra() {
             const eraName = document.getElementById('changeEraName').value.trim();
-            
+
             if (!eraName) {
                 addLog('请输入纪元名称');
                 return;
             }
-            
+
             try {
-                const currentYear = timeManager.currentYear;
-                timeManager.startNewEra(eraName);
+                const currentYear = calendar.current_gregorian_year;
+                calendar.start_new_era(eraName);
                 addLog(`改元成功: ${eraName}元年 = 公元${currentYear}年（当前年份）`);
                 document.getElementById('changeEraName').value = '';
                 updateAllDisplays();
@@ -647,21 +689,21 @@
         }
 
         function resetSystem() {
-            timeManager.reset();
+            calendar.reset();
             addLog('系统已重置');
             updateAllDisplays();
         }
 
         function exportTime() {
             const timeData = {
-                gregorian: calendar.formatDateGregorian(true),
-                era: calendar.formatDateEra(true),
-                totalDays: timeManager.getTotalDays(),
-                totalHours: timeManager.getTotalHours(),
-                currentEra: timeManager.getCurrentEraName() || '无',
-                currentAnchor: timeManager._currentAnchor
+                gregorian: calendar.format_date_gregorian(true),
+                era: calendar.format_date_era(true),
+                totalDays: Math.floor(calendar.get_timestamp() / 24),
+                totalHours: calendar.get_timestamp(),
+                currentEra: calendar.get_current_era_name() || '无',
+                currentAnchor: calendar._current_anchor
             };
-            
+
             console.log('时间数据导出:', timeData);
             addLog('时间数据已导出到控制台');
         }
@@ -670,14 +712,14 @@
         function anchorEra() {
             const eraName = document.getElementById('anchorEraName').value.trim();
             const gregorianYear = parseInt(document.getElementById('anchorYear').value);
-            
+
             if (!eraName || !gregorianYear) {
                 addLog('请输入纪元名称和元年公元年份');
                 return;
             }
-            
+
             try {
-                timeManager.anchorEra(eraName, gregorianYear);
+                calendar.anchor_era(eraName, gregorianYear);
                 addLog(`锚定成功: ${eraName}元年 = 公元${gregorianYear}年`);
                 document.getElementById('anchorEraName').value = '';
                 document.getElementById('anchorYear').value = '';
@@ -690,23 +732,27 @@
         function testScenario() {
             // 测试场景：锚定和改元功能演示
             addLog('开始测试场景：锚定和改元功能演示');
-            
-            // 先推进一些时间
-            timeManager.advanceTime(1000, 'year');
-            addLog('推进1000年到公元278年');
-            
+
+            // 先推进一些时间 (通过tick)
+            for (let i = 0; i < 1000 * 360 * 24; i++) {
+                calendar.advance_time_tick();
+            }
+            addLog('推进1000年到公元278年 (通过1000*360*24次tick)');
+
             // 测试锚定功能
-            timeManager.anchorEra('西晋', 266);
+            calendar.anchor_era('西晋', 266);
             addLog('锚定: 西晋元年 = 公元266年');
-            
-            // 再推进一些时间
-            timeManager.advanceTime(50, 'year');
-            addLog('再推进50年');
-            
+
+            // 再推进一些时间 (通过tick)
+            for (let i = 0; i < 50 * 360 * 24; i++) {
+                calendar.advance_time_tick();
+            }
+            addLog('再推进50年 (通过50*360*24次tick)');
+
             // 测试改元功能
-            timeManager.startNewEra('东晋');
+            calendar.start_new_era('东晋');
             addLog('改元: 东晋元年 = 当前年份');
-            
+
             updateAllDisplays();
         }
 
@@ -717,4 +763,4 @@
         });
     </script>
 </body>
-</html> 
+</html>
