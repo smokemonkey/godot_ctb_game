@@ -13,6 +13,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from game_system.game_world import get_game_world, GameWorldConfig, GameWorld
 from game_system.calendar.calendar import TimeUnit
+from game_system.ctb_manager.ctb_manager import CTBManager, Character
+
+
+def clear_due_events(world):
+    while True:
+        event = world.time_wheel.pop_due_event()
+        if event is None:
+            break
 
 
 def demo_basic_usage():
@@ -32,19 +40,18 @@ def demo_basic_usage():
     # 3. 开始游戏
     world.start_game()
 
-    # 4. 调度一些事件
-    world.schedule_event("event_1", "第一个事件", 5)
-    world.schedule_event("event_2", "第二个事件", 10)
+    # 4. 通过CTB管理器调度一些事件
+    world.ctb_manager.schedule_with_delay("event_1", "第一个事件", 5)
+    world.ctb_manager.schedule_with_delay("event_2", "第二个事件", 10)
 
-    print(f"调度了 {len(world.get_upcoming_events(10))} 个事件")
+    print(f"调度了 {len(world.time_wheel.peek_upcoming_events(10, 100))} 个事件")
 
     # 5. 演示tick推进
-    print("演示tick() - 推进到下一个事件:")
+    print("演示_advance_tick() - 推进到下一个事件:")
     for i in range(3):
-        result = world.tick()
-        print(f"tick {result['tick_number']}: 推进了 {result['ticks_advanced']} 小时，"
-              f"执行了 {result['events_executed']} 个事件")
-        print(f"当前时间: {world.calendar.format_date_gregorian()}")
+        clear_due_events(world)
+        world._advance_tick()
+        print(f"tick {i+1}: 推进了 1 小时，当前时间: {world.calendar.format_date_gregorian()}")
 
     # 6. 查看游戏状态
     status = world.get_game_status()
@@ -63,21 +70,21 @@ def demo_event_system():
 
     # 注册事件回调
     def on_event_scheduled(data):
-        print(f"事件: 事件 {data['event_id']} 已调度，延迟 {data['delay']} 小时")
+        print(f"事件: 事件 {data.get('event_id', 'unknown')} 已调度")
 
     def on_tick_ended(data):
-        print(f"事件: tick {data['tick_number']} 结束，"
-              f"时间: {data['current_time']['gregorian_year']}年{data['current_time']['month']}月")
+        print(f"事件: tick {data.get('tick_number', 0)} 结束，"
+              f"时间: {data.get('current_time', {}).get('gregorian_year', 0)}年")
 
-    world.register_event_callback('event_scheduled', on_event_scheduled)
     world.register_event_callback('tick_ended', on_tick_ended)
 
-    # 调度事件触发回调
-    world.schedule_event("demo_event", "演示事件", 5)
+    # 通过CTB管理器调度事件
+    world.ctb_manager.schedule_with_delay("demo_event", "演示事件", 5)
 
     # 推进tick触发事件
     for i in range(2):
-        world.tick()
+        clear_due_events(world)
+        world._advance_tick()
 
     world.stop_game()
 
@@ -91,23 +98,21 @@ def demo_time_management():
 
     print(f"初始时间: {world.calendar.format_date_gregorian()}")
 
-    # 手动推进时间
-    world.advance_time(30, TimeUnit.DAY)
+    # 手动推进时间（通过tick）
+    for i in range(30 * 24):  # 30天 = 30 * 24小时
+        clear_due_events(world)
+        world._advance_tick()
     print(f"推进30天后: {world.calendar.format_date_gregorian()}")
 
     # 开始新纪元
-    world.start_new_era("开元")
+    world.calendar.start_new_era("开元")
     print(f"开始开元纪元: {world.calendar.format_date_era()}")
-
-    # 推进几个回合
-    for i in range(2):
-        result = world.advance_turn()
-        print(f"回合 {result['turn_number']}: {world.calendar.format_date_era()}")
 
     # 推进几个tick
     for i in range(2):
-        result = world.tick()
-        print(f"tick {result['tick_number']}: {world.calendar.format_date_era()}")
+        clear_due_events(world)
+        world._advance_tick()
+        print(f"tick {i+1}: {world.calendar.format_date_era()}")
 
     world.stop_game()
 
@@ -128,12 +133,48 @@ def demo_component_access():
     print(f"时间轮大小: {time_wheel.buffer_size}")
     print(f"当前槽位事件数: {len(time_wheel)}")
 
-    # 调度事件并查看
-    world.schedule_event("test_event", "测试事件", 5)
+    # 通过CTB管理器调度事件并查看
+    world.ctb_manager.schedule_with_delay("test_event", "测试事件", 5)
 
     # 查看即将发生的事件
-    upcoming = world.get_upcoming_events(5)
+    upcoming = world.time_wheel.peek_upcoming_events(5, 100)
     print(f"即将发生的事件: {len(upcoming)} 个")
+
+    world.stop_game()
+
+
+def demo_ctb_system():
+    """演示CTB系统"""
+    print("\n=== CTB系统演示 ===")
+
+    world = get_game_world()
+    world.start_game()
+
+    # 添加一些角色
+    ctb = world.ctb_manager
+    ctb.add_character(Character("zhangsan", "张三"))
+    ctb.add_character(Character("lisi", "李四"))
+    ctb.add_character(Character("wangwu", "王五"))
+
+    print(f"添加了 {len(ctb.characters)} 个角色")
+
+    # 初始化CTB系统
+    ctb.initialize_ctb()
+    print("CTB系统已初始化")
+
+    # 查看角色信息
+    char_info = world.get_characters_info()
+    print(f"角色信息: {char_info}")
+
+    # 推进几个tick看看行动顺序
+    for i in range(3):
+        clear_due_events(world)
+        world._advance_tick()
+        due_event = ctb.get_due_event()
+        if due_event:
+            print(f"tick {i+1}: {due_event['character']} 行动")
+        else:
+            print(f"tick {i+1}: 无行动")
 
     world.stop_game()
 
@@ -169,6 +210,7 @@ def main():
         demo_event_system()
         demo_time_management()
         demo_component_access()
+        demo_ctb_system()
         demo_singleton_behavior()
 
         print("\n" + "=" * 50)
