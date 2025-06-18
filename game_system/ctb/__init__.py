@@ -39,7 +39,7 @@ __version__ = "2.0.0"
 __author__ = "CTB Development Team"
 
 # 导入核心组件
-from .ctb_system import (
+from .ctb import (
     Character,
     CTBManager,
     Event,

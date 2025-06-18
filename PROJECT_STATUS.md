@@ -156,7 +156,7 @@ game_time/
 ├── time_system.py        # 核心时间系统
 ctb/
 ├── __init__.py           # CTB模块导出
-├── ctb_system.py         # CTB战斗系统
+├── ctb.py         # CTB战斗系统
 tests/
 ├── test_time_system.py   # 时间系统测试套件
 ├── test_ctb_system.py    # CTB系统测试套件

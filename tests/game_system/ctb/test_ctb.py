@@ -18,7 +18,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 
 from game_system.calendar import TimeManager
-from game_system.ctb.ctb_system import CTBManager, Character, Event, EventType
+from game_system.ctb.ctb import CTBManager, Character, Event, EventType
 
 
 class TestCharacter(unittest.TestCase):
