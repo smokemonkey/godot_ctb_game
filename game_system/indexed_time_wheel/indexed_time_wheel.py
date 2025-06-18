@@ -125,7 +125,7 @@ class IndexedTimeWheel(Generic[T]):
             # TODO: 数据改变后通知UI重新渲染
             return node_to_pop.key, node_to_pop.value
 
-    def update_wheel(self):
+    def advance_wheel(self):
         """更新时间轮状态：更新offset并移动接近的远期事件到主轮"""
         with self._lock:
             # 更新offset

@@ -87,7 +87,7 @@ class TestIndexedTimeWheel(unittest.TestCase):
 
         # Advance time to first event
         self.time_counter = 5
-        i_wheel.update_wheel()
+        i_wheel.advance_wheel()
 
         # Pop the first event
         key, val = i_wheel.pop_due_event()
@@ -95,7 +95,7 @@ class TestIndexedTimeWheel(unittest.TestCase):
 
         # Advance time to next event
         self.time_counter = 10
-        i_wheel.update_wheel()
+        i_wheel.advance_wheel()
 
         # Pop the second event
         key, val = i_wheel.pop_due_event()
@@ -116,7 +116,7 @@ class TestIndexedTimeWheel(unittest.TestCase):
 
         # Advance time to the events
         self.time_counter = 2
-        i_wheel.update_wheel()
+        i_wheel.advance_wheel()
 
         key1, val1 = i_wheel.pop_due_event()
         self.assertEqual(key1, "first")
@@ -154,7 +154,7 @@ class TestSchedulingMethods(unittest.TestCase):
 
         # Advance time to the event
         self.time_counter = 10
-        i_wheel.update_wheel()
+        i_wheel.advance_wheel()
 
         key, value = i_wheel.pop_due_event()
         self.assertEqual(key, "A")
@@ -174,13 +174,13 @@ class TestSchedulingMethods(unittest.TestCase):
 
         # Advance time to first event
         self.time_counter = 10
-        i_wheel.update_wheel()
+        i_wheel.advance_wheel()
         key, val = i_wheel.pop_due_event()
         self.assertEqual(key, "delay_event")
 
         # Advance time to second event
         self.time_counter = 12
-        i_wheel.update_wheel()
+        i_wheel.advance_wheel()
         key, val = i_wheel.pop_due_event()
         self.assertEqual(key, "abs_event")
 
@@ -252,7 +252,7 @@ class TestFutureEvents(unittest.TestCase):
 
         # Advance time by 2 ticks to where A is.
         self.time_counter = 2
-        i_wheel.update_wheel()
+        i_wheel.advance_wheel()
 
         # Now pop event A
         key, val = i_wheel.pop_due_event()
@@ -261,7 +261,7 @@ class TestFutureEvents(unittest.TestCase):
         # Now test the future event B. Current time is 2.
         # Advance time to 20 to trigger the future event
         self.time_counter = 20
-        i_wheel.update_wheel()
+        i_wheel.advance_wheel()
 
         self.assertEqual(len(i_wheel.future_events), 0) # B should be moved to wheel
 
@@ -280,7 +280,7 @@ class TestFutureEvents(unittest.TestCase):
 
         # Advance time to trigger reschedule
         self.time_counter = 12
-        i_wheel.update_wheel()
+        i_wheel.advance_wheel()
 
         self.assertEqual(len(i_wheel.future_events), 0)
         self.assertNotIn("A", i_wheel)
@@ -424,7 +424,7 @@ class TestIndexedTimeWheelFeatures(unittest.TestCase):
 
         # Advance time until the dummy event.
         self.time_counter = 10
-        self.tw.update_wheel()
+        self.tw.advance_wheel()
 
         # Pop the dummy event
         event = self.tw.pop_due_event()
@@ -436,7 +436,7 @@ class TestIndexedTimeWheelFeatures(unittest.TestCase):
 
         # Advance time to 110 to trigger the future event
         self.time_counter = 110
-        self.tw.update_wheel()
+        self.tw.advance_wheel()
 
         # Now the future_event should have been moved into the wheel at the far end
         self.assertEqual(len(self.tw.future_events), 0)
