@@ -24,15 +24,21 @@ class TestTimeManager(unittest.TestCase):
 
     def test_advance_one_year(self):
         """测试推进一整年"""
-        self.calendar.advance_time(360, TimeUnit.DAY)
+        # 推进360天 * 24小时 = 8640小时
+        for _ in range(360 * 24):
+            self.calendar.advance_time_tick()
         self.assertEqual(self.calendar.current_gregorian_year, EPOCH_START_YEAR + 1)
         self.assertEqual(self.calendar.current_month, 1)
         self.assertEqual(self.calendar.current_day_in_month, 1)
 
     def test_get_time_info(self):
         """测试获取时间信息"""
-        self.calendar.advance_time(100, TimeUnit.DAY)
-        self.calendar.advance_time(5, TimeUnit.HOUR)
+        # 推进100天 * 24小时 = 2400小时
+        for _ in range(100 * 24):
+            self.calendar.advance_time_tick()
+        # 推进5小时
+        for _ in range(5):
+            self.calendar.advance_time_tick()
         # 设置纪元锚点避免异常
         self.calendar.anchor_era("测试纪元", EPOCH_START_YEAR)
         info = self.calendar.get_time_info()
@@ -46,7 +52,9 @@ class TestTimeManager(unittest.TestCase):
 
     def test_reset(self):
         """测试重置功能"""
-        self.calendar.advance_time(100, TimeUnit.DAY)
+        # 推进100天 * 24小时 = 2400小时
+        for _ in range(100 * 24):
+            self.calendar.advance_time_tick()
         self.calendar.reset()
         self.assertEqual(self.calendar.current_gregorian_year, EPOCH_START_YEAR)
         self.assertEqual(self.calendar.current_day_in_year, 1)
@@ -60,7 +68,9 @@ class TestEraSystem(unittest.TestCase):
         self.calendar = Calendar()
         # Set current year to -104 for testing
         # To get to year -104 from -2000, we need to advance -104 - (-2000) = 1896 years
-        self.calendar.advance_time(1896 * 360, TimeUnit.DAY)
+        # 1896年 * 360天 * 24小时 = 16381440小时
+        for _ in range(1896 * 360 * 24):
+            self.calendar.advance_time_tick()
         self.assertEqual(self.calendar.current_gregorian_year, -104)
 
     def test_era_anchor(self):
@@ -77,17 +87,25 @@ class TestEraSystem(unittest.TestCase):
 
     def test_reset_and_format(self):
         """测试重置后格式化"""
-        self.calendar.advance_time(100, TimeUnit.DAY)
+        # 推进100天 * 24小时 = 2400小时
+        for _ in range(100 * 24):
+            self.calendar.advance_time_tick()
         self.calendar.reset()
         date_str = self.calendar.format_date_gregorian()
         self.assertEqual(date_str, f"公元前{abs(EPOCH_START_YEAR)}年1月1日")
 
     def test_format_with_era(self):
         """测试带年号的格式化"""
-        self.calendar.advance_time(2712 * 360, TimeUnit.DAY) # Go to year 712
+        # 推进2712年 * 360天 * 24小时 = 23431680小时，到达712年
+        for _ in range(2712 * 360 * 24):
+            self.calendar.advance_time_tick()
         self.calendar.start_new_era("开元") # Starts in 712
-        self.calendar.advance_time(365, TimeUnit.DAY) # Go to year 713, day 6
-        self.calendar.advance_time(5, TimeUnit.HOUR)
+        # 推进365天 * 24小时 = 8760小时，到达713年
+        for _ in range(365 * 24):
+            self.calendar.advance_time_tick()
+        # 推进5小时
+        for _ in range(5):
+            self.calendar.advance_time_tick()
 
         # Era is 开元, year is 2 (713 is the 2nd year of the era started in 712)
         date_str = self.calendar.format_date_era(show_hour=True)
@@ -98,7 +116,9 @@ class TestEraSystem(unittest.TestCase):
         Calendar.BASE_YEAR = -100
         calendar = Calendar()
         self.assertEqual(calendar.current_gregorian_year, -100)
-        calendar.advance_time(360 * 100, TimeUnit.DAY) # 推进100年
+        # 推进100年 * 360天 * 24小时 = 864000小时
+        for _ in range(100 * 360 * 24):
+            calendar.advance_time_tick()
         # 从-100年推进100年，会到达公元0年 (我们的日历系统包含0年)
         self.assertEqual(calendar.current_gregorian_year, 0)
 
@@ -118,7 +138,9 @@ class TestCalendarIntegration(unittest.TestCase):
 
     def test_advancing_time_and_format(self):
         """测试推进时间后的格式化"""
-        self.calendar.advance_time(365, TimeUnit.DAY)
+        # 推进365天 * 24小时 = 8760小时
+        for _ in range(365 * 24):
+            self.calendar.advance_time_tick()
         # After 365 days from start of -2000, it's year -1999, day 6
         self.assertEqual(self.calendar.current_gregorian_year, EPOCH_START_YEAR + 1)
         self.assertEqual(self.calendar.current_day_in_year, 6)
@@ -127,7 +149,9 @@ class TestCalendarIntegration(unittest.TestCase):
 
     def test_reset_and_format(self):
         """测试重置后格式化"""
-        self.calendar.advance_time(100, TimeUnit.DAY)
+        # 推进100天 * 24小时 = 2400小时
+        for _ in range(100 * 24):
+            self.calendar.advance_time_tick()
         self.calendar.reset()
         self.assertEqual(self.calendar.current_gregorian_year, EPOCH_START_YEAR)
         date_str = self.calendar.format_date_gregorian()
@@ -138,11 +162,15 @@ class TestCalendarIntegration(unittest.TestCase):
         # Go to year 713 AD
         target_year = 713
         initial_year = self.calendar.current_gregorian_year
-        self.calendar.advance_time((target_year - initial_year) * 360, TimeUnit.DAY)
+        # 推进(target_year - initial_year)年 * 360天 * 24小时
+        for _ in range((target_year - initial_year) * 360 * 24):
+            self.calendar.advance_time_tick()
         self.assertEqual(self.calendar.current_gregorian_year, target_year)
 
         self.calendar.anchor_era("开元", 713)
-        self.calendar.advance_time(5 * 24 + 5, TimeUnit.HOUR) # day 6, 5:00
+        # 推进5天 * 24小时 + 5小时 = 125小时
+        for _ in range(5 * 24 + 5):
+            self.calendar.advance_time_tick()
 
         # Year is 713, which is the 1st year of the Kaiyuan era
         date_str = self.calendar.format_date_era(show_hour=True)
@@ -165,7 +193,9 @@ class TestTimeManagerWithDifferentStart(unittest.TestCase):
         Calendar.BASE_YEAR = 1
         calendar = Calendar()
         self.assertEqual(calendar.current_gregorian_year, 1)
-        calendar.advance_time(365, TimeUnit.DAY)
+        # 推进365天 * 24小时 = 8760小时
+        for _ in range(365 * 24):
+            calendar.advance_time_tick()
         # 我们的年份是360天，所以365天后是2年第6天 (day 1 to 5 are in year 2)
         self.assertEqual(calendar.current_gregorian_year, 2)
         self.assertEqual(calendar.current_day_in_year, 6)
@@ -175,7 +205,9 @@ class TestTimeManagerWithDifferentStart(unittest.TestCase):
         Calendar.BASE_YEAR = -100
         calendar = Calendar()
         self.assertEqual(calendar.current_gregorian_year, -100)
-        calendar.advance_time(360 * 100, TimeUnit.DAY) # 推进100年
+        # 推进100年 * 360天 * 24小时 = 864000小时
+        for _ in range(100 * 360 * 24):
+            calendar.advance_time_tick()
         # 从-100年推进100年，会到达公元0年 (我们的日历系统包含0年)
         self.assertEqual(calendar.current_gregorian_year, 0)
 

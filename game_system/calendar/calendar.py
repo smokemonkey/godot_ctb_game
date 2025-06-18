@@ -103,6 +103,9 @@ class Calendar:
         Example:
             >>> calendar.anchor_era("开元", 713)  # 开元元年=公元713年
         """
+        if not era_name.strip():
+            raise ValueError("era_name cannot be empty or whitespace")
+
         current_year = self.current_gregorian_year
         if gregorian_year > current_year:
             raise ValueError(f"不能锚定到未来时期：锚定年份{gregorian_year}晚于当前年份{current_year}")
@@ -118,9 +121,15 @@ class Calendar:
         Args:
             name: 新纪元名称，如"永徽"、"开元"等
 
+        Raises:
+            ValueError: 当纪元名称为空时
+
         Example:
             >>> calendar.start_new_era("永徽")  # 从当前年份开始永徽纪元
         """
+        if not name.strip():
+            raise ValueError("name cannot be empty or whitespace")
+
         # 改元就是锚定当前年份为新纪元的元年
         self.anchor_era(name, self.current_gregorian_year)
 
@@ -134,7 +143,7 @@ class Calendar:
             if current_year >= gregorian_year:
                 return era_name
 
-        raise Exception("current year earlier than anchor year")
+        raise ValueError("current year earlier than anchor year")
 
     def get_current_era_year(self) -> Optional[int]:
         """获取当前纪元年份"""
@@ -146,7 +155,7 @@ class Calendar:
             if current_year >= gregorian_year:
                 return current_year - gregorian_year + 1
 
-        raise Exception("current year earlier than anchor year")
+        raise ValueError("current year earlier than anchor year")
 
     def get_timestamp(self) -> int:
         """获取当前时间戳（小时数）
@@ -156,13 +165,9 @@ class Calendar:
         """
         return self._timestamp_hour
 
-    def advance_time_tick(self, hours: int = 1) -> None:
-        """推进时间一个tick（默认1小时）
-
-        Args:
-            hours (int): 推进的小时数，默认为1小时
-        """
-        self.advance_time(hours, TimeUnit.HOUR)
+    def advance_time_tick(self) -> None:
+        """推进时间一个tick（1小时）"""
+        self._timestamp_hour += 1
 
     def get_time_info(self) -> dict:
         """获取当前时间信息"""
@@ -217,8 +222,12 @@ class Calendar:
         Returns:
             格式化的日期字符串
         """
-        era_name = self.get_current_era_name()
-        era_year = self.get_current_era_year()
+        try:
+            era_name = self.get_current_era_name()
+            era_year = self.get_current_era_year()
+        except ValueError:
+            # 如果纪元未设置或当前年份早于锚定年份，回退到公历显示
+            return self.format_date_gregorian(show_hour)
 
         if era_name is None or era_year is None:
             return self.format_date_gregorian(show_hour)
