@@ -62,7 +62,6 @@ class GameWorld:
 
         # 游戏状态
         self._game_running = False
-        self._turn_count = 0
         self._auto_save_counter = 0
 
         # 事件回调
@@ -103,7 +102,6 @@ class GameWorld:
             return
 
         self._game_running = True
-        self._turn_count = 0
         self._auto_save_counter = 0
 
         self._trigger_event('game_started')
@@ -116,7 +114,7 @@ class GameWorld:
 
         self._game_running = False
         self._trigger_event('game_stopped')
-        print(f"游戏世界已停止 - 总回合数: {self._turn_count}")
+        print(f"游戏世界已停止 - 当前时间: {self._calendar.format_date_gregorian()}")
 
     def schedule_event(self, event_id: str, event_data: Any, delay_hours: int) -> bool:
         """调度游戏事件"""
@@ -158,14 +156,14 @@ class GameWorld:
 
     @property
     def turn_count(self) -> int:
-        """当前回合数"""
-        return self._turn_count
+        """当前回合数（基于calendar的total_hours）"""
+        return self._calendar.get_time_info()['total_hours']
 
     def get_game_status(self) -> Dict[str, Any]:
         """获取游戏状态信息"""
         return {
             'is_running': self._game_running,
-            'turn_count': self._turn_count,
+            'turn_count': self._calendar.get_time_info()['total_hours'],
             'current_time': self._calendar.get_time_info(),
             'character_count': 0,  # 暂时设为0
             'pending_events': len(self._time_wheel),
@@ -222,14 +220,13 @@ class GameWorld:
     def _auto_save(self) -> None:
         """自动保存游戏状态"""
         # TODO: 实现自动保存逻辑
-        self._trigger_event('auto_save', {'turn': self._turn_count})
+        self._trigger_event('auto_save', {'turn': self._calendar.get_time_info()['total_hours']})
 
     def _advance_tick(self) -> None:
         # 1. 原子推进 - 所有时间相关操作都在锁内
         with self._lock:
             # 只通过Calendar推进时间，Calendar是唯一的时间源
             self._calendar.advance_time(1, TimeUnit.HOUR)
-            self._turn_count += 1
             # 时间轮从Calendar获取当前时间并更新
             self._time_wheel.advance_wheel()
 
@@ -239,7 +236,7 @@ class GameWorld:
             self._auto_save()
             self._auto_save_counter = 0
         self._trigger_event('tick_ended', {
-            'tick_number': self._turn_count,
+            'tick_number': self._calendar.get_time_info()['total_hours'],
             'ticks_advanced': 1,
             'events_executed': 0,
             'current_time': self._calendar.get_time_info(),
@@ -278,7 +275,6 @@ class GameWorld:
         self._setup_component_collaboration()
 
         # 重置状态
-        self._turn_count = 0
         self._auto_save_counter = 0
 
         self._trigger_event('world_reset')
