@@ -89,7 +89,7 @@ def parse_arguments():
 示例:
   %(prog)s           # 默认打开两个演示页面
   %(prog)s ctb_manager       # 只打开CTB演示
-  %(prog)s time      # 只打开时间系统演示
+  %(prog)s calendar  # 只打开日历系统演示
   %(prog)s both      # 明确打开两个页面
         """
     )
@@ -97,7 +97,7 @@ def parse_arguments():
     parser.add_argument(
         'demo',
         nargs='?',
-        choices=['ctb_manager', 'time', 'both'],
+        choices=['ctb_manager', 'calendar', 'both'],
         default='both',
         help='选择要打开的演示页面 (默认: both)'
     )
@@ -170,19 +170,19 @@ def main():
                     webbrowser.open(ctb_url)
                     print("✅ 已打开CTB演示页面")
 
-                if args.demo in ['time', 'both']:
+                if args.demo in ['calendar', 'both']:
                     if args.demo == 'both':
                         time.sleep(0.5)  # 避免浏览器处理冲突
                     webbrowser.open(time_url)
-                    print("✅ 已打开时间系统演示页面")
+                    print("✅ 已打开日历系统演示页面")
 
             except Exception as e:
                 print(f"⚠️  无法自动打开浏览器: {e}")
                 print(f"   请手动访问:")
                 if args.demo in ['ctb_manager', 'both']:
                     print(f"   CTB演示: {ctb_url}")
-                if args.demo in ['time', 'both']:
-                    print(f"   时间演示: {time_url}")
+                if args.demo in ['calendar', 'both']:
+                    print(f"   日历演示: {time_url}")
 
             print("\n🔄 服务器运行中，等待请求...")
             print("   (按 Ctrl+C 退出)")

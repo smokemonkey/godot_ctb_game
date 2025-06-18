@@ -396,15 +396,6 @@
                     </div>
 
                     <div class="control-group">
-                        <h4>🎛️ 参数调整</h4>
-                        <div class="input-group">
-                            <label>基础因子:</label>
-                            <input type="number" id="factorInput" value="100" min="1" max="1000">
-                            <button class="btn" onclick="changeBaseFactor()" style="width: auto; margin: 0;">设置</button>
-                        </div>
-                    </div>
-
-                    <div class="control-group">
                         <h4>🎮 测试功能</h4>
                         <button class="btn" onclick="toggleCharacterActive()">🔄 切换角色状态</button>
                         <button class="btn" onclick="addRandomCharacter()">➕ 添加随机角色</button>
@@ -439,20 +430,39 @@
             },
             ctbManager: {
                 isInitialized: false,
-                baseFactor: 100,
                 characters: [],
-                actionQueue: [],
+                events: [], // 改为events数组，存储所有调度的事件
                 actionHistory: [],
-                nextActionId: 1
+                nextEventId: 1
             }
         };
 
         // 测试角色数据 (对应 examples/data/ctb_characters.py 中的基础角色组)
         const testCharacters = [
-            { id: 1, name: "张三", faction: "蜀国", speed: 5, isActive: true },
-            { id: 2, name: "李四", faction: "魏国", speed: 7, isActive: true },
-            { id: 3, name: "王五", faction: "吴国", speed: 10, isActive: true }
+            { id: "char_zhang", name: "张三", faction: "蜀国", isActive: true },
+            { id: "char_li", name: "李四", faction: "魏国", isActive: true },
+            { id: "char_wang", name: "王五", faction: "吴国", isActive: true }
         ];
+
+        // 计算下次行动时间（模拟新的随机间隔算法）
+        function calculateNextActionTime(currentTime, character) {
+            // 使用三角分布：最小1天，最大180天，众数90天
+            const minDays = 1;
+            const maxDays = 180;
+            const modeDays = 90;
+
+            // 简化的三角分布实现
+            const u = Math.random();
+            let days;
+            if (u < 0.5) {
+                days = minDays + Math.sqrt(u * 2) * (modeDays - minDays);
+            } else {
+                days = maxDays - Math.sqrt((1 - u) * 2) * (maxDays - modeDays);
+            }
+
+            const hours = Math.floor(days * 24);
+            return currentTime + hours;
+        }
 
         // 更新所有显示
         function updateAllDisplays() {
@@ -484,7 +494,7 @@
         function updateCTBStatus() {
             const ctb = gameState.ctbManager;
             const statusText = `系统状态: ${ctb.isInitialized ? '已初始化' : '未初始化'}
-基础因子: ${ctb.baseFactor}
+事件数量: ${ctb.events.length}
 活跃角色: ${ctb.characters.filter(c => c.isActive).length}/${ctb.characters.length}
 队列长度: ${ctb.actionQueue.length}
 历史记录: ${ctb.actionHistory.length}`;
@@ -498,17 +508,38 @@
             let text = `=== 角色列表 (共 ${characters.length} 个) ===\n`;
             const displayLimit = 20;
 
-            const charactersToShow = characters.slice(0, displayLimit);
+            if (characters.length === 0) {
+                text += "暂无角色";
+            } else {
+                const charactersToShow = characters.slice(0, displayLimit);
 
-            charactersToShow.forEach(char => {
-                const status = char.isActive ? "✓" : "✗";
-                const interval = Math.ceil(gameState.ctbManager.baseFactor / char.speed);
-                text += `${status} ${char.name} (${char.faction})\n`;
-                text += `  速度:${char.speed.toFixed(2)} 间隔:${interval}天\n`;
-            });
+                charactersToShow.forEach(char => {
+                    const status = char.isActive ? "✓" : "✗";
+                    // 查找角色的下次行动时间
+                    const nextEvent = gameState.ctbManager.events.find(e => e.characterId === char.id);
+                    let timeText = "未调度";
 
-            if (characters.length > displayLimit) {
-                text += `\n... (仅显示前 ${displayLimit} 个角色)`;
+                    if (nextEvent) {
+                        const timeUntil = nextEvent.triggerTime - gameState.timeManager.totalHours;
+                        if (timeUntil <= 0) {
+                            timeText = "立即执行";
+                        } else {
+                            const days = Math.floor(timeUntil / 24);
+                            if (days > 0) {
+                                timeText = `${days}天后`;
+                            } else {
+                                timeText = `${Math.floor(timeUntil)}小时后`;
+                            }
+                        }
+                    }
+
+                    text += `${status} ${char.name} (${char.faction})\n`;
+                    text += `  下次行动: ${timeText}\n`;
+                });
+
+                if (characters.length > displayLimit) {
+                    text += `\n... (仅显示前 ${displayLimit} 个角色)`;
+                }
             }
 
             document.getElementById('characterInfo').textContent = text;
@@ -519,18 +550,29 @@
             const queue = gameState.ctbManager.actionQueue;
             let text = "=== 行动队列 ===\n";
 
-            queue.slice(0, 8).forEach((action, index) => {
-                const timeUntil = action.triggerTime - gameState.timeManager.totalHours;
-                const days = Math.floor(timeUntil / 24);
-                const hours = Math.floor(timeUntil % 24);
+            if (queue.length === 0) {
+                text += "队列为空";
+            } else {
+                queue.slice(0, 8).forEach((action, index) => {
+                    const timeUntil = action.triggerTime - gameState.timeManager.totalHours;
+                    const days = Math.floor(timeUntil / 24);
+                    const hours = Math.floor(timeUntil % 24);
 
-                if (index === 0) {
-                    text += `→ ${action.characterName}\n`;
-                } else {
-                    text += `  ${action.characterName}\n`;
-                }
-                text += `    ${days}天${hours}小时后\n`;
-            });
+                    if (index === 0) {
+                        text += `→ ${action.characterName}\n`;
+                    } else {
+                        text += `  ${action.characterName}\n`;
+                    }
+
+                    if (timeUntil <= 0) {
+                        text += `    立即执行\n`;
+                    } else if (days > 0) {
+                        text += `    ${days}天${hours}小时后\n`;
+                    } else {
+                        text += `    ${hours}小时后\n`;
+                    }
+                });
+            }
 
             document.getElementById('actionQueue').textContent = text;
         }
@@ -549,7 +591,14 @@
                     const hours = Math.floor(timeUntil % 24);
 
                     text += `${String(index + 1).padStart(2, ' ')}. ${action.characterName}\n`;
-                    text += `     将在 ${days}天${hours}小时后行动\n`;
+
+                    if (timeUntil <= 0) {
+                        text += `     立即执行\n`;
+                    } else if (days > 0) {
+                        text += `     将在 ${days}天${hours}小时后行动\n`;
+                    } else {
+                        text += `     将在 ${hours}小时后行动\n`;
+                    }
                 });
             }
 
@@ -618,7 +667,9 @@
                 // 时间信息
                 const timeDiv = document.createElement('div');
                 timeDiv.className = 'time-info';
-                if (days > 0) {
+                if (timeUntil <= 0) {
+                    timeDiv.textContent = '立即';
+                } else if (days > 0) {
                     timeDiv.textContent = `${days}天${hours}时`;
                 } else {
                     timeDiv.textContent = `${hours}时`;
@@ -694,13 +745,15 @@
             const hours = Math.floor(timeUntil % 24);
 
             let timeText = '';
-            if (days > 0) {
+            if (timeUntil <= 0) {
+                timeText = '立即执行';
+            } else if (days > 0) {
                 timeText = `${days}天${hours}小时后`;
             } else {
                 timeText = `${hours}小时后`;
             }
 
-            addActionLog(`角色详情: ${character.name} (${character.faction}) - 速度:${character.speed} - ${timeText}行动`);
+            addActionLog(`角色详情: ${character.name} (${character.faction}) - ${timeText}行动`);
         }
 
         // 更新系统状态
@@ -749,8 +802,8 @@
                 // 安排该角色的下一次行动
                 const character = ctb.characters.find(c => c.id === nextAction.characterId);
                 if (character && character.isActive) {
-                    const interval = Math.ceil(ctb.baseFactor / character.speed);
-                    const nextTriggerTime = nextAction.triggerTime + (interval * 24);
+                    // 使用新的随机间隔算法
+                    const nextTriggerTime = calculateNextActionTime(nextAction.triggerTime, character);
 
                     simQueue.push({
                         id: -1, // 模拟行动ID
@@ -770,36 +823,49 @@
 
         // CTB系统控制函数
         function initializeCTB() {
-            gameState.ctbManager.characters = [...testCharacters];
-            gameState.ctbManager.isInitialized = true;
+            // 1. 先添加角色（模拟真实系统的add_character）
+            gameState.ctbManager.characters = [];
+            testCharacters.forEach(char => {
+                gameState.ctbManager.characters.push({...char});
+            });
+
+            // 2. 然后初始化系统（模拟真实系统的initialize_ctb）
+            if (gameState.ctbManager.characters.length === 0) {
+                addActionLog("错误：没有角色，无法初始化CTB系统");
+                return;
+            }
+
+            gameState.ctbManager.events = [];
             gameState.ctbManager.actionQueue = [];
 
-            // 生成初始行动队列
+            // 为每个活跃角色安排初始行动时间
             gameState.ctbManager.characters.forEach(char => {
                 if (char.isActive) {
-                    const baseFactor = gameState.ctbManager.baseFactor;
-                    const intervalDays = Math.ceil(baseFactor / char.speed);
-                    const intervalHours = intervalDays * 24;
-
-                    // 首次行动时间在 (0, intervalHours] 区间内随机分布
-                    // 这避免了所有角色在同一天同步其行动周期
-                    const initialDelayHours = Math.floor(Math.random() * intervalHours) + 1;
+                    // 使用新的随机间隔算法计算初始行动时间
+                    const initialDelayHours = Math.floor(Math.random() * 24 * 30) + 1; // 1-30天随机
                     const triggerTime = gameState.timeManager.totalHours + initialDelayHours;
 
-                    gameState.ctbManager.actionQueue.push({
-                        id: gameState.ctbManager.nextActionId++,
+                    const event = {
+                        id: gameState.ctbManager.nextEventId++,
                         characterId: char.id,
                         characterName: char.name,
                         triggerTime: triggerTime,
                         actionType: 'attack'
-                    });
+                    };
+
+                    // 添加到事件列表和行动队列
+                    gameState.ctbManager.events.push(event);
+                    gameState.ctbManager.actionQueue.push(event);
                 }
             });
 
             // 按触发时间排序
             gameState.ctbManager.actionQueue.sort((a, b) => a.triggerTime - b.triggerTime);
 
-            addActionLog("CTB系统已初始化");
+            // 设置系统为已初始化状态
+            gameState.ctbManager.isInitialized = true;
+
+            addActionLog(`CTB系统已初始化，添加了 ${gameState.ctbManager.characters.length} 个角色`);
             updateAllDisplays();
         }
 
@@ -813,6 +879,12 @@
             if (!action) {
                 addActionLog("没有待执行的行动");
                 return;
+            }
+
+            // 从events数组中移除已执行的事件
+            const eventIndex = gameState.ctbManager.events.findIndex(e => e.id === action.id);
+            if (eventIndex !== -1) {
+                gameState.ctbManager.events.splice(eventIndex, 1);
             }
 
             // 推进时间到行动时间
@@ -838,16 +910,19 @@
             // 为该角色安排下次行动
             const character = gameState.ctbManager.characters.find(c => c.id === action.characterId);
             if (character && character.isActive) {
-                const interval = Math.ceil(gameState.ctbManager.baseFactor / character.speed);
-                const nextTriggerTime = action.triggerTime + (interval * 24);
+                // 使用新的随机间隔算法
+                const nextTriggerTime = calculateNextActionTime(action.triggerTime, character);
 
-                gameState.ctbManager.actionQueue.push({
-                    id: gameState.ctbManager.nextActionId++,
+                const nextEvent = {
+                    id: gameState.ctbManager.nextEventId++,
                     characterId: character.id,
                     characterName: character.name,
                     triggerTime: nextTriggerTime,
                     actionType: 'attack'
-                });
+                };
+
+                gameState.ctbManager.events.push(nextEvent);
+                gameState.ctbManager.actionQueue.push(nextEvent);
 
                 // 重新排序队列
                 gameState.ctbManager.actionQueue.sort((a, b) => a.triggerTime - b.triggerTime);
@@ -876,28 +951,16 @@
             updateAllDisplays();
         }
 
-        function changeBaseFactor() {
-            const newFactor = parseInt(document.getElementById('factorInput').value);
-            if (newFactor && newFactor > 0) {
-                gameState.ctbManager.baseFactor = newFactor;
-                addActionLog(`基础因子已修改为: ${newFactor}`);
-                updateAllDisplays();
-            } else {
-                addActionLog("基础因子必须大于0");
-            }
-        }
-
         function resetCTB(silent = false) {
             gameState.ctbManager = {
                 isInitialized: false,
-                baseFactor: 100,
                 characters: [],
+                events: [],
                 actionQueue: [],
                 actionHistory: [],
-                nextActionId: 1
+                nextEventId: 1
             };
 
-            document.getElementById('factorInput').value = "100";
             if (!silent) {
                 addActionLog("CTB系统已重置");
             }
@@ -924,18 +987,16 @@
 
             const randomName = names[Math.floor(Math.random() * names.length)];
             const randomFaction = factions[Math.floor(Math.random() * factions.length)];
-            const randomSpeed = Math.floor(Math.random() * 8) + 3; // 3-10
 
             const newChar = {
-                id: Date.now(),
+                id: `char_${Date.now()}`,
                 name: randomName,
                 faction: randomFaction,
-                speed: randomSpeed,
                 isActive: true
             };
 
             gameState.ctbManager.characters.push(newChar);
-            addActionLog(`添加角色: ${randomName}(${randomFaction}) 速度:${randomSpeed}`);
+            addActionLog(`添加角色: ${randomName}(${randomFaction})`);
             updateAllDisplays();
         }
 
@@ -1076,7 +1137,7 @@
                         const triggerTime = gameState.timeManager.totalHours + initialDelayHours;
 
                         gameState.ctbManager.actionQueue.push({
-                            id: gameState.ctbManager.nextActionId++,
+                            id: gameState.ctbManager.nextEventId++,
                             characterId: char.id,
                             characterName: char.name,
                             triggerTime: triggerTime,
@@ -1182,7 +1243,7 @@
                         const triggerTime = gameState.timeManager.totalHours + initialDelayHours;
 
                         gameState.ctbManager.actionQueue.push({
-                            id: gameState.ctbManager.nextActionId++,
+                            id: gameState.ctbManager.nextEventId++,
                             characterId: char.id,
                             characterName: char.name,
                             triggerTime: triggerTime,
@@ -1215,7 +1276,9 @@
         // 页面加载时初始化显示
         document.addEventListener('DOMContentLoaded', function() {
             updateAllDisplays();
-            addActionLog("系统启动完成，请点击'初始化CTB'开始");
+            addActionLog("系统启动完成");
+            addActionLog("💡 提示：点击'初始化CTB'将添加角色并安排初始行动时间");
+            addActionLog("   初始化后，系统会为每个角色计算第一次行动的时间");
         });
     </script>
 </body>
