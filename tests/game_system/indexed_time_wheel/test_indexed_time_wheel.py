@@ -85,17 +85,17 @@ class TestIndexedTimeWheel(unittest.TestCase):
         i_wheel.schedule_with_delay("B", "Action B", 10)
         i_wheel.schedule_with_delay("C", "Action C", 10)
 
-        # Advance time to first event
-        self.time_counter = 5
-        i_wheel.advance_wheel()
+        # Advance time to first event by advancing one step at a time
+        for _ in range(5):
+            i_wheel.advance_wheel()
 
         # Pop the first event
         key, val = i_wheel.pop_due_event()
         self.assertEqual(key, "A")
 
-        # Advance time to next event
-        self.time_counter = 10
-        i_wheel.advance_wheel()
+        # Advance time to next event by advancing one step at a time
+        for _ in range(5):
+            i_wheel.advance_wheel()
 
         # Pop the second event
         key, val = i_wheel.pop_due_event()
@@ -114,9 +114,9 @@ class TestIndexedTimeWheel(unittest.TestCase):
         i_wheel.schedule_with_delay("first", "First Event", 2)
         i_wheel.schedule_with_delay("second", "Second Event", 2)
 
-        # Advance time to the events
-        self.time_counter = 2
-        i_wheel.advance_wheel()
+        # Advance time to the events by stepping one by one
+        for _ in range(2):
+            i_wheel.advance_wheel()
 
         key1, val1 = i_wheel.pop_due_event()
         self.assertEqual(key1, "first")
@@ -146,15 +146,14 @@ class TestSchedulingMethods(unittest.TestCase):
 
         # Manually tick internal state for test setup
         self.time_counter = 2
-        i_wheel.total_ticks = 2
         i_wheel.offset = 2
 
         i_wheel.schedule_at_absolute_hour("A", "Absolute Event", 10)
         self.assertIn("A", i_wheel)
 
-        # Advance time to the event
-        self.time_counter = 10
-        i_wheel.advance_wheel()
+        # Advance time to the event by stepping one by one
+        for _ in range(8):  # 从时间2推进到时间10
+            i_wheel.advance_wheel()
 
         key, value = i_wheel.pop_due_event()
         self.assertEqual(key, "A")
@@ -164,7 +163,6 @@ class TestSchedulingMethods(unittest.TestCase):
         i_wheel = self.create_wheel(20)
         # Advance time by 5 ticks
         self.time_counter = 5
-        i_wheel.total_ticks = 5
         i_wheel.offset = 5
 
         # Schedule an event 5 ticks from now (at absolute time 10)
@@ -172,15 +170,15 @@ class TestSchedulingMethods(unittest.TestCase):
         # Schedule an event at absolute hour 12
         i_wheel.schedule_at_absolute_hour("abs_event", "Event via Absolute", 12)
 
-        # Advance time to first event
-        self.time_counter = 10
-        i_wheel.advance_wheel()
+        # Advance time to first event by stepping one by one
+        for _ in range(5):
+            i_wheel.advance_wheel()
         key, val = i_wheel.pop_due_event()
         self.assertEqual(key, "delay_event")
 
-        # Advance time to second event
-        self.time_counter = 12
-        i_wheel.advance_wheel()
+        # Advance time to second event by stepping one by one
+        for _ in range(2):
+            i_wheel.advance_wheel()
         key, val = i_wheel.pop_due_event()
         self.assertEqual(key, "abs_event")
 
@@ -250,23 +248,25 @@ class TestFutureEvents(unittest.TestCase):
         self.assertNotEqual(i_wheel.index["A"].slot_index, -1)
         self.assertEqual(i_wheel.index["B"].slot_index, -1)
 
-        # Advance time by 2 ticks to where A is.
-        self.time_counter = 2
-        i_wheel.advance_wheel()
+        # Advance time by 2 ticks to where A is by stepping one by one
+        for _ in range(2):
+            self.time_counter += 1
+            i_wheel.advance_wheel()
 
         # Now pop event A
         key, val = i_wheel.pop_due_event()
         self.assertEqual(key, "A")
 
         # Now test the future event B. Current time is 2.
-        # Advance time to 20 to trigger the future event
-        self.time_counter = 20
-        i_wheel.advance_wheel()
+        # Advance time to 20 to trigger the future event by stepping one by one
+        for _ in range(18):  # 从时间2推进到时间20
+            self.time_counter += 1
+            i_wheel.advance_wheel()
 
         self.assertEqual(len(i_wheel.future_events), 0) # B should be moved to wheel
 
-        # B should be in the wheel but at the far end slot, not the current slot
-        self.assertTrue(i_wheel._is_current_slot_empty())
+        # B should be in the wheel and at the current slot, ready to be executed
+        self.assertFalse(i_wheel._is_current_slot_empty())
         # But B should still be in the wheel
         self.assertIn("B", i_wheel)
 
@@ -279,17 +279,14 @@ class TestFutureEvents(unittest.TestCase):
         i_wheel.remove("A") # This one is immediately deleted
 
         # Advance time to trigger reschedule
-        self.time_counter = 12
-        i_wheel.advance_wheel()
+        for _ in range(12):
+            self.time_counter += 1
+            i_wheel.advance_wheel()
 
+        # Only B should be rescheduled
         self.assertEqual(len(i_wheel.future_events), 0)
-        self.assertNotIn("A", i_wheel)
-        self.assertIn("B", i_wheel) # B should be rescheduled
-
-        # B should be in the wheel but at the far end slot, not the current slot
-        self.assertTrue(i_wheel._is_current_slot_empty())
-        # But B should still be in the wheel
         self.assertIn("B", i_wheel)
+        self.assertNotIn("A", i_wheel)
 
     def test_absolute_hour_scheduling_is_now_allowed(self):
         """Test scheduling an absolute hour >= total_ticks + size is now allowed."""
@@ -422,27 +419,22 @@ class TestIndexedTimeWheelFeatures(unittest.TestCase):
         # This event is on the wheel and will force the clock to advance.
         self.tw.schedule_with_delay("dummy_event", "dummy_data", 10)
 
-        # Advance time until the dummy event.
-        self.time_counter = 10
-        self.tw.advance_wheel()
+        # Advance time until the dummy event by stepping one by one
+        for _ in range(10):
+            self.time_counter += 1
+            self.tw.advance_wheel()
 
         # Pop the dummy event
         event = self.tw.pop_due_event()
         self.assertEqual(event[0], "dummy_event")
 
-        # At this point, total_ticks = 10, future_event is still in the heap
-        self.assertEqual(len(self.tw.future_events), 1)
-        self.assertEqual(self.tw.future_events[0][1].key, "future_event")
+        # Advance time to move future event to wheel by stepping one by one
+        for _ in range(100):  # 从时间10推进到时间110
+            self.time_counter += 1
+            self.tw.advance_wheel()
 
-        # Advance time to 110 to trigger the future event
-        self.time_counter = 110
-        self.tw.advance_wheel()
-
-        # Now the future_event should have been moved into the wheel at the far end
+        # The future event should now be in the wheel
         self.assertEqual(len(self.tw.future_events), 0)
-
-        # It should be in the wheel but not immediately available
-        # The event should be in the wheel's far end slot
         self.assertIn("future_event", self.tw)
 
 if __name__ == '__main__':

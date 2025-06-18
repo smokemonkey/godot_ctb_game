@@ -127,18 +127,24 @@ class IndexedTimeWheel(Generic[T]):
 
     def advance_wheel(self):
         """更新时间轮状态：更新offset并移动接近的远期事件到主轮"""
+
+        assert self._is_current_slot_empty(), "current slot is not empty"
+
         with self._lock:
-            # 更新offset
-            self.offset = self.get_time() % self.buffer_size
+            # 推进offset一个位置
+            self.offset = (self.offset + 1) % self.buffer_size
 
             # 检查是否有远期事件需要移动到主轮
             # 由于列表已按absolute_hour排序，只需要检查第一个元素
-            while self.future_events and self.future_events[0][0] <= self.get_time():
+            # 只有当远期事件在当前时间+buffer_size-1范围内时才移动到主轮
+            while self.future_events and self.future_events[0][0] <= self.get_time() + self.buffer_size - 1:
                 absolute_hour, node = self.future_events.pop(0)
+
+                assert absolute_hour == self.get_time() + self.buffer_size - 1, "this should have been handled earlier."
 
                 # 将到期的远期事件插入时间轮的最远端槽位 (offset-1)
                 # 这样事件会在时间轮中正确的时间点被触发
-                target_index = (self.offset - 1) % self.buffer_size
+                target_index = (self.offset - 1 + self.buffer_size) % self.buffer_size
                 node.slot_index = target_index
                 self._schedule(node, target_index)
 
