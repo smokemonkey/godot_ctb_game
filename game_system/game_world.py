@@ -174,10 +174,6 @@ class GameWorld:
         """获取所有角色信息（暂时返回空列表）"""
         return []
 
-    def get_upcoming_events(self, count: int = 10) -> List[tuple]:
-        """获取即将发生的事件"""
-        return self._time_wheel.peek_upcoming_events(count)
-
     # ==================== 事件系统 ====================
 
     def register_event_callback(self, event_type: str, callback: callable) -> None:

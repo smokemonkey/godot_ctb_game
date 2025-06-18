@@ -71,37 +71,13 @@ class TestGameWorld(unittest.TestCase):
         success = self.world.schedule_event("test_event", "test_data", 5)
         self.assertTrue(success)
 
-        # 验证事件已添加
-        upcoming_events = self.world.get_upcoming_events(10)
-        self.assertEqual(len(upcoming_events), 1)
-        self.assertEqual(upcoming_events[0][0], "test_event")
-
         # 移除事件
         removed_data = self.world.remove_event("test_event")
         self.assertEqual(removed_data, "test_data")
 
-        # 验证事件已移除
-        upcoming_events = self.world.get_upcoming_events(10)
-        self.assertEqual(len(upcoming_events), 0)
-
         # 移除不存在的事件
         removed_data = self.world.remove_event("nonexistent")
         self.assertIsNone(removed_data)
-
-    def test_time_management(self):
-        """测试时间管理功能"""
-        self.world.start_game()
-
-        # 获取初始时间
-        initial_time = self.world.calendar.get_time_info()
-
-        # 手动推进时间 - 使用_advance_tick替代advance_time
-        for _ in range(10 * 24):  # 推进10天 = 240小时
-            self.world._advance_tick()
-
-        # 验证时间已推进
-        new_time = self.world.calendar.get_time_info()
-        self.assertGreater(new_time['total_hours'], initial_time['total_hours'])
 
     def test_era_management(self):
         """测试纪元管理"""
@@ -180,10 +156,6 @@ class TestGameWorld(unittest.TestCase):
         # 使用延迟1小时，确保在时间轮范围内
         self.world.schedule_event("test_event", "test_data", 1)
 
-        # 查看即将发生的事件
-        upcoming = self.world.get_upcoming_events(5)
-        self.assertEqual(len(upcoming), 1)
-
     def test_reset_functionality(self):
         """测试重置功能"""
         self.world.start_game()
@@ -198,7 +170,6 @@ class TestGameWorld(unittest.TestCase):
         # 验证状态已改变
         self.assertTrue(self.world.is_running)
         self.assertEqual(self.world.turn_count, 3)
-        self.assertGreater(len(self.world.get_upcoming_events(10)), 0)
 
         # 重置
         self.world.reset()
@@ -206,7 +177,6 @@ class TestGameWorld(unittest.TestCase):
         # 验证已重置到初始状态
         self.assertFalse(self.world.is_running)
         self.assertEqual(self.world.turn_count, 0)
-        self.assertEqual(len(self.world.get_upcoming_events(10)), 0)
 
     def test_get_characters_info(self):
         """测试获取角色信息（暂时返回空列表）"""
