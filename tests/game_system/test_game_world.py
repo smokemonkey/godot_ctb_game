@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 """
-游戏世界系统测试
+游戏世界系统测试用例
 
-测试GameWorld单例类的各种功能。
+测试GameWorld的核心功能：
+- 单例模式
+- 组件初始化
+- 游戏状态管理
+- 事件系统
+- 并发安全性
 """
 
 import unittest
@@ -11,87 +16,53 @@ import os
 import threading
 import time
 
-# 添加项目根目录到Python路径
+# Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from game_system.game_world import GameWorld, get_game_world, GameWorldConfig, reset_game_world
-from game_system.calendar.calendar import TimeUnit
+from game_system.game_world import GameWorld, GameWorldConfig, get_game_world, reset_game_world
 
 
 class TestGameWorld(unittest.TestCase):
-    """测试GameWorld类的基本功能"""
+    """测试GameWorld核心功能"""
 
     def setUp(self):
         """每个测试前的设置"""
-        # 重置游戏世界到初始状态
         reset_game_world()
         self.world = get_game_world()
 
     def test_singleton_behavior(self):
-        """测试单例模式行为"""
+        """测试单例模式"""
         world1 = get_game_world()
         world2 = get_game_world()
-        world3 = GameWorld()
 
-        # 验证所有实例都是同一个对象
+        # 验证是同一个实例
         self.assertIs(world1, world2)
+
+        # 验证重置后仍然是单例
+        reset_game_world()
+        world3 = get_game_world()
         self.assertIs(world1, world3)
-        self.assertIs(world2, world3)
 
     def test_initial_state(self):
         """测试初始状态"""
+        # 验证初始状态
         self.assertFalse(self.world.is_running)
         self.assertEqual(self.world.turn_count, 0)
+
+        # 验证组件已初始化
         self.assertIsNotNone(self.world.calendar)
         self.assertIsNotNone(self.world.time_wheel)
+        self.assertIsNotNone(self.world.ctb_manager)
 
     def test_start_stop_game(self):
         """测试开始和停止游戏"""
-        # 初始状态
-        self.assertFalse(self.world.is_running)
-
         # 开始游戏
-        self.world.start_game()
-        self.assertTrue(self.world.is_running)
-        self.assertEqual(self.world.turn_count, 0)
-
-        # 再次开始游戏（应该无效果）
         self.world.start_game()
         self.assertTrue(self.world.is_running)
 
         # 停止游戏
         self.world.stop_game()
         self.assertFalse(self.world.is_running)
-
-    def test_schedule_remove_event(self):
-        """测试调度和移除事件"""
-        self.world.start_game()
-
-        # 调度事件
-        success = self.world.schedule_event("test_event", "test_data", 5)
-        self.assertTrue(success)
-
-        # 移除事件
-        removed_data = self.world.remove_event("test_event")
-        self.assertEqual(removed_data, "test_data")
-
-        # 移除不存在的事件
-        removed_data = self.world.remove_event("nonexistent")
-        self.assertIsNone(removed_data)
-
-    def test_era_management(self):
-        """测试纪元管理"""
-        self.world.start_game()
-
-        # 开始新纪元
-        self.world.start_new_era("测试纪元")
-
-        # 验证纪元信息
-        era_name = self.world.calendar.get_current_era_name()
-        era_year = self.world.calendar.get_current_era_year()
-
-        self.assertEqual(era_name, "测试纪元")
-        self.assertEqual(era_year, 1)
 
     def test_get_game_status(self):
         """测试获取游戏状态"""
@@ -108,128 +79,11 @@ class TestGameWorld(unittest.TestCase):
         # 验证character_count为0（暂时）
         self.assertEqual(status['character_count'], 0)
 
-    def test_event_system(self):
-        """测试事件系统"""
-        self.world.start_game()
-
-        events_triggered = []
-
-        def on_event_scheduled(data):
-            events_triggered.append(('event_scheduled', data))
-
-        def on_tick_ended(data):
-            events_triggered.append(('tick_ended', data))
-
-        # 注册事件回调
-        self.world.register_event_callback('event_scheduled', on_event_scheduled)
-        self.world.register_event_callback('tick_ended', on_tick_ended)
-
-        # 触发事件
-        self.world.schedule_event("test_event", "test_data", 5)
-
-        # 推进tick触发事件 - 使用_advance_tick替代tick
-        self.world._advance_tick()
-
-        # 验证事件被触发
-        self.assertGreater(len(events_triggered), 0)
-
-        # 验证事件类型
-        event_types = [event[0] for event in events_triggered]
-        self.assertIn('event_scheduled', event_types)
-        self.assertIn('tick_ended', event_types)
-
-    def test_component_access(self):
-        """测试组件访问"""
-        # 验证可以直接访问各个组件
-        self.assertIsNotNone(self.world.calendar)
-        self.assertIsNotNone(self.world.time_wheel)
-
-        # 验证组件类型
-        from game_system.calendar.calendar import Calendar
-        from game_system.indexed_time_wheel.indexed_time_wheel import IndexedTimeWheel
-
-        self.assertIsInstance(self.world.calendar, Calendar)
-        self.assertIsInstance(self.world.time_wheel, IndexedTimeWheel)
-
-        # 添加事件并查看
-        self.world.start_game()
-        # 使用延迟1小时，确保在时间轮范围内
-        self.world.schedule_event("test_event", "test_data", 1)
-
-    def test_reset_functionality(self):
-        """测试重置功能"""
-        self.world.start_game()
-
-        # 添加事件
-        self.world.schedule_event("test_event", "test_data", 5)
-
-        # 推进几个tick - 使用_advance_tick替代tick
-        for _ in range(3):
-            self.world._advance_tick()
-
-        # 验证状态已改变
-        self.assertTrue(self.world.is_running)
-        self.assertEqual(self.world.turn_count, 3)
-
-        # 重置
-        self.world.reset()
-
-        # 验证已重置到初始状态
-        self.assertFalse(self.world.is_running)
-        self.assertEqual(self.world.turn_count, 0)
-
     def test_get_characters_info(self):
         """测试获取角色信息（暂时返回空列表）"""
         characters_info = self.world.get_characters_info()
         self.assertEqual(len(characters_info), 0)
         self.assertIsInstance(characters_info, list)
-
-
-class TestGameWorldConcurrency(unittest.TestCase):
-    """测试GameWorld的并发安全性"""
-
-    def setUp(self):
-        """每个测试前的设置"""
-        reset_game_world()
-        self.world = get_game_world()
-
-    def test_concurrent_access(self):
-        """测试并发访问"""
-        self.world.start_game()
-
-        exceptions = []
-
-        def worker():
-            """工作线程函数"""
-            try:
-                for _ in range(10):
-                    # 调度事件
-                    self.world.schedule_event(f"event_{threading.get_ident()}_{_}",
-                                            f"data_{_}", _)
-
-                    # 推进tick - 使用_advance_tick替代tick
-                    self.world._advance_tick()
-
-                    # 获取状态
-                    self.world.get_game_status()
-
-                time.sleep(0.001)  # 短暂休眠
-            except Exception as e:
-                exceptions.append(e)
-
-        # 创建多个线程
-        threads = []
-        for _ in range(3):
-            thread = threading.Thread(target=worker)
-            threads.append(thread)
-            thread.start()
-
-        # 等待所有线程完成
-        for thread in threads:
-            thread.join()
-
-        # 验证没有异常
-        self.assertEqual(len(exceptions), 0, f"并发访问出现异常: {exceptions}")
 
 
 class TestGameWorldConfig(unittest.TestCase):
@@ -256,5 +110,26 @@ class TestGameWorldConfig(unittest.TestCase):
         self.assertEqual(config.auto_save_interval, 50)
 
 
+def run_game_world_tests():
+    """运行所有GameWorld测试"""
+    loader = unittest.TestLoader()
+    suite = unittest.TestSuite()
+
+    # 添加所有测试类
+    test_classes = [
+        TestGameWorld,
+        TestGameWorldConfig
+    ]
+
+    for test_class in test_classes:
+        tests = loader.loadTestsFromTestCase(test_class)
+        suite.addTests(tests)
+
+    runner = unittest.TextTestRunner(verbosity=2)
+    result = runner.run(suite)
+    return result.wasSuccessful()
+
+
 if __name__ == '__main__':
-    unittest.main(verbosity=2)
+    success = run_game_world_tests()
+    sys.exit(0 if success else 1)

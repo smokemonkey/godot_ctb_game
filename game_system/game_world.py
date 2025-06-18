@@ -2,13 +2,14 @@
 """
 游戏世界系统 - 全局单例管理器
 
-负责协调和管理游戏系统的两个核心组件：
+负责协调和管理游戏系统的三个核心组件：
 - Calendar: 时间管理系统
 - IndexedTimeWheel: 事件调度系统
+- CTBManager: 战斗系统管理器
 
 设计原则：
 - 单例模式：确保全局唯一实例
-- 组件协作：两个组件各司其职，相互配合
+- 组件协作：三个组件各司其职，相互配合
 - 统一接口：提供简洁的游戏世界操作接口
 - 线程安全：支持多线程环境下的安全访问
 """
@@ -19,6 +20,7 @@ from dataclasses import dataclass
 
 from .calendar.calendar import Calendar, TimeUnit
 from .indexed_time_wheel.indexed_time_wheel import IndexedTimeWheel
+from .ctb.ctb import CTBManager
 
 
 @dataclass
@@ -59,6 +61,7 @@ class GameWorld:
         # 初始化核心组件
         self._calendar: Optional[Calendar] = None
         self._time_wheel: Optional[IndexedTimeWheel] = None
+        self._ctb_manager: Optional[CTBManager] = None
 
         # 游戏状态
         self._game_running = False
@@ -84,7 +87,16 @@ class GameWorld:
             get_time_callback=lambda: self._calendar.get_timestamp()
         )
 
-        # 3. 设置组件间的协作关系
+        # 3. 初始化CTB管理器，传入时间轮的回调函数
+        self._ctb_manager = CTBManager(
+            get_time_callback=lambda: self._calendar.get_timestamp(),
+            schedule_callback=lambda key, event, delay: self._time_wheel.schedule_with_delay(key, event, delay),
+            remove_callback=lambda key: self._time_wheel.remove(key),
+            peek_callback=lambda count, max_events: self._time_wheel.peek_upcoming_events(count, max_events),
+            pop_callback=lambda: self._time_wheel.pop_due_event()
+        )
+
+        # 4. 设置组件间的协作关系
         self._setup_component_collaboration()
 
     def _setup_component_collaboration(self):
@@ -129,6 +141,11 @@ class GameWorld:
         return self._time_wheel
 
     @property
+    def ctb_manager(self) -> CTBManager:
+        """获取CTB管理器"""
+        return self._ctb_manager
+
+    @property
     def is_running(self) -> bool:
         """游戏是否正在运行"""
         return self._game_running
@@ -144,13 +161,15 @@ class GameWorld:
             'is_running': self._game_running,
             'turn_count': self._calendar.get_timestamp(),
             'current_time': self._calendar.get_time_info(),
-            'character_count': 0,  # 暂时设为0
+            'character_count': len(self._ctb_manager.characters) if self._ctb_manager else 0,
             'pending_events': len(self._time_wheel),
             'future_events': len(self._time_wheel.future_events)
         }
 
     def get_characters_info(self) -> List[Dict[str, Any]]:
-        """获取所有角色信息（暂时返回空列表）"""
+        """获取所有角色信息"""
+        if self._ctb_manager:
+            return self._ctb_manager.get_character_info()
         return []
 
     # ==================== 事件系统 ====================
