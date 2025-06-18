@@ -8,8 +8,14 @@ CTB系统事件示例
 - 自定义事件
 """
 
-from game_time import TimeManager
-from ctb import CTBManager, Character, Event, EventType
+import sys
+import os
+
+# Add the project root to the Python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from game_system.calendar import TimeManager
+from game_system.ctb import CTBManager, Character, Event, EventType
 
 
 class SeasonChangeEvent(Event):
@@ -114,10 +120,12 @@ def main():
     action_list = ctb.get_action_list(30)
 
     for i, action in enumerate(action_list[:15]):
-        days = action['days_from_now']
-        hours = action['hours_from_now'] % 24
-        event_type = action['event_type']
-        print(f"{i+1:2d}. [{event_type:8s}] {action['event_name']:12s} - {days:3d}天{hours:2d}小时后")
+        hours_total = action['time_until']
+        days = hours_total // 24
+        hours = hours_total % 24
+        event_type = action.get('type', '')
+        event_name = action.get('name', '')
+        print(f"{i+1:2d}. [{event_type:8s}] {event_name:12s} - {days:3d}天{hours:2d}小时后")
 
     if len(action_list) > 15:
         print(f"... (共{len(action_list)}个事件)")

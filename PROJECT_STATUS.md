@@ -162,7 +162,7 @@ tests/
 ├── test_ctb_system.py    # CTB系统测试套件
 ├── run_tests.py          # 测试运行器
 examples/
-├── time_web_demo.html    # 时间系统Web演示
+├── calendar_demo.html    # 时间系统Web演示
 ├── ctb_web_demo.html     # CTB系统Web演示
 ├── start_web_demo.py     # 演示服务器
 docs/

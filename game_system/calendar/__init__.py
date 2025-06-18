@@ -5,7 +5,7 @@
 
 主要组件:
 - TimeManager: 时间管理器，支持锚定功能
-- Calendar: 日历显示器  
+- Calendar: 日历显示器
 - TimeUnit: 时间单位枚举
 
 示例用法:
@@ -16,7 +16,7 @@
     >>> time_manager.anchor_era("开元", 713)  # 锚定开元元年=公元713年
 """
 
-from .time_system import TimeManager, Calendar, TimeUnit
+from .calendar import TimeManager, Calendar, TimeUnit
 
 __version__ = "1.0.0"
 __author__ = "Game Time System"
@@ -25,6 +25,6 @@ __author__ = "Game Time System"
 __all__ = [
     # 核心时间系统
     "TimeManager",
-    "Calendar", 
+    "Calendar",
     "TimeUnit"
-] 
+]

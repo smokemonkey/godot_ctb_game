@@ -22,7 +22,7 @@ import random
 from dataclasses import dataclass
 
 # 导入时间系统
-from ..game_time.time_system import TimeManager, TimeUnit, Calendar
+from ..calendar.calendar import TimeManager, TimeUnit, Calendar
 
 # 导入时间轮
 from .indexed_time_wheel import IndexedTimeWheel
@@ -452,7 +452,7 @@ class CTBManager:
             }
 
             # 尝试从时间轮中获取下次行动时间
-            event = self.time_wheel.get_by_key(character.id)
+            event = self.time_wheel.get(character.id)
             if event:
                 current_time = self.time_manager._total_hours
                 info['next_action_time'] = event.trigger_time

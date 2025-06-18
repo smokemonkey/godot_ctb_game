@@ -127,7 +127,7 @@ def main():
 
     # 检查HTML文件是否存在
     ctb_file = "ctb_web_demo.html"
-    time_file = "time_web_demo.html"
+    time_file = "calendar_demo.html"
 
     if not os.path.exists(ctb_file):
         print(f"错误：找不到 {ctb_file}")

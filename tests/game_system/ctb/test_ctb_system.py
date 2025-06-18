@@ -17,7 +17,7 @@ import os
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 
-from game_system.game_time import TimeManager
+from game_system.calendar import TimeManager
 from game_system.ctb.ctb_system import CTBManager, Character, Event, EventType
 
 
