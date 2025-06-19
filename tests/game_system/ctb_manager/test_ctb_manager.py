@@ -145,10 +145,12 @@ class TestCTBManager(unittest.TestCase):
         # 创建CTB管理器，使用模拟的回调函数
         self.ctb_manager = CTBManager(
             get_time_callback=lambda: self.calendar.get_timestamp(),
+            advance_time_callback=lambda: None,
             schedule_callback=lambda key, event, delay: self.mock_time_wheel.schedule_with_delay(key, event, delay),
             remove_callback=lambda key: self.mock_time_wheel.remove(key),
             peek_callback=lambda count, max_events: self.mock_time_wheel.peek_upcoming_events(count, max_events),
-            pop_callback=lambda: self.mock_time_wheel.pop_due_event()
+            pop_callback=lambda: self.mock_time_wheel.pop_due_event(),
+            is_slot_empty_callback=lambda: False
         )
 
         self.char1 = Character("char1", "Hero")
@@ -255,10 +257,12 @@ class TestCTBIntegration(unittest.TestCase):
 
         self.ctb_manager = CTBManager(
             get_time_callback=lambda: self.calendar.get_timestamp(),
+            advance_time_callback=lambda: None,
             schedule_callback=lambda key, event, delay: self.mock_time_wheel.schedule_with_delay(key, event, delay),
             remove_callback=lambda key: self.mock_time_wheel.remove(key),
             peek_callback=lambda count, max_events: self.mock_time_wheel.peek_upcoming_events(count, max_events),
-            pop_callback=lambda: self.mock_time_wheel.pop_due_event()
+            pop_callback=lambda: self.mock_time_wheel.pop_due_event(),
+            is_slot_empty_callback=lambda: False
         )
 
         # 添加多个角色
@@ -355,10 +359,12 @@ class TestCTBEventExamples(unittest.TestCase):
 
         self.ctb_manager = CTBManager(
             get_time_callback=lambda: self.calendar.get_timestamp(),
+            advance_time_callback=lambda: None,
             schedule_callback=lambda key, event, delay: self.mock_time_wheel.schedule_with_delay(key, event, delay),
             remove_callback=lambda key: self.mock_time_wheel.remove(key),
             peek_callback=lambda count, max_events: self.mock_time_wheel.peek_upcoming_events(count, max_events),
-            pop_callback=lambda: self.mock_time_wheel.pop_due_event()
+            pop_callback=lambda: self.mock_time_wheel.pop_due_event(),
+            is_slot_empty_callback=lambda: False
         )
 
     def test_season_change_event(self):
