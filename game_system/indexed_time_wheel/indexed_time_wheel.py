@@ -216,3 +216,8 @@ class IndexedTimeWheel(Generic[T]):
         """返回已安排的事件总数。"""
         with self._lock:
             return len(self.index)
+
+    def has_any_events(self) -> bool:
+        """检查时间轮或远期事件中是否还有任何事件。"""
+        with self._lock:
+            return True # TODO: 实现真正的检查

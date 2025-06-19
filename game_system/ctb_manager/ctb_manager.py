@@ -142,10 +142,12 @@ class CTBManager:
 
     def __init__(self,
                  get_time_callback: Callable[[], int],
+                 advance_time_callback: Callable[[], None],
                  schedule_callback: Callable[[str, Event, int], bool],
                  remove_callback: Callable[[str], bool],
                  peek_callback: Callable[[int, int], List[Tuple[str, Event]]],
-                 pop_callback: Callable[[], Optional[Tuple[str, Event]]]):
+                 pop_callback: Callable[[], Optional[Tuple[str, Event]]],
+                 is_slot_empty_callback: Callable[[], bool]):
         """
         初始化CTB管理器
 
@@ -157,10 +159,12 @@ class CTBManager:
             pop_callback: 弹出到期事件的回调函数 () -> Optional[Tuple[str, Event]]
         """
         self.get_time_callback = get_time_callback
+        self.advance_time_callback = advance_time_callback
         self.schedule_callback = schedule_callback
         self.remove_callback = remove_callback
         self.peek_callback = peek_callback
         self.pop_callback = pop_callback
+        self.is_slot_empty_callback = is_slot_empty_callback
 
         self.characters: Dict[str, Character] = {}
         self.is_initialized = False
@@ -183,6 +187,37 @@ class CTBManager:
             raise ValueError(f"Character with ID {character.id} already exists")
 
         self.characters[character.id] = character
+
+    def process_next_turn(self) -> Dict[str, Any]:
+        """
+        处理下一个逻辑回合。
+
+        这会驱动时间前进，直到找到并处理完一个事件。
+        这是CTB系统的核心“引擎”方法。
+
+        Returns:
+            Dict[str, Any]: 包含已执行事件信息的字典。
+        """
+        ticks_advanced = 0
+        while self.is_slot_empty_callback():
+            if ticks_advanced > 24 * 365:
+                 raise RuntimeError("CTBManager advanced time for over a year without finding any event.")
+            self.advance_time_callback()
+            ticks_advanced += 1
+
+        event = self.get_due_event()
+        if event:
+            self._execute_event(event)
+            return {
+                'type': 'EVENT_EXECUTED',
+                'ticks_advanced': ticks_advanced,
+                'event_id': event.id,
+                'event_name': event.name,
+                'event_type': event.event_type.name,
+                'timestamp': self.get_time_callback()
+            }
+
+        raise RuntimeError("Inconsistent State: Slot was not empty, but no event could be popped.")
 
     def remove_character(self, character_id: str) -> bool:
         """

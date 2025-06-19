@@ -90,10 +90,12 @@ class GameWorld:
         # 3. 初始化CTB管理器，传入时间轮的回调函数
         self._ctb_manager = CTBManager(
             get_time_callback=lambda: self._calendar.get_timestamp(),
+            advance_time_callback=lambda: self.calendar.advance_time_tick(),
             schedule_callback=lambda key, event, delay: self._time_wheel.schedule_with_delay(key, event, delay),
             remove_callback=lambda key: self._time_wheel.remove(key),
             peek_callback=lambda count, max_events: self._time_wheel.peek_upcoming_events(count, max_events),
-            pop_callback=lambda: self._time_wheel.pop_due_event()
+            pop_callback=lambda: self._time_wheel.pop_due_event(),
+            is_slot_empty_callback=lambda: self._time_wheel.has_any_events()
         )
 
         # 4. 设置组件间的协作关系
@@ -127,6 +129,23 @@ class GameWorld:
         self._game_running = False
         self._trigger_event('game_stopped')
         print(f"游戏世界已停止 - 当前时间: {self._calendar.format_date_gregorian()}")
+
+
+    def step_forward(self) -> Optional[Dict[str, Any]]:
+        """
+        【核心循环】单步推进游戏世界。
+
+        此方法将命令CTB引擎处理下一个逻辑回合。
+        所有的复杂逻辑都已封装在CTBManager内部。
+        """
+        if not self._game_running:
+            return None
+        try:
+            return self._ctb_manager.process_next_turn()
+        except RuntimeError as e:
+            print(f"游戏处理时发生错误: {e}")
+            self.stop_game()
+            return {'type': 'ERROR', 'message': str(e)}
 
     # ==================== 查询接口 ====================
 
