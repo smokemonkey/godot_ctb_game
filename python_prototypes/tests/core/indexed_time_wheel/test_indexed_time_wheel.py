@@ -437,5 +437,26 @@ class TestIndexedTimeWheelFeatures(unittest.TestCase):
         self.assertEqual(len(self.tw.future_events), 0)
         self.assertIn("future_event", self.tw)
 
+    def test_has_any_events_functionality(self):
+        """Test the improved has_any_events() method - 回迁自C#的修复"""
+        # Initially no events
+        self.assertFalse(self.tw.has_any_events())
+        
+        # Add an event
+        self.tw.schedule_with_delay("test_event", "data", 5)
+        self.assertTrue(self.tw.has_any_events())
+        
+        # Add a future event
+        self.tw.schedule_with_delay("future_event", "future_data", 150)
+        self.assertTrue(self.tw.has_any_events())
+        
+        # Remove one event
+        self.tw.remove("test_event")
+        self.assertTrue(self.tw.has_any_events())  # Still has future_event
+        
+        # Remove all events
+        self.tw.remove("future_event")
+        self.assertFalse(self.tw.has_any_events())
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

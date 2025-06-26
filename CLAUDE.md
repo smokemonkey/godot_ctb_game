@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a hybrid Godot 4.4 game project with both C# and Python components for a turn-based game featuring:
 - Custom calendar system (360 days/year, 24 hours/day)
-- CTB (Conditional Turn-Based) battle system 
+- CTB (Conditional Turn-Based) battle system
 - Indexed time wheel for efficient event scheduling
 - Dual implementation in both C# (Godot) and Python (prototyping)
 
@@ -37,19 +37,19 @@ The project has two main components:
 cd python_prototypes
 
 # Set up environment
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate  # Linux/Mac
 # or venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 
 # Run tests
-python run_tests.py
+python3 run_tests.py
 
 # Run web demos
-python examples/start_web_demo.py
+python3 examples/start_web_demo.py
 
 # Generate API documentation
-python generate_docs.py
+python3 generate_docs.py
 ```
 
 ### Godot Development
@@ -73,16 +73,16 @@ godot --headless --script run_gut_tests.gd
 ### Code Synchronization
 ```bash
 # Sync Python to C#
-python sync_code.py py cs [--file=module] [--dry-run]
+python3 sync_code.py py cs [--file=module] [--dry-run]
 
 # Sync C# to Python
-python sync_code.py cs py [--file=module] [--dry-run]
+python3 sync_code.py cs py [--file=module] [--dry-run]
 
 # Check mapping consistency
-python sync_code.py --check-mapping
+python3 sync_code.py --check-mapping
 
 # Preview changes
-python sync_code.py py cs --dry-run
+python3 sync_code.py py cs --dry-run
 ```
 
 ## Key Systems
@@ -123,14 +123,14 @@ python sync_code.py py cs --dry-run
 
 ### Python Tests
 - **Location**: `python_prototypes/tests/`
-- **Runner**: `python run_tests.py` (uses unittest)
+- **Runner**: `python3 run_tests.py` (uses unittest)
 - **Coverage**: 61 test cases covering all core functionality
 - **Structure**: Mirrors `core/` module organization
 
-### Unified Testing (GUT Framework) 
+### Unified Testing (GUT Framework)
 - **Location**: `tests/test_scene.tscn` and `addons/gut/`
 - **Purpose**: Test both C# and GDScript implementations in Godot environment
-- **Features**: 
+- **Features**:
   - Visual test runner with progress tracking
   - Migrated C# unit tests for full integration testing
   - Cross-language compatibility verification
@@ -177,7 +177,7 @@ This project follows a hybrid development approach where Python serves as the ra
 
 The project maintains strict correspondence between Python and C# implementations:
 
-- **Mapping Files**: 
+- **Mapping Files**:
   - `python_prototypes/CSHARP_MAPPING.md` - Python → C# correspondence
   - `scripts/csharp/PYTHON_MAPPING.md` - C# → Python correspondence
 - **Synchronized APIs**: Method signatures and functionality remain consistent
@@ -214,7 +214,7 @@ The Python prototypes serve as the reference implementation, with the C# version
 ## Latest Updates (2024-06-26)
 
 ### New Features Added
-1. **GUT Testing Framework**: 
+1. **GUT Testing Framework**:
    - Unified test runner for C# and GDScript in Godot
    - Visual test interface with progress tracking
    - Command-line test execution support
@@ -239,7 +239,7 @@ The Python prototypes serve as the reference implementation, with the C# version
 ### Testing Framework Migration
 - **Migrated C# Tests**: All Calendar, IndexedTimeWheel, and CTBManager tests now run in GUT
 - **Focus on Integration**: Tests now validate Godot-C# integration rather than isolated units
-- **Comprehensive Coverage**: 
+- **Comprehensive Coverage**:
   - Calendar: Basic functionality, time advancement, era system, reset, formatting
   - IndexedTimeWheel: Basic operations, scheduling methods, future events, complex scenarios
   - CTBManager: Basic functionality, character management, event handling
@@ -250,14 +250,31 @@ The Python prototypes serve as the reference implementation, with the C# version
 - Enhanced global CLAUDE.md with command-line features
 - Fixed Alt+Enter line break support for Windows environment
 
+## 🚨 Critical Development Notes
+
+### Encoding Issues Warning
+- **File Encoding**: All files must use UTF-8 encoding
+- **Chinese Comments**: Ensure Chinese text is properly encoded, especially when working in WSL
+- **C# Files**: Found encoding issues in C# files with corrupted Chinese comments (lines 97-105 in IndexedTimeWheel.cs)
+- **Python Files**: Maintain UTF-8 encoding for all Chinese documentation and comments
+- **WSL Environment**: Extra attention needed when editing files from WSL to maintain encoding consistency
+
+### Recent Code Improvements (IndexedTimeWheel)
+- **Thread Safety**: Extracted private `_schedule_internal` method to optimize lock usage
+- **Performance**: Reduced redundant `get_time()` calls
+- **Debugging**: Added runtime assertions for better error detection
+- **Code Quality**: Improved error messages and parameter validation
+- **Status**: C# improvements successfully back-ported to Python (2024-06-26)
+
 ## Documentation Maintenance Rules
 
 **Important**: This CLAUDE.md file should be updated whenever significant changes are made to:
 - Project structure or architecture
-- Development workflow or commands  
+- Development workflow or commands
 - Testing frameworks or tools
 - Code synchronization processes
 - New features or major bug fixes
+- **Encoding or internationalization issues**
 
 **Update Triggers**:
 - After implementing new tools or frameworks
@@ -265,6 +282,7 @@ The Python prototypes serve as the reference implementation, with the C# version
 - After major refactoring or restructuring
 - When adding new development commands
 - Following significant bug fixes or optimizations
+- **After discovering and fixing encoding problems**
 
 **Maintenance Process**:
 1. Document changes immediately after implementation
@@ -272,3 +290,4 @@ The Python prototypes serve as the reference implementation, with the C# version
 3. Add entries to "Latest Updates" section with dates
 4. Review and update file paths if changed
 5. Ensure commands and examples are current and tested
+6. **Verify encoding consistency across all edited files**

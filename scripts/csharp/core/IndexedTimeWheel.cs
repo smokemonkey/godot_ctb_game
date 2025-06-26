@@ -94,28 +94,28 @@ namespace Core
         }
 
         /// <summary>
-        /// [ÐÂ] Ë½ÓÐµÄ¡¢²»¼ÓËøµÄºËÐÄµ÷¶È·½·¨¡£
-        /// ËùÓÐ¹«¹²·½·¨ÔÚ»ñÈ¡ËøºÍÑéÖ¤²ÎÊýºó£¬¶¼Ó¦µ÷ÓÃ´Ë·½·¨À´Ö´ÐÐÊµ¼ÊµÄµ÷¶ÈÂß¼­¡£
+        /// [ï¿½ï¿½] Ë½ï¿½ÐµÄ¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Äºï¿½ï¿½Äµï¿½ï¿½È·ï¿½ï¿½ï¿½ï¿½ï¿½
+        /// ï¿½ï¿½ï¿½Ð¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú»ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¤ï¿½ï¿½ï¿½ï¿½ï¿½ó£¬¶ï¿½Ó¦ï¿½ï¿½ï¿½Ã´Ë·ï¿½ï¿½ï¿½ï¿½ï¿½Ö´ï¿½ï¿½Êµï¿½ÊµÄµï¿½ï¿½ï¿½ï¿½ß¼ï¿½ï¿½ï¿½
         /// </summary>
         private void ScheduleInternal(object key, T value, int delay, int now)
         {
-            // ´Ë·½·¨¼Ù¶¨:
-            // 1. ÒÑ¾­´¦ÓÚ lock ¿éÖÐ¡£
-            // 2. key µÄÎ¨Ò»ÐÔºÍ delay µÄ·Ç¸ºÐÔÒÑ¾­ÓÉµ÷ÓÃÕßÑéÖ¤¡£
-            // 3. now ÊÇÔÚËøÄÚ¸Õ¸Õ»ñÈ¡µÄµ±Ç°Ê±¼ä¡£
+            // ï¿½Ë·ï¿½ï¿½ï¿½ï¿½Ù¶ï¿½:
+            // 1. ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½ï¿½ lock ï¿½ï¿½ï¿½Ð¡ï¿½
+            // 2. key ï¿½ï¿½Î¨Ò»ï¿½Ôºï¿½ delay ï¿½Ä·Ç¸ï¿½ï¿½ï¿½ï¿½Ñ¾ï¿½ï¿½Éµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¤ï¿½ï¿½
+            // 3. now ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú¸Õ¸Õ»ï¿½È¡ï¿½Äµï¿½Ç°Ê±ï¿½ä¡£
 
             int absoluteHour = now + delay;
 
             if (delay >= _bufferSize)
             {
-                // ·ÅÈëÎ´À´ÊÂ¼þ³Ø
+                // ï¿½ï¿½ï¿½ï¿½Î´ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½
                 var node = new EventNode(key, value, -1, absoluteHour);
                 InsertFutureEvent(absoluteHour, node);
                 _index.Add(key, node);
             }
             else
             {
-                // Õý³£µ÷¶Èµ½Ê±¼äÂÖ
+                // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Èµï¿½Ê±ï¿½ï¿½ï¿½ï¿½
                 int targetIndex = (_offset + delay) % _bufferSize;
                 var node = new EventNode(key, value, targetIndex, absoluteHour);
                 InsertToWheel(node, targetIndex);
@@ -124,7 +124,7 @@ namespace Core
         }
 
         /// <summary>
-        /// [ÒÑÖØ¹¹] ÔÚÏà¶ÔÑÓ³Ùºó°²ÅÅÊÂ¼þ¡£ÏÖÔÚÊÇÒ»¸öÏß³Ì°²È«µÄ°ü×°Æ÷¡£
+        /// [ï¿½ï¿½ï¿½Ø¹ï¿½] ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó³Ùºï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ß³Ì°ï¿½È«ï¿½Ä°ï¿½×°ï¿½ï¿½ï¿½ï¿½
         /// </summary>
         public void ScheduleWithDelay(object key, T value, int delay)
         {
@@ -146,7 +146,7 @@ namespace Core
         }
 
         /// <summary>
-        /// [ÒÑÖØ¹¹] ÔÚÖ¸¶¨µÄ¾ø¶ÔÊ±¼äµã°²ÅÅÊÂ¼þ¡£ÐÞ¸´ÁËÔ­ÓÐµÄ¾ºÌ¬Ìõ¼þÎÊÌâ¡£
+        /// [ï¿½ï¿½ï¿½Ø¹ï¿½] ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½Ä¾ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ã°²ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Þ¸ï¿½ï¿½ï¿½Ô­ï¿½ÐµÄ¾ï¿½Ì¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½â¡£
         /// </summary>
         public void ScheduleAtAbsoluteHour(object key, T value, int absoluteHour)
         {
@@ -379,9 +379,7 @@ namespace Core
         {
             lock (_lock)
             {
-                // TODO: Implement the actual check.
-                // A correct implementation would be: return _index.Count > 0;
-                return true;
+                return _index.Count > 0;
             }
         }
     }

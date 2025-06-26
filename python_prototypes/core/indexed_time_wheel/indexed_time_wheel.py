@@ -58,37 +58,48 @@ class IndexedTimeWheel(Generic[T]):
         self._lock = Lock()
 
 
+    def _schedule_internal(self, key: Any, value: T, delay: int, now: int):
+        """
+        [内部方法] 私有的事件调度核心逻辑函数
+        调用前假设：
+        1. 已经持有 _lock 锁
+        2. key 的唯一性和 delay 的非负性已经被调用方验证
+        3. now 参数是刚刚获取的当前时间
+        """
+        absolute_hour = now + delay
+
+        if delay >= self.buffer_size:
+            # 调度远期事件
+            node = _EventNode(key, value, slot_index=-1, absolute_hour=absolute_hour)
+            self._insert_future_event(absolute_hour, node)
+            self.index[key] = node
+        else:
+            # 调度到时间轮
+            target_index = (self.offset + delay) % self.buffer_size
+            node = _EventNode(key, value, target_index, absolute_hour=absolute_hour)
+            self._schedule(node, target_index)
+            self.index[key] = node
+
     def schedule_with_delay(self, key: Any, value: T, delay: int):
-        """在相对延迟后安排一个带有关联键的事件。这是核心调度方法。"""
+        """[公共接口] 在相对延迟后安排一个带有关联键的事件，线程安全的封装函数"""
         with self._lock:
             assert key not in self.index, f"Key '{key}' already exists."
             assert delay >= 0, "Delay must be non-negative."
 
             now = self.get_time()
-            absolute_hour = now + delay
-
-            # 如果延迟超出了当前轮次，则放入远期事件池
-            if delay >= self.buffer_size:
-                # slot_index = -1 表示在远期池中
-                node = _EventNode(key, value, slot_index=-1, absolute_hour=absolute_hour)
-                self._insert_future_event(absolute_hour, node)
-                self.index[key] = node
-            else:
-                # 正常调度到时间轮
-                target_index = (self.offset + delay) % self.buffer_size
-                node = _EventNode(key, value, target_index, absolute_hour=absolute_hour)
-                self._schedule(node, target_index)
-                self.index[key] = node
-
+            self._schedule_internal(key, value, delay, now)
             # TODO: 数据改变后通知UI重新渲染
 
     def schedule_at_absolute_hour(self, key: Any, value: T, absolute_hour: int):
-        """在指定的绝对时间点安排一个带有关联键的事件 (便利封装)。"""
-        now = self.get_time()
-        assert absolute_hour >= now, "Cannot schedule in the past."
+        """[公共接口] 在指定的绝对时间点安排一个带有关联键的事件，修复了原来的静态检查问题"""
+        with self._lock:
+            now = self.get_time()
+            assert absolute_hour >= now, "Cannot schedule in the past."
+            assert key not in self.index, f"Key '{key}' already exists."
 
-        delay = absolute_hour - now
-        self.schedule_with_delay(key, value, delay)
+            delay = absolute_hour - now
+            self._schedule_internal(key, value, delay, now)
+            # TODO: 数据改变后通知UI重新渲染
 
     def _schedule(self, event_node: _EventNode[T], target_index: int):
         """将事件节点插入到指定的目标索引槽位中。"""
@@ -128,7 +139,7 @@ class IndexedTimeWheel(Generic[T]):
     def advance_wheel(self):
         """更新时间轮状态：更新offset并移动接近的远期事件到主轮"""
 
-        assert self._is_current_slot_empty(), "current slot is not empty"
+        assert self._is_current_slot_empty(), "Cannot advance wheel: current slot is not empty."
 
         with self._lock:
             # 推进offset一个位置
@@ -137,10 +148,11 @@ class IndexedTimeWheel(Generic[T]):
             # 检查是否有远期事件需要移动到主轮
             # 由于列表已按absolute_hour排序，只需要检查第一个元素
             # 只有当远期事件在当前时间+buffer_size-1范围内时才移动到主轮
-            while self.future_events and self.future_events[0][0] <= self.get_time() + self.buffer_size - 1:
+            time_threshold = self.get_time() + self.buffer_size - 1
+            while self.future_events and self.future_events[0][0] <= time_threshold:
                 absolute_hour, node = self.future_events.pop(0)
 
-                assert absolute_hour == self.get_time() + self.buffer_size - 1, "this should have been handled earlier."
+                assert absolute_hour == time_threshold, "This event should have been handled earlier."
 
                 # 将到期的远期事件插入时间轮的最远端槽位 (offset-1)
                 # 这样事件会在时间轮中正确的时间点被触发
@@ -148,7 +160,7 @@ class IndexedTimeWheel(Generic[T]):
                 node.slot_index = target_index
                 self._schedule(node, target_index)
 
-            assert not self.future_events or self.future_events[0][0] > self.get_time()
+            assert not self.future_events or self.future_events[0][0] > self.get_time(), "Future events are not correctly ordered."
 
     def remove(self, key: Any) -> Optional[T]:
         """从时间轮或远期事件列表中移除一个事件。"""
@@ -220,4 +232,4 @@ class IndexedTimeWheel(Generic[T]):
     def has_any_events(self) -> bool:
         """检查时间轮或远期事件中是否还有任何事件。"""
         with self._lock:
-            return True # TODO: 实现真正的检查
+            return len(self.index) > 0

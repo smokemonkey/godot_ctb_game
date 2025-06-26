@@ -56,14 +56,14 @@ Create test files that extend `GutTest`:
 extends GutTest
 
 func test_your_functionality():
-    # Arrange
-    var instance = YourClass.new()
-    
-    # Act
-    var result = instance.your_method()
-    
-    # Assert
-    assert_eq(result, expected_value, "Description of what should happen")
+	# Arrange
+	var instance = YourClass.new()
+	
+	# Act
+	var result = instance.your_method()
+	
+	# Assert
+	assert_eq(result, expected_value, "Description of what should happen")
 ```
 
 ### For C# Integration
