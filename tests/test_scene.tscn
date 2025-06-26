@@ -1,0 +1,75 @@
+[gd_scene load_steps=2 format=3 uid="uid://cf8vl5gw84t2y"]
+
+[ext_resource type="Script" uid="uid://cch56w4bq7jhg" path="res://tests/test_runner_ui.gd" id="1_n5q3v"]
+
+[node name="TestScene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_n5q3v")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Godot 统一测试运行器"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="ButtonContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="RunAllButton" type="Button" parent="VBoxContainer/ButtonContainer"]
+layout_mode = 2
+text = "运行所有测试"
+
+[node name="RunCSharpButton" type="Button" parent="VBoxContainer/ButtonContainer"]
+layout_mode = 2
+text = "仅运行C#测试"
+
+[node name="RunGDScriptButton" type="Button" parent="VBoxContainer/ButtonContainer"]
+layout_mode = 2
+text = "仅运行GDScript测试"
+
+[node name="ClearButton" type="Button" parent="VBoxContainer/ButtonContainer"]
+layout_mode = 2
+text = "清空结果"
+
+[node name="HSeparator2" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="ProgressBar" type="ProgressBar" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="StatusLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "准备就绪"
+
+[node name="HSeparator3" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ResultsText" type="RichTextLabel" parent="VBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "测试结果将在这里显示..."
