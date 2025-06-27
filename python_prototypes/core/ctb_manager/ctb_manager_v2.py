@@ -12,7 +12,7 @@ CTB管理器 v2.0 - 基于可调度接口的重构版本
 """
 
 from typing import Dict, List, Any, Callable, Optional
-from ..schedulable import Schedulable, CombatActor
+from ..schedulable import Schedulable, SchedulableExample
 
 
 class CTBManager:
@@ -273,7 +273,7 @@ class CTBManager:
     
     def set_schedulable_active(self, schedulable_id: str, active: bool) -> bool:
         """
-        设置可调度对象的活跃状态（仅对CombatActor有效）
+        设置可调度对象的活跃状态（仅对SchedulableExample有效）
         
         Args:
             schedulable_id: 对象ID
@@ -286,8 +286,8 @@ class CTBManager:
         if schedulable is None:
             return False
         
-        # 检查是否是CombatActor类型
-        if isinstance(schedulable, CombatActor):
+        # 检查是否是SchedulableExample类型
+        if isinstance(schedulable, SchedulableExample):
             schedulable.set_active(active)
             
             # 如果设置为非活跃，从时间轮中移除其尚未执行的调度
@@ -367,8 +367,8 @@ class CTBManager:
                     info["time_until_schedule"] = event.trigger_time - current_time
                     break
             
-            # 如果是CombatActor，添加额外信息
-            if isinstance(obj, CombatActor):
+            # 如果是SchedulableExample，添加额外信息
+            if isinstance(obj, SchedulableExample):
                 info["faction"] = obj.faction
                 info["is_active"] = obj.is_active
             

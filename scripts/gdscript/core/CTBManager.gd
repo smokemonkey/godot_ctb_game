@@ -176,15 +176,15 @@ func record_action(schedulable: Schedulable) -> void:
 	}
 	action_history.append(record)
 
-## 设置可调度对象的活跃状态（仅对CombatActor有效）
+## 设置可调度对象的活跃状态（仅对SchedulableExample有效）
 func set_schedulable_active(schedulable_id: String, active: bool) -> bool:
 	var schedulable = get_schedulable(schedulable_id)
 	if schedulable == null:
 		return false
 	
-	# 检查是否是CombatActor类型
-	if schedulable is CombatActor:
-		var combat_actor = schedulable as CombatActor
+	# 检查是否是SchedulableExample类型
+	if schedulable is SchedulableExample:
+		var combat_actor = schedulable as SchedulableExample
 		combat_actor.set_active(active)
 		
 		# 如果设置为非活跃，从时间轮中移除其尚未执行的调度
@@ -258,9 +258,9 @@ func get_schedulable_info() -> Array[Dictionary]:
 				info["time_until_schedule"] = event.trigger_time - current_time
 				break
 		
-		# 如果是CombatActor，添加额外信息
-		if obj is CombatActor:
-			var combat_actor = obj as CombatActor
+		# 如果是SchedulableExample，添加额外信息
+		if obj is SchedulableExample:
+			var combat_actor = obj as SchedulableExample
 			info["faction"] = combat_actor.faction
 			info["is_active"] = combat_actor.is_active
 		

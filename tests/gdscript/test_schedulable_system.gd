@@ -1,7 +1,7 @@
 extends "res://addons/gut/test.gd"
 
 ## 新架构的可调度系统单元测试
-## 测试Schedulable接口、CombatActor和重构后的CTBManager
+## 测试Schedulable接口、SchedulableExample和重构后的CTBManager
 
 var time_wheel: IndexedTimeWheel
 var ctb_manager: CTBManager
@@ -55,19 +55,19 @@ func _pop_callback() -> Dictionary:
 func _is_slot_empty_callback() -> bool:
 	return time_wheel._is_current_slot_empty()
 
-## 测试CombatActor基本功能
-func test_combat_actor_creation():
-	var actor = CombatActor.new("test_actor", "测试战士", "测试阵营")
+## 测试SchedulableExample基本功能
+func test_schedulable_example_creation():
+	var actor = SchedulableExample.new("test_actor", "测试战士", "测试阵营")
 	
 	assert_eq(actor.id, "test_actor", "Actor ID should be set correctly")
 	assert_eq(actor.name, "测试战士", "Actor name should be set correctly")
 	assert_eq(actor.faction, "测试阵营", "Actor faction should be set correctly")
 	assert_true(actor.is_active, "Actor should be active by default")
-	assert_eq(actor.get_type_identifier(), "CombatActor", "Type identifier should be correct")
+	assert_eq(actor.get_type_identifier(), "SchedulableExample", "Type identifier should be correct")
 
-## 测试CombatActor执行行动
-func test_combat_actor_execute():
-	var actor = CombatActor.new("test_actor", "测试战士")
+## 测试SchedulableExample执行行动
+func test_schedulable_example_execute():
+	var actor = SchedulableExample.new("test_actor", "测试战士")
 	
 	# 测试执行行动
 	var result = actor.execute()
@@ -78,9 +78,9 @@ func test_combat_actor_execute():
 	assert_eq(result["actor"], actor, "Result actor should be the same")
 	assert_true(result["success"], "Action should be successful")
 
-## 测试CombatActor非活跃状态
-func test_combat_actor_inactive():
-	var actor = CombatActor.new("test_actor", "测试战士")
+## 测试SchedulableExample非活跃状态
+func test_schedulable_example_inactive():
+	var actor = SchedulableExample.new("test_actor", "测试战士")
 	actor.set_active(false)
 	
 	assert_false(actor.is_active, "Actor should be inactive")
@@ -89,9 +89,9 @@ func test_combat_actor_inactive():
 	var result = actor.execute()
 	assert_null(result, "Inactive actor should not execute")
 
-## 测试CombatActor调度时间计算
-func test_combat_actor_schedule_time():
-	var actor = CombatActor.new("test_actor", "测试战士")
+## 测试SchedulableExample调度时间计算
+func test_schedulable_example_schedule_time():
+	var actor = SchedulableExample.new("test_actor", "测试战士")
 	var current_time = 100
 	
 	var next_time = actor.calculate_next_schedule_time(current_time)
@@ -112,7 +112,7 @@ func test_combat_actor_schedule_time():
 
 ## 测试CTBManager添加可调度对象
 func test_ctb_manager_add_schedulable():
-	var actor = CombatActor.new("test_actor", "测试战士")
+	var actor = SchedulableExample.new("test_actor", "测试战士")
 	
 	ctb_manager.add_schedulable(actor)
 	assert_true(ctb_manager.scheduled_objects.has("test_actor"), "Actor should be added to CTB manager")
@@ -122,7 +122,7 @@ func test_ctb_manager_add_schedulable():
 
 ## 测试CTBManager移除可调度对象
 func test_ctb_manager_remove_schedulable():
-	var actor = CombatActor.new("test_actor", "测试战士")
+	var actor = SchedulableExample.new("test_actor", "测试战士")
 	
 	ctb_manager.add_schedulable(actor)
 	assert_true(ctb_manager.scheduled_objects.has("test_actor"), "Actor should be added")
@@ -136,8 +136,8 @@ func test_ctb_manager_remove_schedulable():
 
 ## 测试CTBManager初始化
 func test_ctb_manager_initialization():
-	var actor1 = CombatActor.new("actor1", "战士1")
-	var actor2 = CombatActor.new("actor2", "战士2")
+	var actor1 = SchedulableExample.new("actor1", "战士1")
+	var actor2 = SchedulableExample.new("actor2", "战士2")
 	
 	ctb_manager.add_schedulable(actor1)
 	ctb_manager.add_schedulable(actor2)
@@ -153,7 +153,7 @@ func test_ctb_manager_initialization():
 
 ## 测试CTBManager执行可调度对象
 func test_ctb_manager_execute_schedulable():
-	var actor = CombatActor.new("test_actor", "测试战士")
+	var actor = SchedulableExample.new("test_actor", "测试战士")
 	var executed_count = 0
 	
 	# 设置执行回调
@@ -167,11 +167,11 @@ func test_ctb_manager_execute_schedulable():
 	
 	var history_entry = ctb_manager.action_history[0]
 	assert_eq(history_entry["schedulable_name"], "测试战士", "History should record correct name")
-	assert_eq(history_entry["schedulable_type"], "CombatActor", "History should record correct type")
+	assert_eq(history_entry["schedulable_type"], "SchedulableExample", "History should record correct type")
 
 ## 测试CTBManager回合处理
 func test_ctb_manager_process_turn():
-	var actor = CombatActor.new("test_actor", "测试战士")
+	var actor = SchedulableExample.new("test_actor", "测试战士")
 	
 	ctb_manager.add_schedulable(actor)
 	ctb_manager.initialize_ctb()
@@ -186,7 +186,7 @@ func test_ctb_manager_process_turn():
 
 ## 测试CTBManager活跃状态设置
 func test_ctb_manager_set_active():
-	var actor = CombatActor.new("test_actor", "测试战士")
+	var actor = SchedulableExample.new("test_actor", "测试战士")
 	
 	ctb_manager.add_schedulable(actor)
 	assert_true(actor.is_active, "Actor should be active initially")
@@ -201,8 +201,8 @@ func test_ctb_manager_set_active():
 
 ## 测试CTBManager状态信息
 func test_ctb_manager_status_info():
-	var actor1 = CombatActor.new("actor1", "战士1")
-	var actor2 = CombatActor.new("actor2", "战士2")
+	var actor1 = SchedulableExample.new("actor1", "战士1")
+	var actor2 = SchedulableExample.new("actor2", "战士2")
 	
 	ctb_manager.add_schedulable(actor1)
 	ctb_manager.add_schedulable(actor2)
@@ -219,7 +219,7 @@ func test_ctb_manager_status_info():
 		assert_true(info.has("id"), "Info should have id")
 		assert_true(info.has("name"), "Info should have name")
 		assert_true(info.has("type"), "Info should have type")
-		assert_eq(info["type"], "CombatActor", "Type should be CombatActor")
+		assert_eq(info["type"], "SchedulableExample", "Type should be SchedulableExample")
 
 ## 测试简单事件类
 func test_simple_event():
@@ -236,7 +236,7 @@ func test_simple_event():
 
 ## 测试混合调度系统
 func test_mixed_scheduling_system():
-	var actor = CombatActor.new("test_actor", "测试战士")
+	var actor = SchedulableExample.new("test_actor", "测试战士")
 	var event = TestGameWorld.SimpleEvent.new("test_event", "测试事件", mock_calendar.current_time + 5)
 	
 	ctb_manager.add_schedulable(actor)

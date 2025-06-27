@@ -5,6 +5,6 @@
 """
 
 from .schedulable import Schedulable
-from .combat_actor import CombatActor
+from .schedulable_example import SchedulableExample
 
-__all__ = ['Schedulable', 'CombatActor']
+__all__ = ['Schedulable', 'SchedulableExample']

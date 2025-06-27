@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-战斗角色模块
+可调度示例模块
 
-实现了可调度接口的战斗角色类，可以被CTB系统调度执行行动。
+这是一个开发用的示例类，展示如何实现Schedulable接口。
+适合作为学习参考，不是最终的游戏角色实现。
 """
 
 import random
@@ -11,11 +12,11 @@ from typing import Dict, List, Any
 from .schedulable import Schedulable
 
 
-class CombatActor(Schedulable):
+class SchedulableExample(Schedulable):
     """
-    战斗角色类
+    Schedulable接口的示例实现类
     
-    实现了Schedulable接口，可以被CTB系统调度。
+    这是一个开发用的示例类，展示如何实现Schedulable接口。
     
     Attributes:
         faction: 阵营
@@ -25,11 +26,11 @@ class CombatActor(Schedulable):
     
     def __init__(self, id: str, name: str, faction: str = "中立"):
         """
-        初始化战斗角色
+        初始化示例对象
         
         Args:
-            id: 角色唯一标识符
-            name: 角色名称
+            id: 对象唯一标识符
+            name: 对象名称
             faction: 阵营
         """
         super().__init__(id, name, f"{name}的战斗行动")
@@ -150,4 +151,4 @@ class CombatActor(Schedulable):
     
     def get_type_identifier(self) -> str:
         """获取类型标识符"""
-        return "CombatActor"
+        return "SchedulableExample"

@@ -183,9 +183,9 @@ func schedule_event(key: String, description: String, delay_hours: int) -> void:
 	time_wheel.schedule_with_delay(key, event, delay_hours)
 	systems_updated.emit()
 
-## 添加战斗角色
-func add_combat_actor(id: String, name: String, faction: String = "中立") -> CombatActor:
-	var actor = CombatActor.new(id, name, faction)
+## 添加示例角色（开发用）
+func add_example_actor(id: String, name: String, faction: String = "中立") -> SchedulableExample:
+	var actor = SchedulableExample.new(id, name, faction)
 	ctb_manager.add_schedulable(actor)
 	return actor
 

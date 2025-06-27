@@ -350,9 +350,9 @@ func create_colored_style_box(color: Color) -> StyleBoxFlat:
 	return style_box
 
 func add_initial_test_events():
-	# 添加战斗角色到CTB系统
+	# 添加示例角色到CTB系统（开发用）
 	for character_name in character_names:
-		test_world.add_combat_actor(character_name, character_name, "测试阵营")
+		test_world.add_example_actor(character_name, character_name, "测试阵营")
 	
 	# 初始化CTB系统（为角色安排初始行动）
 	test_world.initialize_ctb()

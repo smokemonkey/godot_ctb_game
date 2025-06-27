@@ -1,8 +1,15 @@
 extends Schedulable
-class_name CombatActor
+class_name SchedulableExample
 
-## 战斗角色类
-## 实现了Schedulable接口，可以被CTB系统调度
+## Schedulable接口的示例实现类
+## 
+## 这是一个开发用的示例类，展示如何实现Schedulable接口。
+## 适合作为学习参考，不是最终的游戏角色实现。
+## 
+## 主要功能：
+## - 演示Schedulable接口的所有方法实现
+## - 提供随机行动系统作为测试用途
+## - 展示时间计算和状态管理的基本模式
 
 var faction: String
 var is_active: bool
@@ -85,4 +92,4 @@ func get_character_info() -> Dictionary:
 	}
 
 func get_type_identifier() -> String:
-	return "CombatActor"
+	return "SchedulableExample"
