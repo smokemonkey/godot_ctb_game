@@ -3,17 +3,20 @@
 Synchronize code changes between Python, C#, and GDScript implementations of the CTB game systems.
 
 ## Usage
-- `/project:sync-code python gdscript [file]` - Sync Python changes to GDScript
-- `/project:sync-code gdscript python [file]` - Sync GDScript changes to Python  
-- `/project:sync-code csharp gdscript [file]` - Sync C# changes to GDScript
-- `/project:sync-code gdscript csharp [file]` - Sync GDScript changes to C#
+- `/project:sync python gdscript [file]` - Sync Python changes to GDScript
+- `/project:sync gdscript python [file]` - Sync GDScript changes to Python  
+- `/project:sync csharp gdscript [file]` - Sync C# changes to GDScript
+- `/project:sync gdscript csharp [file]` - Sync GDScript changes to C#
+- `/project:sync check` - Check mapping consistency without syncing code
 
 ## Command
 Please synchronize code between implementations: $ARGUMENTS
 
 Follow these steps:
 
-1. **Parse Arguments**: Extract source language, target language, and optional file specification
+1. **Parse Arguments**: 
+   - If first argument is "check": perform mapping consistency check only
+   - Otherwise: Extract source language, target language, and optional file specification
 2. **Identify Files**: 
    - Use mapping files (`scripts/gdscript/PYTHON_MAPPING.md`, `scripts/gdscript/CSHARP_MAPPING.md`)
    - If file specified, sync only that module
@@ -38,10 +41,26 @@ Follow these steps:
    - Ensure functionality is equivalent
    - Update mapping documentation if APIs changed
 
-7. **Update Documentation**:
-   - Update mapping files with any API changes
+7. **Update Mapping Documentation**:
+   - Automatically update `scripts/gdscript/PYTHON_MAPPING.md` if syncing with Python
+   - Automatically update `scripts/gdscript/CSHARP_MAPPING.md` if syncing with C#
+   - Document any API changes or additions in mapping files
+   - Verify method correspondence is accurate and complete
+   - Update implementation status and synchronization notes
+
+8. **Update Project Documentation**:
    - Update CLAUDE.md if significant architectural changes
-   - Note synchronization in commit message
+   - Note synchronization and mapping updates in commit message
+   - Update last modified dates in mapping files
+
+## Check Mode (when first argument is "check")
+If the first argument is "check", skip code synchronization and only verify mapping consistency:
+
+1. **Load Mapping Files**: Read both PYTHON_MAPPING.md and CSHARP_MAPPING.md
+2. **Scan Implementations**: Extract actual APIs from all implementation files
+3. **Compare Documentation vs Reality**: Check if documented methods exist and match
+4. **Report Discrepancies**: List any missing, outdated, or incorrect mappings
+5. **Suggest Updates**: Recommend what needs to be fixed in mapping files
 
 ## Implementation Directories
 - **Python**: `python_prototypes/core/`
