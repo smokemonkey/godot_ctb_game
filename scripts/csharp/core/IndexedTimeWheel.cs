@@ -1,6 +1,6 @@
 // [LEGACY - GDScript Primary] Original C# implementation
 // This code is preserved for reference but not actively used
-// See tests/gdscript/IndexedTimeWheel.gd for the primary GDScript implementation
+// See scripts/gdscript/IndexedTimeWheel.gd for the primary GDScript implementation
 
 using System;
 using System.Collections.Generic;

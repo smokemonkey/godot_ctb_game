@@ -23,7 +23,7 @@ The project has three main implementation layers:
   - `IndexedTimeWheel.gd` - Circular buffer for efficient event scheduling
   - `TestGameWorld.gd` - Unified test coordinator for integration testing
   - `IntegratedSystemTest.gd` - Complete UI test interface
-- **Game Scene**: `scenes/gdscript_integrated_test.tscn`
+- **Game Scene**: `scenes/integrated_system_test.tscn`
 
 ### 2. Godot Game Engine (C#)
 - **Location**: `scripts/csharp/core/` and `tests/csharp/core/`
@@ -255,7 +255,7 @@ The Python prototypes serve as the reference implementation, with the C# version
    - **Status**: All C# files marked as legacy with header comments
    - **Project Config**: C# support disabled in project.godot for faster debugging
    - **Build System**: .csproj file renamed to .disabled to prevent compilation
-   - **GUT Framework**: Disabled in favor of native GDScript testing
+   - **GUT Framework**: Re-enabled (supports both GDScript and C# testing)
    - **Preservation**: All C# code preserved for reference and future porting
 
 ### Calendar System Streamlining
