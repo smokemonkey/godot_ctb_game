@@ -17,12 +17,15 @@ signal time_advanced(hours: int)
 signal systems_updated()
 
 ## 初始化测试世界
-func _init(time_wheel_size: int = 180):
+func _init(time_wheel_size: int = 0):
+	# 如果没有指定大小，使用配置中的默认值
+	var actual_size = time_wheel_size if time_wheel_size > 0 else ConfigManager.ctb_time_wheel_buffer_size
+	
 	# 初始化日历
 	calendar = Calendar.new()
 	
 	# 初始化时间轮，使用日历的获取时间方法
-	time_wheel = IndexedTimeWheel.new(time_wheel_size, calendar.get_timestamp)
+	time_wheel = IndexedTimeWheel.new(actual_size, calendar.get_timestamp)
 	
 	# 初始化CTB管理器，连接到时间轮
 	ctb_manager = CTBManager.new(

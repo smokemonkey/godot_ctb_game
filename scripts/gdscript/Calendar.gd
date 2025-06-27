@@ -10,24 +10,28 @@ enum TimeUnit {
 ## 游戏日历显示器 - 负责时间的格式化显示和时间管理
 ##
 ## 专为回合制游戏设计的时间系统，支持非匀速时间流逝、精确时间控制和纪年管理。
+## 所有时间参数从ConfigManager配置系统读取，支持运行时配置。
 ##
-## 常量:
-##     DAYS_PER_YEAR (int): 每年天数，默认360天
-##     HOURS_PER_DAY (int): 每天小时数，默认24小时
-##     BASE_YEAR (int): 起始年份，默认公元前2000年
+## 配置参数:
+##     时间系统通过ConfigManager.config访问以下参数：
+##     - time_hours_per_day: 每天小时数
+##     - time_days_per_year: 每年天数  
+##     - time_epoch_start_year: 起始年份
 ##
 ## 示例:
-##     var calendar = Calendar.new()
+##     var calendar = Calendar.new()  # 使用配置中的默认起始年
 ##     calendar.advance_time_tick()
 ##     print("当前年份: ", calendar.current_gregorian_year)
 ##     calendar.start_new_era("开元")
 ##     calendar.anchor_era("开元", 713)  # 开元元年=公元713年
 
-## 每天小时数
-const HOURS_PER_DAY: int = 24
+## 每天小时数（从配置读取）
+var hours_per_day: int:
+	get: return ConfigManager.time_hours_per_day
 
-## 每年天数
-const DAYS_PER_YEAR: int = 360  # 简化为12个月，每月30天
+## 每年天数（从配置读取）
+var days_per_year: int:
+	get: return ConfigManager.time_days_per_year
 
 ## 起始年份
 var _base_year: int
@@ -39,15 +43,19 @@ var _timestamp_hour: int = 0
 var _current_anchor: Array
 
 ## 构造函数
-func _init(base_year: int = -2000):
-	_base_year = base_year
+func _init(base_year: int = 0):
+	# 如果传入0或没有传入参数，使用配置中的默认值
+	if base_year == 0:
+		_base_year = ConfigManager.time_epoch_start_year
+	else:
+		_base_year = base_year
 	_current_anchor = ["uninitialized", _base_year]
 
 ## 当前年份（公元年）
 var current_gregorian_year: int:
 	get:
-		var total_days = _timestamp_hour / HOURS_PER_DAY
-		return _base_year + (total_days / DAYS_PER_YEAR)
+		var total_days = _timestamp_hour / hours_per_day
+		return _base_year + (total_days / days_per_year)
 
 ## 锚定纪元
 ##
@@ -109,9 +117,9 @@ func advance_time_tick() -> void:
 
 ## 获取当前时间信息
 func get_time_info() -> Dictionary:
-	var total_days = _timestamp_hour / HOURS_PER_DAY
-	var day_in_year = (total_days % DAYS_PER_YEAR) + 1
-	var hour_in_day = _timestamp_hour % HOURS_PER_DAY
+	var total_days = _timestamp_hour / hours_per_day
+	var day_in_year = (total_days % days_per_year) + 1
+	var hour_in_day = _timestamp_hour % hours_per_day
 	var month = ((day_in_year - 1) / 30) + 1
 	var day_in_month = ((day_in_year - 1) % 30) + 1
 	
@@ -154,11 +162,11 @@ func reset() -> void:
 ##     格式化的日期字符串
 func format_date_gregorian(show_hour: bool = false) -> String:
 	var year = current_gregorian_year
-	var total_days = _timestamp_hour / HOURS_PER_DAY
-	var day_in_year = (total_days % DAYS_PER_YEAR) + 1
+	var total_days = _timestamp_hour / hours_per_day
+	var day_in_year = (total_days % days_per_year) + 1
 	var month = ((day_in_year - 1) / 30) + 1
 	var day = ((day_in_year - 1) % 30) + 1
-	var hour = _timestamp_hour % HOURS_PER_DAY
+	var hour = _timestamp_hour % hours_per_day
 	
 	# 处理公元前年份
 	var year_str: String
@@ -194,11 +202,11 @@ func format_date_era(show_hour: bool = false) -> String:
 	if era_name == null or era_year == null:
 		return format_date_gregorian(show_hour)
 	
-	var total_days = _timestamp_hour / HOURS_PER_DAY
-	var day_in_year = (total_days % DAYS_PER_YEAR) + 1
+	var total_days = _timestamp_hour / hours_per_day
+	var day_in_year = (total_days % days_per_year) + 1
 	var month = ((day_in_year - 1) / 30) + 1
 	var day = ((day_in_year - 1) % 30) + 1
-	var hour = _timestamp_hour % HOURS_PER_DAY
+	var hour = _timestamp_hour % hours_per_day
 	
 	if show_hour:
 		return "%s%d年%d月%d日%d点" % [era_name, era_year, month, day, hour]

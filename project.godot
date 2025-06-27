@@ -19,6 +19,10 @@ config/icon="res://icon.svg"
 ; [dotnet]
 ; project/assembly_name="新建游戏项目"
 
+[autoload]
+
+ConfigManager="*res://scripts/gdscript/ConfigManager.gd"
+
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg")

@@ -46,8 +46,8 @@ func setup_ui_scaling():
 	print("UI scaling setup: using individual font sizes instead of global scaling")
 
 func initialize_systems():
-	# 使用180小时缓冲区初始化统一测试协调器
-	test_world = TestGameWorld.new(180)
+	# 使用配置中的默认缓冲区大小初始化统一测试协调器
+	test_world = TestGameWorld.new()
 	
 	# 订阅事件以进行UI更新
 	test_world.event_executed.connect(_on_event_executed)

@@ -47,12 +47,14 @@ class Character extends Event:
 		is_active = true
 	
 	## 计算下次行动时间
-	## 使用三角分布，在1-180天之间随机，峰值在90天
-	## 峰值：90天，符合现实的分布。
+	## 使用三角分布，范围和峰值从配置读取
 	func calculate_next_action_time(current_time: int) -> int:
-		# 使用三角分布（最小1天，最大180天，峰值90天）
-		var days = _triangular_distribution(1, 180, 90)
-		var hours = int(days * 24)
+		# 使用配置中的三角分布参数
+		var min_days = ConfigManager.ctb_action_delay_min_days
+		var max_days = ConfigManager.ctb_action_delay_max_days  
+		var peak_days = ConfigManager.ctb_action_delay_peak_days
+		var days = _triangular_distribution(min_days, max_days, peak_days)
+		var hours = int(days * ConfigManager.time_hours_per_day)
 		return current_time + hours
 	
 	## 三角分布实现
