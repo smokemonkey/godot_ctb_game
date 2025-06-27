@@ -165,3 +165,6 @@ dist/
 
 # Merge conflict markers
 *.orig
+
+# Godot UID files
+*.uid
