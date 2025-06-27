@@ -6,7 +6,7 @@
 
 ### 📊 项目状态
 - **PROJECT_STATUS.md** - 当前项目状态和里程碑
-  - API稳定性状态
+  - 新Schedulable架构状态
   - 功能完成度
   - 重要提醒和约定
 
@@ -22,11 +22,16 @@
   - 重要的架构决定
   - 经验教训
 
-## 代码对应关系
+## 架构文档
 
-代码映射文档位于各自的代码目录中：
-- `../python_prototypes/CSHARP_MAPPING.md` - Python → C# 对应关系
-- `../scripts/csharp/PYTHON_MAPPING.md` - C# → Python 对应关系
+### 新Schedulable架构
+- **重构完成**: CTB系统已重构为基于Schedulable接口
+- **双语言实现**: Python和GDScript版本完全对应
+- **CombatActor**: 新的角色系统实现
+
+### 代码对应关系 (历史参考)
+- `../python_prototypes/CSHARP_MAPPING.md` - Python → C# 对应关系 (已弃用)
+- `../scripts/csharp/PYTHON_MAPPING.md` - C# → Python 对应关系 (已弃用)
 
 ## 文档更新
 

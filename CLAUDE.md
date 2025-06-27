@@ -50,7 +50,7 @@ The project has three main implementation layers:
 ```bash
 cd python_prototypes
 
-# Set up environment
+# Set up environment, actually not necessary anymore
 python3 -m venv venv
 source venv/bin/activate  # Linux/Mac
 # or venv\Scripts\activate  # Windows
@@ -68,7 +68,7 @@ python3 generate_docs.py
 
 ### Godot Development
 - Open `project.godot` in Godot 4.4
-- The project uses C# scripting with .NET support
+- The project used C# scripting with .NET support but now we switch to GDscript for swift prototyping.
 - Main scene: `scenes/my_ctb_game.tscn`
 - Core scripts located in `scripts/csharp/core/`
 
@@ -122,7 +122,7 @@ python3 sync_code.py py cs --dry-run
 ## Code Conventions
 
 ### Python Code
-- Follow existing module structure in `game_system/`
+- Follow existing module structure in `core/`
 - Use pytest for testing with descriptive test names
 - Include type hints and docstrings
 - Web demos use modern HTML5/CSS3/JavaScript
@@ -213,6 +213,7 @@ The project maintains strict correspondence between Python and C# implementation
 3. **Test Thoroughly**: Ensure all tests pass
 4. **Sync**: Update the corresponding implementation
 5. **Verify**: Run both test suites to ensure compatibility
+6. **Confirm**: Ask for permission when you want to change interface or delete code/test file
 
 ## Development Notes
 
@@ -227,6 +228,36 @@ The Python prototypes serve as the reference implementation, with the C# version
 
 ## Latest Updates (2025-06-27)
 
+### 🚀 Schedulable Architecture Implementation
+1. **完整架构重构**: 成功实现基于Schedulable接口的新CTB系统
+   - **创建**: `Schedulable.gd` - 统一的可调度接口基类
+   - **创建**: `CombatActor.gd` - 实现Schedulable的战斗角色类
+   - **重构**: `CTBManager.gd` - 移除Character依赖，使用Schedulable接口
+   - **同步**: Python版本完全对应，API保持一致
+
+2. **解耦合设计优势**:
+   - **接口标准化**: 任何对象都可以实现Schedulable被调度
+   - **类型无关**: CTB不再依赖具体的角色或事件类型
+   - **易于扩展**: 天气、剧情、任何游戏对象都可以轻松添加
+   - **测试友好**: 13个测试用例全部通过，覆盖所有核心功能
+
+3. **CombatActor特性**:
+   - **随机行动**: 从预定义列表中随机选择行动（"攻击", "防御", "技能"等）
+   - **三角分布**: 使用配置参数计算下次行动时间
+   - **状态管理**: 支持活跃/非活跃状态切换
+   - **控制台输出**: "角色张飞执行行动：攻击"等友好显示
+
+4. **技术实现**:
+   - **双语言同步**: Python和GDScript版本API完全一致
+   - **向后兼容**: 保持时间管理回调接口不变
+   - **混合调度**: 角色和事件可以在同一系统中调度
+   - **性能优化**: 保持O(1)时间复杂度的事件处理
+
+5. **文档更新**:
+   - **清理过时内容**: 移除Windows特定批处理文件引用
+   - **架构文档**: 更新所有README文件反映新架构
+   - **测试文档**: 详细说明新的测试体系和用例
+
 ### GDScript Implementation Migration
 1. **Complete Code Translation**: Successfully migrated all core systems from C# to GDScript
    - **Converted**: `Calendar.cs` → `Calendar.gd` with full feature parity
@@ -235,7 +266,7 @@ The Python prototypes serve as the reference implementation, with the C# version
    - **Created**: `TestGameWorld.gd` - unified test coordinator replacing manual component management
    - **Created**: `IntegratedSystemTest.gd` - complete UI test interface in GDScript
 
-2. **Architecture Simplification**: 
+2. **Architecture Simplification**:
    - **Primary Implementation**: GDScript is now the main development target
    - **C# Status**: Marked as legacy, to be phased out
    - **Unified Testing**: Single GDScript test scene replaces complex C#/GUT setup
@@ -271,10 +302,11 @@ The Python prototypes serve as the reference implementation, with the C# version
    - Python tests: 62 test cases, 100% pass rate maintained
    - Removed direct property access in favor of info dictionary access
 
-3. **Documentation Maintenance**: 
+3. **Documentation Maintenance**:
    - Added critical reminder to update documentation before commits
    - Regenerated API documentation to reflect streamlined Calendar interface
    - Updated both Python and C# implementations consistently
+   - Try to use Chinese in the updated part of document/commit but don't translate the whole file suddenly
 
 ### Previous Updates (2024-06-26)
 
@@ -358,6 +390,7 @@ The Python prototypes serve as the reference implementation, with the C# version
 6. **Verify encoding consistency across all edited files**
 7. **⚠️ CRITICAL: Always update documentation files before committing:**
    - Regenerate API documentation: `python3 python_prototypes/generate_docs.py`
-   - Update mapping files if code structure changed
    - Update this CLAUDE.md file to reflect any significant changes
    - Review and update PROJECT_STATUS.md if milestones completed
+   - Clean outdated content from README files
+   - Ensure Windows-specific instructions are in CLAUDE.local.md

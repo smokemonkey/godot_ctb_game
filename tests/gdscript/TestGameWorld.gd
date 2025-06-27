@@ -1,6 +1,25 @@
 extends RefCounted
 class_name TestGameWorld
 
+## 简单事件类 - 用于测试
+class SimpleEvent extends Schedulable:
+	func _init(p_id: String, p_description: String, p_trigger_time: int):
+		super._init(p_id, p_description, p_description)
+		trigger_time = p_trigger_time
+	
+	func execute() -> Variant:
+		print("执行事件: %s" % description)
+		return self
+	
+	func calculate_next_schedule_time(current_time: int) -> int:
+		return current_time  # 简单事件不重复
+	
+	func should_reschedule() -> bool:
+		return false
+	
+	func get_type_identifier() -> String:
+		return "SimpleEvent"
+
 ## 统一的游戏世界测试协调器 - GDScript版本
 ## 
 ## 这个类将Calendar、IndexedTimeWheel和CTBManager整合为一个
@@ -109,7 +128,7 @@ func advance_time(hours: int) -> Dictionary:
 				var event_data = time_wheel.pop_due_event()
 				if not event_data.is_empty():
 					var event = event_data["value"]
-					ctb_manager.execute_event(event)
+					ctb_manager.execute_schedulable(event)
 		
 		# 推进时间轮
 		time_wheel.advance_wheel()
@@ -138,7 +157,7 @@ func advance_to_next_event(max_hours: int = 100) -> Dictionary:
 				var event_data = time_wheel.pop_due_event()
 				if not event_data.is_empty():
 					var event = event_data["value"]
-					ctb_manager.execute_event(event)
+					ctb_manager.execute_schedulable(event)
 					events_executed.append(str(event))
 			break
 		
@@ -159,9 +178,20 @@ func advance_to_next_event(max_hours: int = 100) -> Dictionary:
 
 ## 安排事件
 func schedule_event(key: String, description: String, delay_hours: int) -> void:
-	# 创建一个简单的事件对象
-	var event = CTBManager.Event.new(key, description, CTBManager.EventType.CUSTOM, current_time + delay_hours)
+	# 创建一个简单的可调度对象
+	var event = SimpleEvent.new(key, description, current_time + delay_hours)
 	time_wheel.schedule_with_delay(key, event, delay_hours)
+	systems_updated.emit()
+
+## 添加战斗角色
+func add_combat_actor(id: String, name: String, faction: String = "中立") -> CombatActor:
+	var actor = CombatActor.new(id, name, faction)
+	ctb_manager.add_schedulable(actor)
+	return actor
+
+## 初始化CTB系统（为角色安排初始行动）
+func initialize_ctb() -> void:
+	ctb_manager.initialize_ctb()
 	systems_updated.emit()
 
 ## 锚定纪元

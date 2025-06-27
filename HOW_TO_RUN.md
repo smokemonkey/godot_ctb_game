@@ -38,10 +38,6 @@ make test
 make editor
 ```
 
-### 构建C#项目
-```bash
-make build
-```
 
 ### 查看系统信息
 ```bash

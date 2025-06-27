@@ -1,6 +1,9 @@
-# GDScript → C# Mapping
+# GDScript → C# Mapping (DEPRECATED)
 
-This file documents the correspondence between GDScript and C# implementations.
+⚠️ **DEPRECATED**: This mapping is no longer maintained as C# implementation has been deprecated.
+
+**Current Testing**: GDScript native tests with Python reference  
+**Replacement**: See new Schedulable architecture tests
 
 ## Core Systems Mapping
 

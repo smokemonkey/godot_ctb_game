@@ -350,16 +350,18 @@ func create_colored_style_box(color: Color) -> StyleBoxFlat:
 	return style_box
 
 func add_initial_test_events():
-	# 使用TestGameWorld API添加一些角色行动
-	test_world.schedule_event("张飞_攻击", "张飞发动攻击", 5)
-	test_world.schedule_event("关羽_防御", "关羽进入防御状态", 8)
-	test_world.schedule_event("刘备_治疗", "刘备使用治疗技能", 12)
+	# 添加战斗角色到CTB系统
+	for character_name in character_names:
+		test_world.add_combat_actor(character_name, character_name, "测试阵营")
 	
-	# 添加一些远期事件
+	# 初始化CTB系统（为角色安排初始行动）
+	test_world.initialize_ctb()
+	
+	# 添加一些额外的简单事件
 	test_world.schedule_event("季节变化", "春季到来", 200)
 	test_world.schedule_event("节日庆典", "中秋节庆典", 300)
 	
-	print("Initial test events added via TestGameWorld")
+	print("Initial test actors and events added via TestGameWorld")
 
 func advance_time(hours: int):
 	# 使用TestGameWorld的统一时间推进 - 无需手动同步！

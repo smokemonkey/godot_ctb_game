@@ -1,62 +1,103 @@
 # Scripts 目录说明
 
-本目录包含游戏的脚本实现，支持多种编程语言。
+本目录包含游戏的脚本实现，现在主要使用GDScript开发。
 
 ## 目录结构
 
 ```
 scripts/
-├── csharp/              # C# 实现 (当前使用)
+├── gdscript/            # GDScript 实现 (主要开发语言)
 │   ├── core/           # 核心游戏系统
-│   └── PYTHON_MAPPING.md  # Python 对应关系文档
-├── gdscript/           # GDScript 实现 (未来规划)
-│   ├── core/           # 核心游戏系统
-│   └── PYTHON_MAPPING.md  # Python 对应关系文档  
+│   │   ├── Schedulable.gd       # 可调度接口
+│   │   ├── CombatActor.gd       # 战斗角色系统
+│   │   ├── CTBManager.gd        # 重构后的CTB管理器
+│   │   ├── Calendar.gd          # 日历系统
+│   │   ├── IndexedTimeWheel.gd  # 时间轮实现
+│   │   └── ConfigManager.gd     # 配置管理
+│   └── IntegratedSystemTest.gd  # UI集成测试
+├── csharp/              # C# 实现 (已弃用，保留作参考)
+│   ├── core/           # 原C#核心系统
+│   └── PYTHON_MAPPING.md  # 历史对应关系文档
 └── README.md           # 本文件
 ```
 
-## 语言选择指南
+## 语言架构现状
 
-### C# (推荐用于复杂逻辑)
-- **优势**: 静态类型、高性能、完整的.NET生态
-- **适用**: 复杂算法、数据处理、高频计算
-- **当前状态**: ✅ 已实现核心系统
+### GDScript (主要开发语言) ✅
+- **优势**: 与Godot深度集成、无编译步骤、快速迭代
+- **适用**: 所有游戏逻辑、UI交互、核心系统
+- **当前状态**: ✅ 全面实现，包括新Schedulable架构
 
-### GDScript (推荐用于游戏逻辑)  
-- **优势**: 与Godot深度集成、语法简洁、快速开发
-- **适用**: 游戏逻辑、UI交互、场景管理
-- **当前状态**: ⏳ 未来规划
+### Python (原型验证) ✅
+- **用途**: 算法验证、单元测试、Web演示
+- **位置**: `../python_prototypes/`
+- **状态**: ✅ 与GDScript版本保持同步
+
+### C# (已弃用) ❌
+- **状态**: 已标记为legacy，不再维护
+- **原因**: 编译复杂度、开发效率问题
+- **保留**: 作为参考实现，文件已标记为过时
+
+## 新架构特性
+
+### Schedulable系统
+- **接口统一**: 任何对象都可以实现Schedulable接口被调度
+- **解耦设计**: CTB系统不再依赖具体的角色类型
+- **灵活扩展**: 角色、事件、天气等都使用相同的调度机制
+
+### 实现对应关系
+
+| 系统模块 | Python 原型 | GDScript 实现 | C# (弃用) |
+|----------|-------------|---------------|-----------|
+| 可调度接口 | `schedulable.py` | `Schedulable.gd` | N/A |
+| 战斗角色 | `combat_actor.py` | `CombatActor.gd` | N/A |
+| CTB管理器 | `ctb_manager_v2.py` | `CTBManager.gd` | `CTBManager.cs` (过时) |
+| 日历系统 | `calendar.py` | `Calendar.gd` | `Calendar.cs` (过时) |
+| 时间轮 | `indexed_time_wheel.py` | `IndexedTimeWheel.gd` | `IndexedTimeWheel.cs` (过时) |
 
 ## 开发流程
 
-1. **原型阶段**: Python快速开发 (`../python_prototypes/`)
-2. **生产阶段**: 选择C#或GDScript进行实现
-3. **维护阶段**: 保持多语言版本同步
+### 当前推荐流程
+1. **Python验证**: 在Python中验证新算法和逻辑
+2. **GDScript实现**: 直接在GDScript中实现功能
+3. **同步测试**: 确保Python和GDScript版本一致
 
-## 文件对应关系
+### 特性开发
+1. 优先考虑在GDScript中直接开发
+2. 复杂算法可先用Python验证
+3. 保持两个版本的API一致
 
-所有实现都与Python原型保持严格对应：
+### 架构扩展示例
+```gdscript
+# 创建新的可调度对象
+class WeatherEvent extends Schedulable:
+    func execute() -> Variant:
+        print("天气变化: 开始下雨")
+        return self
+    
+    func should_reschedule() -> bool:
+        return true
 
-| 系统模块 | Python 原型 | C# 实现 | GDScript 实现 |
-|----------|-------------|---------|---------------|
-| 日历系统 | `calendar.py` | `Calendar.cs` | `calendar.gd` (规划中) |
-| CTB系统 | `ctb_manager.py` | `CTBManager.cs` | `ctb_manager.gd` (规划中) |
-| 时间轮 | `indexed_time_wheel.py` | `IndexedTimeWheel.cs` | `indexed_time_wheel.gd` (规划中) |
+# 添加到CTB系统
+var weather = WeatherEvent.new("weather", "天气系统")
+ctb_manager.add_schedulable(weather)
+```
 
-## 使用建议
+## 测试体系
 
-### 新功能开发
-1. 先在Python中验证逻辑
-2. 根据性能需求选择C#或GDScript
-3. 保持API接口一致
+### GDScript测试
+- `../tests/gdscript/test_schedulable_system.gd` - 新架构测试
+- `../tests/gdscript/TestGameWorld.gd` - 统一测试协调器
 
-### 现有功能修改
-1. 确定主导版本(通常是Python原型)
-2. 同步更新所有语言实现  
-3. 更新对应的mapping文档
+### Python测试
+- `../python_prototypes/tests/test_schedulable_system.py` - 对应测试
+
+### 集成测试
+- `../scenes/integrated_system_test.tscn` - 可视化集成测试
 
 ## 注意事项
 
-- 每个语言目录都有独立的`PYTHON_MAPPING.md`文档
-- 修改代码时必须同步更新mapping文档
-- 建议在git commit前检查所有文档的一致性
+- **主要开发**: 现在专注于GDScript开发
+- **Python同步**: 保持Python版本作为算法参考
+- **C#过时**: 不再维护C#版本，文件已标记legacy
+- **接口稳定**: Schedulable架构已确定，避免大改

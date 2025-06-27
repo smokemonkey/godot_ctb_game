@@ -1,80 +1,10 @@
 extends RefCounted
 class_name CTBManager
 
-## 事件类型枚举
-enum EventType {
-	CHARACTER_ACTION,  # 角色行动
-	SEASON_CHANGE,     # 季节变化
-	WEATHER_CHANGE,    # 天气变化
-	STORY_EVENT,       # 剧情事件
-	CUSTOM             # 自定义事件
-}
-
-## 事件基类
-## 在CTB系统中的事件都应该继承此类。
-class Event:
-	var id: String
-	var name: String
-	var event_type: EventType
-	var trigger_time: int
-	var description: String
-	
-	func _init(p_id: String, p_name: String, p_event_type: EventType, p_trigger_time: int, p_description: String = ""):
-		id = p_id
-		name = p_name
-		event_type = p_event_type
-		trigger_time = p_trigger_time
-		description = p_description
-	
-	## 执行事件
-	## 子类应该重写此方法实现具体的事件逻辑。
-	func execute() -> Variant:
-		push_error("Event.execute() must be overridden in subclass")
-		return null
-	
-	func _to_string() -> String:
-		return "%s (%s)" % [name, EventType.keys()[event_type]]
-
-## 游戏角色
-## 角色是一个特殊的事件，其Execute方法执行角色的行动。
-class Character extends Event:
-	var faction: String
-	var is_active: bool
-	
-	func _init(p_id: String, p_name: String, p_faction: String = "中立"):
-		super._init(p_id, p_name, EventType.CHARACTER_ACTION, 0, "%s的行动" % p_name)
-		faction = p_faction
-		is_active = true
-	
-	## 计算下次行动时间
-	## 使用三角分布，范围和峰值从配置读取
-	func calculate_next_action_time(current_time: int) -> int:
-		# 使用配置中的三角分布参数
-		var min_days = ConfigManager.ctb_action_delay_min_days
-		var max_days = ConfigManager.ctb_action_delay_max_days  
-		var peak_days = ConfigManager.ctb_action_delay_peak_days
-		var days = _triangular_distribution(min_days, max_days, peak_days)
-		var hours = int(days * ConfigManager.time_hours_per_day)
-		return current_time + hours
-	
-	## 三角分布实现
-	func _triangular_distribution(min_val: float, max_val: float, mode: float) -> float:
-		var u = randf()
-		var c = (mode - min_val) / (max_val - min_val)
-		
-		if u < c:
-			return min_val + sqrt(u * (max_val - min_val) * (mode - min_val))
-		else:
-			return max_val - sqrt((1 - u) * (max_val - min_val) * (max_val - mode))
-	
-	## 执行角色行动
-	func execute() -> Variant:
-		# 这里可以添加角色行动的具体逻辑
-		# 例如：发动战斗、使用技能、移动等
-		return self
-
 ## CTB系统管理器
-## 负责管理事件的调度和执行，通过回调函数处理时间管理。
+## 负责管理可调度对象的调度和执行，通过回调函数处理时间管理。
+
+# 时间管理回调
 var _get_time_callback: Callable
 var _advance_time_callback: Callable
 var _schedule_callback: Callable
@@ -84,7 +14,7 @@ var _pop_callback: Callable
 var _is_slot_empty_callback: Callable
 
 # 状态
-var characters: Dictionary
+var scheduled_objects: Dictionary  # 替换原来的characters
 var is_initialized: bool
 var action_history: Array[Dictionary]
 
@@ -109,17 +39,63 @@ func _init(
 	_pop_callback = pop_callback
 	_is_slot_empty_callback = is_slot_empty_callback
 	
-	characters = {}
+	scheduled_objects = {}
 	is_initialized = false
 	action_history = []
 
-## 添加角色到系统
-func add_character(character: Character) -> void:
-	if characters.has(character.id):
-		push_error("Character with ID %s already exists" % character.id)
+## 添加可调度对象到系统
+func add_schedulable(schedulable: Schedulable) -> void:
+	if scheduled_objects.has(schedulable.id):
+		push_error("Schedulable with ID %s already exists" % schedulable.id)
 		return
 	
-	characters[character.id] = character
+	scheduled_objects[schedulable.id] = schedulable
+	print("已添加可调度对象: %s" % schedulable.name)
+
+## 从系统中移除可调度对象
+func remove_schedulable(schedulable_id: String) -> bool:
+	if not scheduled_objects.has(schedulable_id):
+		return false
+	
+	# 从时间轮中移除对象的事件
+	_remove_callback.call(schedulable_id)
+	
+	# 从对象字典中移除
+	var removed_obj = scheduled_objects[schedulable_id]
+	scheduled_objects.erase(schedulable_id)
+	print("已移除可调度对象: %s" % removed_obj.name)
+	return true
+
+## 获取可调度对象
+func get_schedulable(schedulable_id: String) -> Schedulable:
+	if scheduled_objects.has(schedulable_id):
+		return scheduled_objects[schedulable_id]
+	return null
+
+## 初始化CTB系统
+## 为所有可调度对象排程初始调度时间
+func initialize_ctb() -> void:
+	if scheduled_objects.is_empty():
+		push_error("Cannot initialize CTB without schedulable objects")
+		return
+	
+	var current_time = _get_time_callback.call()
+	print("初始化CTB系统，当前时间: %d" % current_time)
+	
+	# 为每个可调度对象排程初始调度
+	for obj in scheduled_objects.values():
+		if obj.should_reschedule():
+			# 计算初始调度时间
+			var next_time = obj.calculate_next_schedule_time(current_time)
+			obj.trigger_time = next_time
+			
+			# 添加到时间轮
+			var delay = next_time - current_time
+			_schedule_callback.call(obj.id, obj, delay)
+			print("已为 %s 安排初始调度，延迟: %d 小时" % [obj.name, delay])
+	
+	is_initialized = true
+	print("CTB系统初始化完成")
 
 ## 处理下一个逻辑回合
 ## 会推进时间直到找到下一个事件。
@@ -133,137 +109,98 @@ func process_next_turn() -> Dictionary:
 		_advance_time_callback.call()
 		ticks_advanced += 1
 	
-	var due_event = get_due_event()
-	if due_event != null:
-		execute_event(due_event)
+	var due_schedulable = get_due_schedulable()
+	if due_schedulable != null:
+		execute_schedulable(due_schedulable)
 		return {
-			"type": "EVENT_EXECUTED",
+			"type": "SCHEDULABLE_EXECUTED",
 			"ticks_advanced": ticks_advanced,
-			"event_id": due_event.id,
-			"event_name": due_event.name,
-			"event_type": EventType.keys()[due_event.event_type],
+			"schedulable_id": due_schedulable.id,
+			"schedulable_name": due_schedulable.name,
+			"schedulable_type": due_schedulable.get_type_identifier(),
 			"timestamp": _get_time_callback.call()
 		}
 	
-	push_error("Inconsistent State: Slot was not empty, but no event could be popped.")
+	push_error("Inconsistent State: Slot was not empty, but no schedulable could be popped.")
 	return {}
 
-## 从系统中移除角色
-func remove_character(character_id: String) -> bool:
-	if not characters.has(character_id):
-		return false
-	
-	# 从时间轮中移除角色的事件
-	_remove_callback.call(character_id)
-	
-	# 从角色字典中移除
-	characters.erase(character_id)
-	return true
-
-## 获取角色
-func get_character(character_id: String) -> Character:
-	if characters.has(character_id):
-		return characters[character_id]
-	return null
-
-## 初始化CTB系统
-## 为所有角色排程初始行动时间。
-func initialize_ctb() -> void:
-	if characters.is_empty():
-		push_error("Cannot initialize CTB without characters")
-		return
-	
-	var current_time = _get_time_callback.call()
-	
-	# 为每个活跃角色排程初始行动
-	for character in characters.values():
-		if character.is_active:
-			# 计算初始行动时间
-			var next_time = character.calculate_next_action_time(current_time)
-			character.trigger_time = next_time
-			
-			# 添加到时间轮
-			var delay = next_time - current_time
-			_schedule_callback.call(character.id, character, delay)
-	
-	is_initialized = true
-
-## 安排自定义事件
-func schedule_event(event: Event, trigger_time: int) -> bool:
+## 安排自定义可调度对象
+func schedule_schedulable(schedulable: Schedulable, trigger_time: int) -> bool:
 	var current_time = _get_time_callback.call()
 	if trigger_time < current_time:
 		return false  # 不能在过去安排事件
 	
 	var delay = trigger_time - current_time
-	return schedule_with_delay(event.id, event, delay)
+	return schedule_with_delay(schedulable.id, schedulable, delay)
 
-## 使用延迟时间安排事件
-func schedule_with_delay(key: String, event: Event, delay: int) -> bool:
-	return _schedule_callback.call(key, event, delay)
+## 使用延迟时间安排可调度对象
+func schedule_with_delay(key: String, schedulable: Schedulable, delay: int) -> bool:
+	return _schedule_callback.call(key, schedulable, delay)
 
-## 获取当前时间到期的下一个事件
-func get_due_event() -> Event:
+## 获取当前时间到期的下一个可调度对象
+func get_due_schedulable() -> Schedulable:
 	var result = _pop_callback.call()
 	if result.is_empty():
 		return null
 	
 	return result["value"]
 
-## 执行事件列表
-func execute_events(events: Array[Event]) -> void:
-	for event in events:
-		execute_event(event)
+## 执行可调度对象列表
+func execute_schedulables(schedulables: Array[Schedulable]) -> void:
+	for schedulable in schedulables:
+		execute_schedulable(schedulable)
 
-## 执行单个事件，包括更新内部逻辑、记录下次调度等
-func execute_event(event: Event) -> void:
-	var result = event.execute()
-	record_action(event)
+## 执行单个可调度对象，包括更新内部逻辑、记录下次调度等
+func execute_schedulable(schedulable: Schedulable) -> void:
+	var result = schedulable.execute()
+	record_action(schedulable)
 	
 	if on_event_executed.is_valid():
-		on_event_executed.call(event)
+		on_event_executed.call(schedulable)
 	
-	# 如果是角色行动，计算并调度下一次行动
-	if event.event_type == EventType.CHARACTER_ACTION and event is Character:
-		var character = event as Character
-		if character.is_active:
-			var current_time = _get_time_callback.call()
-			var next_time = character.calculate_next_action_time(current_time)
-			character.trigger_time = next_time
-			var delay = next_time - current_time
-			schedule_with_delay(character.id, character, delay)
+	# 如果需要重复调度，计算并调度下一次
+	if schedulable.should_reschedule():
+		var current_time = _get_time_callback.call()
+		var next_time = schedulable.calculate_next_schedule_time(current_time)
+		schedulable.trigger_time = next_time
+		var delay = next_time - current_time
+		schedule_with_delay(schedulable.id, schedulable, delay)
 
 ## 记录行动历史
-func record_action(event: Event) -> void:
+func record_action(schedulable: Schedulable) -> void:
 	var current_time = _get_time_callback.call()
 	var record = {
-		"event_name": event.name,
-		"event_type": EventType.keys()[event.event_type],
+		"schedulable_name": schedulable.name,
+		"schedulable_type": schedulable.get_type_identifier(),
 		"timestamp": current_time
 	}
 	action_history.append(record)
 
-## 设置角色的活跃状态
-## 当一个角色被设置为非活跃时，其尚未执行的行动会被取消。
-## 如果当前队列中有行动，行动会被取消。
-func set_character_active(character_id: String, active: bool) -> bool:
-	var character = get_character(character_id)
-	if character == null:
+## 设置可调度对象的活跃状态（仅对CombatActor有效）
+func set_schedulable_active(schedulable_id: String, active: bool) -> bool:
+	var schedulable = get_schedulable(schedulable_id)
+	if schedulable == null:
 		return false
 	
-	character.is_active = active
+	# 检查是否是CombatActor类型
+	if schedulable is CombatActor:
+		var combat_actor = schedulable as CombatActor
+		combat_actor.set_active(active)
+		
+		# 如果设置为非活跃，从时间轮中移除其尚未执行的调度
+		if not active:
+			_remove_callback.call(schedulable_id)
+		# 如果重新激活，需要手动为其安排下一次调度
+		elif active:
+			var current_time = _get_time_callback.call()
+			var next_time = combat_actor.calculate_next_schedule_time(current_time)
+			combat_actor.trigger_time = next_time
+			var delay = next_time - current_time
+			schedule_with_delay(combat_actor.id, combat_actor, delay)
+		
+		return true
 	
-	# 如果角色被设置为非活跃，从时间轮中移除其尚未执行的行动
-	if not active:
-		_remove_callback.call(character_id)
-	# 如果角色重新激活，需要手动为其安排下一次行动
-	elif active:
-		var current_time = _get_time_callback.call()
-		var next_time = character.calculate_next_action_time(current_time)
-		character.trigger_time = next_time
-		var delay = next_time - current_time
-		schedule_with_delay(character.id, character, delay)
-	
-	return true
+	return false
 
 ## 获取系统当前状态的文本描述
 func get_status_text() -> String:
@@ -271,70 +208,76 @@ func get_status_text() -> String:
 		return "CTB系统未初始化"
 	
 	var current_time = _get_time_callback.call()
-	var active_characters = 0
-	for character in characters.values():
-		if character.is_active:
-			active_characters += 1
+	var active_count = 0
+	for obj in scheduled_objects.values():
+		if obj.should_reschedule():
+			active_count += 1
 	
 	var status_lines = [
 		"=== CTB系统状态 ===",
 		"  当前时间: %d 小时" % current_time,
-		"  角色总数: %d" % characters.size(),
-		"  活跃角色: %d" % active_characters
+		"  对象总数: %d" % scheduled_objects.size(),
+		"  活跃对象: %d" % active_count
 	]
 	
-	# 获取下一个事件
+	# 获取下一个对象
 	var next_events = _peek_callback.call(1, 1)
 	if next_events.size() > 0:
 		var next_event_data = next_events[0]
-		var next_event = next_event_data["value"]
-		var delay = next_event.trigger_time - current_time
+		var next_obj = next_event_data["value"]
+		var delay = next_obj.trigger_time - current_time
 		if delay <= 0:
-			status_lines.append("  下个行动: 待执行 (%s)" % next_event.name)
+			status_lines.append("  下个调度: 待执行 (%s)" % next_obj.name)
 		else:
-			status_lines.append("  下个行动: %d 小时后 (%s)" % [delay, next_event.name])
+			status_lines.append("  下个调度: %d 小时后 (%s)" % [delay, next_obj.name])
 	else:
-		status_lines.append("  下个行动: (无)")
+		status_lines.append("  下个调度: (无)")
 	
 	return "\n".join(status_lines)
 
-## 获取所有角色信息
-func get_character_info() -> Array[Dictionary]:
+## 获取所有可调度对象信息
+func get_schedulable_info() -> Array[Dictionary]:
 	var info_list: Array[Dictionary] = []
 	var current_time = _get_time_callback.call()
 	
-	for character in characters.values():
+	for obj in scheduled_objects.values():
 		var info = {
-			"id": character.id,
-			"name": character.name,
-			"faction": character.faction,
-			"is_active": character.is_active
+			"id": obj.id,
+			"name": obj.name,
+			"type": obj.get_type_identifier(),
+			"should_reschedule": obj.should_reschedule()
 		}
 		
-		# 尝试从时间轮中获取下次行动时间
+		# 尝试从时间轮中获取下次调度时间
 		var events = _peek_callback.call(1, 1)
 		for event_data in events:
 			var key = event_data["key"]
 			var event = event_data["value"]
-			if key == character.id:
-				info["next_action_time"] = event.trigger_time
-				info["time_until_action"] = event.trigger_time - current_time
+			if key == obj.id:
+				info["next_schedule_time"] = event.trigger_time
+				info["time_until_schedule"] = event.trigger_time - current_time
 				break
+		
+		# 如果是CombatActor，添加额外信息
+		if obj is CombatActor:
+			var combat_actor = obj as CombatActor
+			info["faction"] = combat_actor.faction
+			info["is_active"] = combat_actor.is_active
 		
 		info_list.append(info)
 	
 	return info_list
 
-## 获取下一个行动的时间信息
-func get_next_action_time_info() -> String:
+## 获取下一个调度的时间信息
+func get_next_schedule_time_info() -> String:
 	var next_events = _peek_callback.call(1, 1)
 	if next_events.is_empty():
 		return "无"
 	
 	var current_time = _get_time_callback.call()
 	var next_event_data = next_events[0]
-	var next_event = next_event_data["value"]
-	var delay = next_event.trigger_time - current_time
+	var next_obj = next_event_data["value"]
+	var delay = next_obj.trigger_time - current_time
 	
 	if delay <= 0:
 		return "待执行"
