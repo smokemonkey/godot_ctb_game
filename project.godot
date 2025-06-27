@@ -11,17 +11,17 @@ config_version=5
 [application]
 
 config/name="Godot CTB Game Project"
-run/main_scene="res://scenes/integrated_system_test.tscn"
-config/features=PackedStringArray("4.4", "C#", "GL Compatibility")
+run/main_scene="res://scenes/gdscript_integrated_test.tscn"
+config/features=PackedStringArray("4.4", "GL Compatibility")
 config/icon="res://icon.svg"
 
-[dotnet]
+; [LEGACY - GDScript Primary] C# support disabled for faster debugging
+; [dotnet]
+; project/assembly_name="新建游戏项目"
 
-project/assembly_name="新建游戏项目"
-
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+; [LEGACY - GDScript Primary] GUT plugin disabled, using native GDScript tests
+; [editor_plugins]
+; enabled=PackedStringArray("res://addons/gut/plugin.cfg")
 
 [rendering]
 

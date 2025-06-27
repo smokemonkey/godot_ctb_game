@@ -4,25 +4,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a hybrid Godot 4.4 game project with both C# and Python components for a turn-based game featuring:
+This is a hybrid Godot 4.4 game project with C#, Python, and GDScript components for a turn-based game featuring:
 - Custom calendar system (360 days/year, 24 hours/day)
 - CTB (Conditional Turn-Based) battle system
 - Indexed time wheel for efficient event scheduling
-- Dual implementation in both C# (Godot) and Python (prototyping)
+- Triple implementation in C# (Godot), Python (prototyping), and GDScript (primary)
 
 ## Architecture
 
-The project has two main components:
+The project has three main implementation layers:
 
-### 1. Godot Game Engine (C#)
+### 1. GDScript Implementation (Primary)
+- **Location**: `scripts/gdscript/`
+- **Status**: Primary implementation, actively developed
+- **Core Systems**:
+  - `Calendar.gd` - Time management system starting from 2000 BC
+  - `CTBManager.gd` - Event-based battle system using indexed time wheel
+  - `IndexedTimeWheel.gd` - Circular buffer for efficient event scheduling
+  - `TestGameWorld.gd` - Unified test coordinator for integration testing
+  - `IntegratedSystemTest.gd` - Complete UI test interface
+- **Game Scene**: `scenes/gdscript_integrated_test.tscn`
+
+### 2. Godot Game Engine (C#)
 - **Location**: `scripts/csharp/core/` and `tests/csharp/core/`
+- **Status**: Legacy implementation, to be phased out
 - **Core Systems**:
   - `Calendar.cs` - Time management system starting from 2000 BC
   - `CTBManager.cs` - Event-based battle system using indexed time wheel
   - `IndexedTimeWheel.cs` - Circular buffer for efficient event scheduling
 - **Game Scene**: `scenes/my_ctb_game.tscn`
 
-### 2. Python Prototypes
+### 3. Python Prototypes
 - **Location**: `python_prototypes/`
 - **Purpose**: Rapid prototyping and testing of game systems
 - **Structure**:
@@ -212,6 +224,39 @@ The Python prototypes serve as the reference implementation, with the C# version
 - **Automation**: sync_code.py enables automated code synchronization
 
 ## Latest Updates (2025-06-27)
+
+### GDScript Implementation Migration
+1. **Complete Code Translation**: Successfully migrated all core systems from C# to GDScript
+   - **Converted**: `Calendar.cs` → `Calendar.gd` with full feature parity
+   - **Converted**: `IndexedTimeWheel.cs` → `IndexedTimeWheel.gd` with thread safety via Mutex
+   - **Converted**: `CTBManager.cs` → `CTBManager.gd` with event system integration
+   - **Created**: `TestGameWorld.gd` - unified test coordinator replacing manual component management
+   - **Created**: `IntegratedSystemTest.gd` - complete UI test interface in GDScript
+
+2. **Architecture Simplification**: 
+   - **Primary Implementation**: GDScript is now the main development target
+   - **C# Status**: Marked as legacy, to be phased out
+   - **Unified Testing**: Single GDScript test scene replaces complex C#/GUT setup
+   - **Reduced Complexity**: Eliminated C# compilation dependencies for core development
+
+3. **Technical Improvements**:
+   - **Signal System**: Proper Godot signal integration for event coordination
+   - **Resource Management**: RefCounted-based classes for automatic memory management
+   - **Type Safety**: Strong typing where possible while maintaining GDScript flexibility
+   - **Performance**: Native GDScript performance without C# interop overhead
+
+4. **Development Benefits**:
+   - **Faster Iteration**: No compilation step required
+   - **Better Integration**: Native Godot editor support and debugging
+   - **Simplified Testing**: Direct script execution without build pipeline
+   - **Easier Maintenance**: Single language for core game logic
+
+5. **C# Legacy Code Management**:
+   - **Status**: All C# files marked as legacy with header comments
+   - **Project Config**: C# support disabled in project.godot for faster debugging
+   - **Build System**: .csproj file renamed to .disabled to prevent compilation
+   - **GUT Framework**: Disabled in favor of native GDScript testing
+   - **Preservation**: All C# code preserved for reference and future porting
 
 ### Calendar System Streamlining
 1. **Method Reduction**: Removed redundant Calendar methods to focus on core functionality

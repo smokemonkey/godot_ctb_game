@@ -1,3 +1,7 @@
+// [LEGACY - GDScript Primary] Original C# implementation
+// This code is preserved for reference but not actively used
+// See tests/gdscript/IntegratedSystemTest.gd for the primary GDScript implementation
+
 using System;
 using System.Collections.Generic;
 using System.Linq;

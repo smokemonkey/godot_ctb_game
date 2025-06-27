@@ -1,3 +1,7 @@
+// [LEGACY - GDScript Primary] Original C# implementation
+// This code is preserved for reference but not actively used
+// See tests/gdscript/CTBManager.gd for the primary GDScript implementation
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -5,20 +9,20 @@ using System.Linq;
 namespace Core
 {
     /// <summary>
-    /// ÊÂ¼þÀàÐÍÃ¶¾Ù
+    /// ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½Ã¶ï¿½ï¿½
     /// </summary>
     public enum EventType
     {
-        CharacterAction,  // ½ÇÉ«ÐÐ¶¯
-        SeasonChange,     // ¼¾½Ú±ä»¯
-        WeatherChange,    // ÌìÆø±ä»¯
-        StoryEvent,       // ¾çÇéÊÂ¼þ
-        Custom            // ×Ô¶¨ÒåÊÂ¼þ
+        CharacterAction,  // ï¿½ï¿½É«ï¿½Ð¶ï¿½
+        SeasonChange,     // ï¿½ï¿½ï¿½Ú±ä»¯
+        WeatherChange,    // ï¿½ï¿½ï¿½ï¿½ï¿½ä»¯
+        StoryEvent,       // ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½
+        Custom            // ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½Â¼ï¿½
     }
 
     /// <summary>
-    /// ÊÂ¼þ»ùÀà
-    /// ËùÓÐCTBÏµÍ³ÖÐµÄÊÂ¼þ¶¼Ó¦¼Ì³Ð´ËÀà¡£
+    /// ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½
+    /// ï¿½ï¿½ï¿½ï¿½CTBÏµÍ³ï¿½Ðµï¿½ï¿½Â¼ï¿½ï¿½ï¿½Ó¦ï¿½Ì³Ð´ï¿½ï¿½à¡£
     /// </summary>
     public abstract class Event
     {
@@ -38,10 +42,10 @@ namespace Core
         }
 
         /// <summary>
-        /// Ö´ÐÐÊÂ¼þ
-        /// ×ÓÀàÓ¦ÖØÐ´´Ë·½·¨ÊµÏÖ¾ßÌåµÄÊÂ¼þÂß¼­¡£
+        /// Ö´ï¿½ï¿½ï¿½Â¼ï¿½
+        /// ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ð´ï¿½Ë·ï¿½ï¿½ï¿½Êµï¿½Ö¾ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ß¼ï¿½ï¿½ï¿½
         /// </summary>
-        /// <returns>Ö´ÐÐ½á¹û£¬¾ßÌåÀàÐÍÓÉ×ÓÀà¾ö¶¨</returns>
+        /// <returns>Ö´ï¿½Ð½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½</returns>
         public abstract object Execute();
 
         public override string ToString()
@@ -51,31 +55,31 @@ namespace Core
     }
 
     /// <summary>
-    /// ÓÎÏ·½ÇÉ«
-    /// ½ÇÉ«ÊÇÒ»ÖÖÌØÊâµÄÊÂ¼þ£¬ÆäExecute·½·¨Ö´ÐÐ½ÇÉ«µÄÐÐ¶¯¡£
+    /// ï¿½ï¿½Ï·ï¿½ï¿½É«
+    /// ï¿½ï¿½É«ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½Executeï¿½ï¿½ï¿½ï¿½Ö´ï¿½Ð½ï¿½É«ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½ï¿½
     /// </summary>
     public class Character : Event
     {
         public string Faction { get; set; }
         public bool IsActive { get; set; }
 
-        public Character(string id, string name, string faction = "ÖÐÁ¢")
-            : base(id, name, EventType.CharacterAction, 0, $"{name}µÄÐÐ¶¯")
+        public Character(string id, string name, string faction = "ï¿½ï¿½ï¿½ï¿½")
+            : base(id, name, EventType.CharacterAction, 0, $"{name}ï¿½ï¿½ï¿½Ð¶ï¿½")
         {
             Faction = faction;
             IsActive = true;
         }
 
         /// <summary>
-        /// ¼ÆËãÏÂ´ÎÐÐ¶¯Ê±¼ä
-        /// Ê¹ÓÃÈý½Ç·Ö²¼Éú³É1-180ÌìÖ®¼äµÄËæ»ú¼ä¸ô£¬
-        /// ·åÖµÔÚ90Ìì£¬²úÉú¸ü×ÔÈ»µÄ·Ö²¼¡£
+        /// ï¿½ï¿½ï¿½ï¿½ï¿½Â´ï¿½ï¿½Ð¶ï¿½Ê±ï¿½ï¿½
+        /// Ê¹ï¿½ï¿½ï¿½ï¿½ï¿½Ç·Ö²ï¿½ï¿½ï¿½ï¿½ï¿½1-180ï¿½ï¿½Ö®ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        /// ï¿½ï¿½Öµï¿½ï¿½90ï¿½ì£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È»ï¿½Ä·Ö²ï¿½ï¿½ï¿½
         /// </summary>
-        /// <param name="currentTime">µ±Ç°Ê±¼ä£¨Ð¡Ê±£©</param>
-        /// <returns>ÏÂ´ÎÐÐ¶¯µÄ¾ø¶ÔÊ±¼ä£¨Ð¡Ê±£©</returns>
+        /// <param name="currentTime">ï¿½ï¿½Ç°Ê±ï¿½ä£¨Ð¡Ê±ï¿½ï¿½</param>
+        /// <returns>ï¿½Â´ï¿½ï¿½Ð¶ï¿½ï¿½Ä¾ï¿½ï¿½ï¿½Ê±ï¿½ä£¨Ð¡Ê±ï¿½ï¿½</returns>
         public int CalculateNextActionTime(int currentTime)
         {
-            // Ê¹ÓÃÈý½Ç·Ö²¼£º×îÐ¡1Ìì£¬×î´ó180Ìì£¬ÖÚÊý90Ìì
+            // Ê¹ï¿½ï¿½ï¿½ï¿½ï¿½Ç·Ö²ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡1ï¿½ì£¬ï¿½ï¿½ï¿½180ï¿½ì£¬ï¿½ï¿½ï¿½ï¿½90ï¿½ï¿½
             var random = new Random();
             double days = TriangularDistribution(random, 1, 180, 90);
             int hours = (int)(days * 24);
@@ -83,7 +87,7 @@ namespace Core
         }
 
         /// <summary>
-        /// Èý½Ç·Ö²¼ÊµÏÖ
+        /// ï¿½ï¿½ï¿½Ç·Ö²ï¿½Êµï¿½ï¿½
         /// </summary>
         private double TriangularDistribution(Random random, double min, double max, double mode)
         {
@@ -101,24 +105,24 @@ namespace Core
         }
 
         /// <summary>
-        /// Ö´ÐÐ½ÇÉ«ÐÐ¶¯
+        /// Ö´ï¿½Ð½ï¿½É«ï¿½Ð¶ï¿½
         /// </summary>
-        /// <returns>·µ»Ø×ÔÉí£¬±ãÓÚÁ´Ê½µ÷ÓÃ</returns>
+        /// <returns>ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½</returns>
         public override object Execute()
         {
-            // ÕâÀï¿ÉÒÔÌí¼Ó½ÇÉ«ÐÐ¶¯µÄ¾ßÌåÂß¼­
-            // ÀýÈç£º´¥·¢Õ½¶·¡¢Ê¹ÓÃ¼¼ÄÜ¡¢ÒÆ¶¯µÈ
+            // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó½ï¿½É«ï¿½Ð¶ï¿½ï¿½Ä¾ï¿½ï¿½ï¿½ï¿½ß¼ï¿½
+            // ï¿½ï¿½ï¿½ç£ºï¿½ï¿½ï¿½ï¿½Õ½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½Ã¼ï¿½ï¿½Ü¡ï¿½ï¿½Æ¶ï¿½ï¿½ï¿½
             return this;
         }
     }
 
     /// <summary>
-    /// CTBÏµÍ³¹ÜÀíÆ÷
-    /// ¸ºÔð¹ÜÀíËùÓÐÊÂ¼þµÄµ÷¶ÈºÍÖ´ÐÐ£¬Í¨¹ý»Øµ÷º¯Êý·ÃÎÊÊ±¼äÂÖ¡£
+    /// CTBÏµÍ³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    /// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Äµï¿½ï¿½Èºï¿½Ö´ï¿½Ð£ï¿½Í¨ï¿½ï¿½ï¿½Øµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ö¡ï¿½
     /// </summary>
     public class CTBManager
     {
-        // »Øµ÷º¯Êý
+        // ï¿½Øµï¿½ï¿½ï¿½ï¿½ï¿½
         private readonly Func<int> _getTimeCallback;
         private readonly Action _advanceTimeCallback;
         private readonly Func<string, Event, int, bool> _scheduleCallback;
@@ -132,19 +136,19 @@ namespace Core
         public bool IsInitialized { get; private set; }
         public List<Dictionary<string, object>> ActionHistory { get; private set; }
 
-        // ÊÂ¼þÖ´ÐÐ»Øµ÷
+        // ï¿½Â¼ï¿½Ö´ï¿½Ð»Øµï¿½
         public Action<Event> OnEventExecuted { get; set; }
 
         /// <summary>
-        /// ³õÊ¼»¯CTB¹ÜÀíÆ÷
+        /// ï¿½ï¿½Ê¼ï¿½ï¿½CTBï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         /// </summary>
-        /// <param name="getTimeCallback">»ñÈ¡µ±Ç°Ê±¼äµÄ»Øµ÷º¯Êý</param>
-        /// <param name="advanceTimeCallback">ÍÆ½øÊ±¼äµÄ»Øµ÷º¯Êý</param>
-        /// <param name="scheduleCallback">µ÷¶ÈÊÂ¼þµÄ»Øµ÷º¯Êý (key, event, delay) -> bool</param>
-        /// <param name="removeCallback">ÒÆ³ýÊÂ¼þµÄ»Øµ÷º¯Êý (key) -> bool</param>
-        /// <param name="peekCallback">Ô¤ÀÀÊÂ¼þµÄ»Øµ÷º¯Êý (count, max_events) -> List<Tuple<string, Event>></param>
-        /// <param name="popCallback">µ¯³öµ½ÆÚÊÂ¼þµÄ»Øµ÷º¯Êý () -> Tuple<string, Event></param>
-        /// <param name="isSlotEmptyCallback">¼ì²éÊ±¼ä²ÛÊÇ·ñÎª¿Õ</param>
+        /// <param name="getTimeCallback">ï¿½ï¿½È¡ï¿½ï¿½Ç°Ê±ï¿½ï¿½Ä»Øµï¿½ï¿½ï¿½ï¿½ï¿½</param>
+        /// <param name="advanceTimeCallback">ï¿½Æ½ï¿½Ê±ï¿½ï¿½Ä»Øµï¿½ï¿½ï¿½ï¿½ï¿½</param>
+        /// <param name="scheduleCallback">ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ä»Øµï¿½ï¿½ï¿½ï¿½ï¿½ (key, event, delay) -> bool</param>
+        /// <param name="removeCallback">ï¿½Æ³ï¿½ï¿½Â¼ï¿½ï¿½Ä»Øµï¿½ï¿½ï¿½ï¿½ï¿½ (key) -> bool</param>
+        /// <param name="peekCallback">Ô¤ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ä»Øµï¿½ï¿½ï¿½ï¿½ï¿½ (count, max_events) -> List<Tuple<string, Event>></param>
+        /// <param name="popCallback">ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ä»Øµï¿½ï¿½ï¿½ï¿½ï¿½ () -> Tuple<string, Event></param>
+        /// <param name="isSlotEmptyCallback">ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ç·ï¿½Îªï¿½ï¿½</param>
         public CTBManager(
             Func<int> getTimeCallback,
             Action advanceTimeCallback,
@@ -168,10 +172,10 @@ namespace Core
         }
 
         /// <summary>
-        /// Ìí¼Ó½ÇÉ«µ½ÏµÍ³
+        /// ï¿½ï¿½ï¿½Ó½ï¿½É«ï¿½ï¿½ÏµÍ³
         /// </summary>
-        /// <param name="character">ÒªÌí¼ÓµÄ½ÇÉ«</param>
-        /// <exception cref="ArgumentException">Èç¹û½ÇÉ«IDÒÑ´æÔÚ</exception>
+        /// <param name="character">Òªï¿½ï¿½ï¿½ÓµÄ½ï¿½É«</param>
+        /// <exception cref="ArgumentException">ï¿½ï¿½ï¿½ï¿½ï¿½É«IDï¿½Ñ´ï¿½ï¿½ï¿½</exception>
         public void AddCharacter(Character character)
         {
             if (Characters.ContainsKey(character.Id))
@@ -183,11 +187,11 @@ namespace Core
         }
 
         /// <summary>
-        /// ´¦ÀíÏÂÒ»¸öÂß¼­»ØºÏ
-        /// Õâ»áÇý¶¯Ê±¼äÇ°½ø£¬Ö±µ½ÕÒµ½²¢´¦ÀíÍêÒ»¸öÊÂ¼þ¡£
-        /// ÕâÊÇCTBÏµÍ³µÄºËÐÄ"ÒýÇæ"·½·¨¡£
+        /// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ß¼ï¿½ï¿½Øºï¿½
+        /// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½Ö±ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½
+        /// ï¿½ï¿½ï¿½ï¿½CTBÏµÍ³ï¿½Äºï¿½ï¿½ï¿½"ï¿½ï¿½ï¿½ï¿½"ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         /// </summary>
-        /// <returns>°üº¬ÒÑÖ´ÐÐÊÂ¼þÐÅÏ¢µÄ×Öµä</returns>
+        /// <returns>ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö´ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½Öµï¿½</returns>
         public Dictionary<string, object> ProcessNextTurn()
         {
             int ticksAdvanced = 0;
@@ -220,10 +224,10 @@ namespace Core
         }
 
         /// <summary>
-        /// ´ÓÏµÍ³ÖÐÒÆ³ý½ÇÉ«
+        /// ï¿½ï¿½ÏµÍ³ï¿½ï¿½ï¿½Æ³ï¿½ï¿½ï¿½É«
         /// </summary>
-        /// <param name="characterId">ÒªÒÆ³ýµÄ½ÇÉ«ID</param>
-        /// <returns>Èç¹û³É¹¦ÒÆ³ý·µ»ØTrue£¬·ñÔò·µ»ØFalse</returns>
+        /// <param name="characterId">Òªï¿½Æ³ï¿½ï¿½Ä½ï¿½É«ID</param>
+        /// <returns>ï¿½ï¿½ï¿½ï¿½É¹ï¿½ï¿½Æ³ï¿½ï¿½ï¿½ï¿½ï¿½Trueï¿½ï¿½ï¿½ï¿½ï¿½ò·µ»ï¿½False</returns>
         public bool RemoveCharacter(string characterId)
         {
             if (!Characters.ContainsKey(characterId))
@@ -231,29 +235,29 @@ namespace Core
                 return false;
             }
 
-            // ´ÓÊ±¼äÂÖÖÐÒÆ³ý½ÇÉ«µÄÊÂ¼þ
+            // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ³ï¿½ï¿½ï¿½É«ï¿½ï¿½ï¿½Â¼ï¿½
             _removeCallback(characterId);
 
-            // ´Ó½ÇÉ«×ÖµäÖÐÒÆ³ý
+            // ï¿½Ó½ï¿½É«ï¿½Öµï¿½ï¿½ï¿½ï¿½Æ³ï¿½
             Characters.Remove(characterId);
             return true;
         }
 
         /// <summary>
-        /// »ñÈ¡½ÇÉ«
+        /// ï¿½ï¿½È¡ï¿½ï¿½É«
         /// </summary>
-        /// <param name="characterId">½ÇÉ«ID</param>
-        /// <returns>Èç¹ûÕÒµ½·µ»Ø½ÇÉ«£¬·ñÔò·µ»Ønull</returns>
+        /// <param name="characterId">ï¿½ï¿½É«ID</param>
+        /// <returns>ï¿½ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½ï¿½Ø½ï¿½É«ï¿½ï¿½ï¿½ï¿½ï¿½ò·µ»ï¿½null</returns>
         public Character GetCharacter(string characterId)
         {
             return Characters.TryGetValue(characterId, out var character) ? character : null;
         }
 
         /// <summary>
-        /// ³õÊ¼»¯CTBÏµÍ³
-        /// ÎªËùÓÐ½ÇÉ«°²ÅÅ³õÊ¼ÐÐ¶¯Ê±¼ä¡£
+        /// ï¿½ï¿½Ê¼ï¿½ï¿½CTBÏµÍ³
+        /// Îªï¿½ï¿½ï¿½Ð½ï¿½É«ï¿½ï¿½ï¿½Å³ï¿½Ê¼ï¿½Ð¶ï¿½Ê±ï¿½ä¡£
         /// </summary>
-        /// <exception cref="InvalidOperationException">Èç¹ûÃ»ÓÐ½ÇÉ«</exception>
+        /// <exception cref="InvalidOperationException">ï¿½ï¿½ï¿½Ã»ï¿½Ð½ï¿½É«</exception>
         public void InitializeCTB()
         {
             if (!Characters.Any())
@@ -263,16 +267,16 @@ namespace Core
 
             int currentTime = _getTimeCallback();
 
-            // ÎªÃ¿¸ö»îÔ¾½ÇÉ«°²ÅÅ³õÊ¼ÐÐ¶¯
+            // ÎªÃ¿ï¿½ï¿½ï¿½ï¿½Ô¾ï¿½ï¿½É«ï¿½ï¿½ï¿½Å³ï¿½Ê¼ï¿½Ð¶ï¿½
             foreach (var character in Characters.Values)
             {
                 if (character.IsActive)
                 {
-                    // ¼ÆËã³õÊ¼ÐÐ¶¯Ê±¼ä
+                    // ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½Ð¶ï¿½Ê±ï¿½ï¿½
                     int nextTime = character.CalculateNextActionTime(currentTime);
                     character.TriggerTime = nextTime;
 
-                    // Ìí¼Óµ½Ê±¼äÂÖ
+                    // ï¿½ï¿½ï¿½Óµï¿½Ê±ï¿½ï¿½ï¿½ï¿½
                     int delay = nextTime - currentTime;
                     _scheduleCallback(character.Id, character, delay);
                 }
@@ -282,17 +286,17 @@ namespace Core
         }
 
         /// <summary>
-        /// µ÷¶È×Ô¶¨ÒåÊÂ¼þ
+        /// ï¿½ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½Â¼ï¿½
         /// </summary>
-        /// <param name="event">Òªµ÷¶ÈµÄÊÂ¼þ</param>
-        /// <param name="triggerTime">´¥·¢Ê±¼ä£¨¾ø¶ÔÊ±¼ä£©</param>
-        /// <returns>Èç¹û³É¹¦µ÷¶È·µ»ØTrue£¬·ñÔò·µ»ØFalse</returns>
+        /// <param name="event">Òªï¿½ï¿½ï¿½Èµï¿½ï¿½Â¼ï¿½</param>
+        /// <param name="triggerTime">ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ä£¨ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ä£©</param>
+        /// <returns>ï¿½ï¿½ï¿½ï¿½É¹ï¿½ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Trueï¿½ï¿½ï¿½ï¿½ï¿½ò·µ»ï¿½False</returns>
         public bool ScheduleEvent(Event @event, int triggerTime)
         {
             int currentTime = _getTimeCallback();
             if (triggerTime < currentTime)
             {
-                return false; // ²»ÄÜÔÚ¹ýÈ¥µ÷¶ÈÊÂ¼þ
+                return false; // ï¿½ï¿½ï¿½ï¿½ï¿½Ú¹ï¿½È¥ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½
             }
 
             int delay = triggerTime - currentTime;
@@ -300,21 +304,21 @@ namespace Core
         }
 
         /// <summary>
-        /// Ê¹ÓÃÑÓ³ÙÊ±¼äµ÷¶ÈÊÂ¼þ
+        /// Ê¹ï¿½ï¿½ï¿½Ó³ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½
         /// </summary>
-        /// <param name="key">ÊÂ¼þ¼üÖµ</param>
-        /// <param name="event">Òªµ÷¶ÈµÄÊÂ¼þ</param>
-        /// <param name="delay">ÑÓ³ÙÊ±¼ä£¨Ð¡Ê±£©</param>
-        /// <returns>Èç¹û³É¹¦µ÷¶È·µ»ØTrue£¬·ñÔò·µ»ØFalse</returns>
+        /// <param name="key">ï¿½Â¼ï¿½ï¿½ï¿½Öµ</param>
+        /// <param name="event">Òªï¿½ï¿½ï¿½Èµï¿½ï¿½Â¼ï¿½</param>
+        /// <param name="delay">ï¿½Ó³ï¿½Ê±ï¿½ä£¨Ð¡Ê±ï¿½ï¿½</param>
+        /// <returns>ï¿½ï¿½ï¿½ï¿½É¹ï¿½ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½Trueï¿½ï¿½ï¿½ï¿½ï¿½ò·µ»ï¿½False</returns>
         public bool ScheduleWithDelay(string key, Event @event, int delay)
         {
             return _scheduleCallback(key, @event, delay);
         }
 
         /// <summary>
-        /// »ñÈ¡µ±Ç°Ê±¼äµ½ÆÚµÄÏÂÒ»¸öÊÂ¼þ
+        /// ï¿½ï¿½È¡ï¿½ï¿½Ç°Ê±ï¿½äµ½ï¿½Úµï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Â¼ï¿½
         /// </summary>
-        /// <returns>µ½ÆÚµÄÊÂ¼þ£¬Èç¹ûÃ»ÓÐÔò·µ»Ønull</returns>
+        /// <returns>ï¿½ï¿½ï¿½Úµï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ò·µ»ï¿½null</returns>
         public Event GetDueEvent()
         {
             var eventTuple = _popCallback();
@@ -328,9 +332,9 @@ namespace Core
         }
 
         /// <summary>
-        /// Ö´ÐÐÊÂ¼þÁÐ±í
+        /// Ö´ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ð±ï¿½
         /// </summary>
-        /// <param name="events">ÒªÖ´ÐÐµÄÊÂ¼þÁÐ±í</param>
+        /// <param name="events">ÒªÖ´ï¿½Ðµï¿½ï¿½Â¼ï¿½ï¿½Ð±ï¿½</param>
         public void ExecuteEvents(List<Event> events)
         {
             foreach (var @event in events)
@@ -340,9 +344,9 @@ namespace Core
         }
 
         /// <summary>
-        /// Ö´ÐÐµ¥¸öÊÂ¼þ£¬²¢´¦ÀíºóÐøÂß¼­£¨ÈçÖØÐÂµ÷¶È£©¡£
+        /// Ö´ï¿½Ðµï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Âµï¿½ï¿½È£ï¿½ï¿½ï¿½
         /// </summary>
-        /// <param name="event">ÒªÖ´ÐÐµÄÊÂ¼þ</param>
+        /// <param name="event">ÒªÖ´ï¿½Ðµï¿½ï¿½Â¼ï¿½</param>
         private void ExecuteEvent(Event @event)
         {
             var result = @event.Execute();
@@ -350,7 +354,7 @@ namespace Core
 
             OnEventExecuted?.Invoke(@event);
 
-            // Èç¹ûÊÇ½ÇÉ«ÐÐ¶¯£¬¼ÆËã²¢°²ÅÅÏÂÒ»´ÎÐÐ¶¯
+            // ï¿½ï¿½ï¿½ï¿½Ç½ï¿½É«ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ã²¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ð¶ï¿½
             if (@event.EventType == EventType.CharacterAction && @event is Character character)
             {
                 if (character.IsActive)
@@ -365,9 +369,9 @@ namespace Core
         }
 
         /// <summary>
-        /// ¼ÇÂ¼ÐÐ¶¯ÀúÊ·
+        /// ï¿½ï¿½Â¼ï¿½Ð¶ï¿½ï¿½ï¿½Ê·
         /// </summary>
-        /// <param name="event">Ö´ÐÐµÄÊÂ¼þ</param>
+        /// <param name="event">Ö´ï¿½Ðµï¿½ï¿½Â¼ï¿½</param>
         private void RecordAction(Event @event)
         {
             int currentTime = _getTimeCallback();
@@ -381,13 +385,13 @@ namespace Core
         }
 
         /// <summary>
-        /// ÉèÖÃ½ÇÉ«µÄ»îÔ¾×´Ì¬
-        /// Èç¹ûÒ»¸ö½ÇÉ«±»ÉèÖÃÎª²»»îÔ¾£¬Ëü½«²»»á±»°²ÅÅÏÂÒ»´ÎÐÐ¶¯¡£
-        /// Èç¹ûËüµ±Ç°±»°²ÅÅÁËÐÐ¶¯£¬¸ÃÐÐ¶¯»á±»È¡Ïû¡£
+        /// ï¿½ï¿½ï¿½Ã½ï¿½É«ï¿½Ä»ï¿½Ô¾×´Ì¬
+        /// ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½É«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½Ô¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½á±»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½ï¿½
+        /// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½á±»È¡ï¿½ï¿½ï¿½ï¿½
         /// </summary>
-        /// <param name="characterId">½ÇÉ«ID</param>
-        /// <param name="active">ÊÇ·ñ»îÔ¾</param>
-        /// <returns>²Ù×÷ÊÇ·ñ³É¹¦</returns>
+        /// <param name="characterId">ï¿½ï¿½É«ID</param>
+        /// <param name="active">ï¿½Ç·ï¿½ï¿½Ô¾</param>
+        /// <returns>ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½É¹ï¿½</returns>
         public bool SetCharacterActive(string characterId, bool active)
         {
             var character = GetCharacter(characterId);
@@ -398,12 +402,12 @@ namespace Core
 
             character.IsActive = active;
 
-            // Èç¹û½ÇÉ«±»ÉèÖÃÎª²»»îÔ¾£¬´ÓÊ±¼äÂÖÖÐÒÆ³ýÆäÎ´À´µÄÐÐ¶¯
+            // ï¿½ï¿½ï¿½ï¿½ï¿½É«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½Ô¾ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ³ï¿½ï¿½ï¿½Î´ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½
             if (!active)
             {
                 _removeCallback(characterId);
             }
-            // Èç¹û½ÇÉ«±»ÖØÐÂ¼¤»î£¬ÐèÒªÊÖ¶¯ÎªËû°²ÅÅÏÂÒ»´ÎÐÐ¶¯
+            // ï¿½ï¿½ï¿½ï¿½ï¿½É«ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½î£¬ï¿½ï¿½Òªï¿½Ö¶ï¿½Îªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ð¶ï¿½
             else if (active)
             {
                 int currentTime = _getTimeCallback();
@@ -417,14 +421,14 @@ namespace Core
         }
 
         /// <summary>
-        /// »ñÈ¡ÏµÍ³µ±Ç°×´Ì¬µÄÎÄ±¾ÃèÊö
+        /// ï¿½ï¿½È¡ÏµÍ³ï¿½ï¿½Ç°×´Ì¬ï¿½ï¿½ï¿½Ä±ï¿½ï¿½ï¿½ï¿½ï¿½
         /// </summary>
-        /// <returns>×´Ì¬ÃèÊöÎÄ±¾</returns>
+        /// <returns>×´Ì¬ï¿½ï¿½ï¿½ï¿½ï¿½Ä±ï¿½</returns>
         public string GetStatusText()
         {
             if (!IsInitialized)
             {
-                return "CTBÏµÍ³Î´³õÊ¼»¯";
+                return "CTBÏµÍ³Î´ï¿½ï¿½Ê¼ï¿½ï¿½";
             }
 
             int currentTime = _getTimeCallback();
@@ -433,12 +437,12 @@ namespace Core
             var statusLines = new List<string>
             {
                 "=== CTBÏµÍ³×´Ì¬ ===",
-                $"  µ±Ç°Ê±¼ä: {currentTime} Ð¡Ê±",
-                $"  ½ÇÉ«ÊýÁ¿: {Characters.Count}",
-                $"  »îÔ¾½ÇÉ«: {activeCharacters}"
+                $"  ï¿½ï¿½Ç°Ê±ï¿½ï¿½: {currentTime} Ð¡Ê±",
+                $"  ï¿½ï¿½É«ï¿½ï¿½ï¿½ï¿½: {Characters.Count}",
+                $"  ï¿½ï¿½Ô¾ï¿½ï¿½É«: {activeCharacters}"
             };
 
-            // »ñÈ¡ÏÂÒ»¸öÊÂ¼þ
+            // ï¿½ï¿½È¡ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Â¼ï¿½
             var nextEvents = _peekCallback(1, 1);
             if (nextEvents.Any())
             {
@@ -446,25 +450,25 @@ namespace Core
                 int delay = nextEvent.TriggerTime - currentTime;
                 if (delay <= 0)
                 {
-                    statusLines.Add($"  ÏÂ¸öÐÐ¶¯: Á¢¼´Ö´ÐÐ ({nextEvent.Name})");
+                    statusLines.Add($"  ï¿½Â¸ï¿½ï¿½Ð¶ï¿½: ï¿½ï¿½ï¿½ï¿½Ö´ï¿½ï¿½ ({nextEvent.Name})");
                 }
                 else
                 {
-                    statusLines.Add($"  ÏÂ¸öÐÐ¶¯: {delay} Ð¡Ê±ºó ({nextEvent.Name})");
+                    statusLines.Add($"  ï¿½Â¸ï¿½ï¿½Ð¶ï¿½: {delay} Ð¡Ê±ï¿½ï¿½ ({nextEvent.Name})");
                 }
             }
             else
             {
-                statusLines.Add("  ÏÂ¸öÐÐ¶¯: (ÎÞ)");
+                statusLines.Add("  ï¿½Â¸ï¿½ï¿½Ð¶ï¿½: (ï¿½ï¿½)");
             }
 
             return string.Join("\n", statusLines);
         }
 
         /// <summary>
-        /// »ñÈ¡ËùÓÐ½ÇÉ«ÐÅÏ¢
+        /// ï¿½ï¿½È¡ï¿½ï¿½ï¿½Ð½ï¿½É«ï¿½ï¿½Ï¢
         /// </summary>
-        /// <returns>½ÇÉ«ÐÅÏ¢ÁÐ±í</returns>
+        /// <returns>ï¿½ï¿½É«ï¿½ï¿½Ï¢ï¿½Ð±ï¿½</returns>
         public List<Dictionary<string, object>> GetCharacterInfo()
         {
             var infoList = new List<Dictionary<string, object>>();
@@ -480,7 +484,7 @@ namespace Core
                     ["is_active"] = character.IsActive
                 };
 
-                // ³¢ÊÔ´ÓÊ±¼äÂÖÖÐ»ñÈ¡ÏÂ´ÎÐÐ¶¯Ê±¼ä
+                // ï¿½ï¿½ï¿½Ô´ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½Ð»ï¿½È¡ï¿½Â´ï¿½ï¿½Ð¶ï¿½Ê±ï¿½ï¿½
                 var events = _peekCallback(1, 1);
                 foreach (var (key, @event) in events)
                 {
@@ -499,15 +503,15 @@ namespace Core
         }
 
         /// <summary>
-        /// »ñÈ¡ÏÂÒ»¸öÐÐ¶¯µÄÊ±¼äÐÅÏ¢
+        /// ï¿½ï¿½È¡ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ï¢
         /// </summary>
-        /// <returns>Ê±¼äÐÅÏ¢ÎÄ±¾</returns>
+        /// <returns>Ê±ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½Ä±ï¿½</returns>
         public string GetNextActionTimeInfo()
         {
             var nextEvents = _peekCallback(1, 1);
             if (!nextEvents.Any())
             {
-                return "ÎÞ";
+                return "ï¿½ï¿½";
             }
 
             int currentTime = _getTimeCallback();
@@ -516,11 +520,11 @@ namespace Core
 
             if (delay <= 0)
             {
-                return "Á¢¼´Ö´ÐÐ";
+                return "ï¿½ï¿½ï¿½ï¿½Ö´ï¿½ï¿½";
             }
             else
             {
-                return $"{delay}Ð¡Ê±ºó";
+                return $"{delay}Ð¡Ê±ï¿½ï¿½";
             }
         }
     }
