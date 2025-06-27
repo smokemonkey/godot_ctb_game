@@ -3,6 +3,9 @@ extends Control
 ## GDScript版本的集成系统测试
 ## 使用GDScript实现的Calendar、IndexedTimeWheel和CTBManager
 
+# 预加载TestGameWorld类
+const TestGameWorld = preload("res://tests/gdscript/TestGameWorld.gd")
+
 # 统一测试协调器 - 替代手动组件管理
 var test_world: TestGameWorld
 

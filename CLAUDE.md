@@ -15,14 +15,16 @@ This is a hybrid Godot 4.4 game project with C#, Python, and GDScript components
 The project has three main implementation layers:
 
 ### 1. GDScript Implementation (Primary)
-- **Location**: `scripts/gdscript/`
+- **Location**: `scripts/gdscript/core/` (core systems), `scripts/gdscript/` (UI), `tests/gdscript/` (tests)
 - **Status**: Primary implementation, actively developed
 - **Core Systems**:
-  - `Calendar.gd` - Time management system starting from 2000 BC
-  - `CTBManager.gd` - Event-based battle system using indexed time wheel
-  - `IndexedTimeWheel.gd` - Circular buffer for efficient event scheduling
-  - `TestGameWorld.gd` - Unified test coordinator for integration testing
-  - `IntegratedSystemTest.gd` - Complete UI test interface
+  - `scripts/gdscript/core/Calendar.gd` - Time management system with configurable parameters
+  - `scripts/gdscript/core/CTBManager.gd` - Event-based battle system using indexed time wheel
+  - `scripts/gdscript/core/IndexedTimeWheel.gd` - Circular buffer for efficient event scheduling
+  - `scripts/gdscript/core/GameConfig.gd` - Configuration resource system
+  - `scripts/gdscript/core/ConfigManager.gd` - Autoload configuration manager
+- **Test Coordination**: `tests/gdscript/TestGameWorld.gd` - Unified test coordinator
+- **UI Interface**: `scripts/gdscript/IntegratedSystemTest.gd` - Complete UI test interface
 - **Game Scene**: `scenes/integrated_system_test.tscn`
 
 ### 2. Godot Game Engine (C#)

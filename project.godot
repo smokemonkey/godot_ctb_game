@@ -21,7 +21,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-ConfigManager="*res://scripts/gdscript/ConfigManager.gd"
+ConfigManager="*res://scripts/gdscript/core/ConfigManager.gd"
 
 [editor_plugins]
 

@@ -18,7 +18,7 @@ Follow these steps:
    - If first argument is "check": perform mapping consistency check only
    - Otherwise: Extract source language, target language, and optional file specification
 2. **Identify Files**: 
-   - Use mapping files (`scripts/gdscript/PYTHON_MAPPING.md`, `scripts/gdscript/CSHARP_MAPPING.md`)
+   - Use mapping files (`tests/gdscript/PYTHON_MAPPING.md`, `tests/gdscript/CSHARP_MAPPING.md`)
    - If file specified, sync only that module
    - If no file, sync all core systems (Calendar, IndexedTimeWheel, CTBManager)
 
@@ -42,8 +42,8 @@ Follow these steps:
    - Update mapping documentation if APIs changed
 
 7. **Update Mapping Documentation**:
-   - Automatically update `scripts/gdscript/PYTHON_MAPPING.md` if syncing with Python
-   - Automatically update `scripts/gdscript/CSHARP_MAPPING.md` if syncing with C#
+   - Automatically update `tests/gdscript/PYTHON_MAPPING.md` if syncing with Python
+   - Automatically update `tests/gdscript/CSHARP_MAPPING.md` if syncing with C#
    - Document any API changes or additions in mapping files
    - Verify method correspondence is accurate and complete
    - Update implementation status and synchronization notes
@@ -65,7 +65,7 @@ If the first argument is "check", skip code synchronization and only verify mapp
 ## Implementation Directories
 - **Python**: `python_prototypes/core/`
 - **C#**: `scripts/csharp/core/` (legacy)
-- **GDScript**: `scripts/gdscript/` (primary)
+- **GDScript**: `scripts/gdscript/core/` (primary)
 
 ## Core Systems
 - `Calendar` - Time management system

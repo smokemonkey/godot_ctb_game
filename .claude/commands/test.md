@@ -17,7 +17,7 @@ Follow these steps:
    - Available systems: calendar, timewheel, ctb, integration
 
 2. **Run Functional Tests**:
-   - Execute `scripts/gdscript/test_gdscript_systems.gd`
+   - Execute `tests/gdscript/test_gdscript_systems.gd`
    - Verify all core system functionality
    - Test Calendar time management and era system
    - Test IndexedTimeWheel event scheduling
@@ -46,7 +46,12 @@ Follow these steps:
    - Update documentation if needed
 
 ## Test Files
-- `scripts/gdscript/test_gdscript_systems.gd` - Functional tests
+- `tests/gdscript/test_gdscript_systems.gd` - Functional tests
+- `tests/gdscript/test_calendar.gd` - Calendar unit tests (placeholder)
+- `tests/gdscript/test_time_wheel.gd` - TimeWheel unit tests (placeholder)  
+- `tests/gdscript/test_ctb_manager.gd` - CTB unit tests (placeholder)
+- `tests/gdscript/test_config_system.gd` - Config unit tests (placeholder)
+- `tests/gdscript/test_integration.gd` - Integration tests (placeholder)
 - `scripts/gdscript/IntegratedSystemTest.gd` - UI integration tests
 - `scenes/integrated_system_test.tscn` - Test scene
 
