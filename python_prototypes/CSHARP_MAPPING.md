@@ -1,4 +1,9 @@
-# PY → CS Mapping
+# PY → CS Mapping (DEPRECATED)
+
+⚠️ **DEPRECATED**: This mapping is no longer maintained as C# implementation has been deprecated in favor of GDScript.
+
+**Current Architecture**: Python ↔ GDScript synchronization  
+**Replacement**: See new Schedulable architecture in CLAUDE.md
 
 Last updated: 2025-06-26T23:53:17.892117
 
