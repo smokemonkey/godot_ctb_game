@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using Core;
+using Tests;
 
 public partial class IntegratedSystemTest : Control
 {
-    // Core systems
-    private Calendar _calendar;
-    private IndexedTimeWheel<string> _timeWheel;
-    private int _currentTimeHour = 0;
+    // Unified test coordinator - replaces manual component management
+    private TestGameWorld _testWorld;
 
     // UI Components - Left CTB Action Bar
     private VBoxContainer _ctbActionBar;
@@ -58,13 +57,23 @@ public partial class IntegratedSystemTest : Control
 
     private void InitializeSystems()
     {
-        // Initialize Calendar with default settings (starting from 2000 BC)
-        _calendar = new Calendar();
+        // Initialize unified test coordinator with 180-hour buffer
+        _testWorld = new TestGameWorld(timeWheelSize: 180);
         
-        // Initialize IndexedTimeWheel with 180-hour buffer (7.5 days)
-        _timeWheel = new IndexedTimeWheel<string>(180, () => _currentTimeHour);
+        // Subscribe to events for UI updates
+        _testWorld.OnEventExecuted += (eventDesc) => {
+            AddCTBLogEntry($"已执行: {eventDesc}", true);
+        };
         
-        GD.Print($"Systems initialized - Calendar: {_calendar.FormatDateGregorian(true)}");
+        _testWorld.OnTimeAdvanced += (hours) => {
+            AddCTBLogEntry($"时间推进了 {hours} 小时", false);
+        };
+        
+        _testWorld.OnSystemsUpdated += () => {
+            CallDeferred(nameof(UpdateAllDisplays));
+        };
+        
+        GD.Print($"TestGameWorld initialized - Calendar: {_testWorld.CurrentCalendarTime}");
     }
 
     private void SetupUI()
@@ -363,16 +372,16 @@ public partial class IntegratedSystemTest : Control
     {
         try
         {
-            // Add some character actions
-            _timeWheel.ScheduleWithDelay("张飞_攻击", "张飞发动攻击", 5);
-            _timeWheel.ScheduleWithDelay("关羽_防御", "关羽进入防御状态", 8);
-            _timeWheel.ScheduleWithDelay("刘备_治疗", "刘备使用治疗技能", 12);
+            // Add some character actions using TestGameWorld API
+            _testWorld.ScheduleEvent("张飞_攻击", "张飞发动攻击", 5);
+            _testWorld.ScheduleEvent("关羽_防御", "关羽进入防御状态", 8);
+            _testWorld.ScheduleEvent("刘备_治疗", "刘备使用治疗技能", 12);
             
             // Add some future events
-            _timeWheel.ScheduleWithDelay("季节变化", "春季到来", 200);
-            _timeWheel.ScheduleWithDelay("节日庆典", "中秋节庆典", 300);
+            _testWorld.ScheduleEvent("季节变化", "春季到来", 200);
+            _testWorld.ScheduleEvent("节日庆典", "中秋节庆典", 300);
             
-            GD.Print("Initial test events added");
+            GD.Print("Initial test events added via TestGameWorld");
         }
         catch (Exception e)
         {
@@ -384,18 +393,12 @@ public partial class IntegratedSystemTest : Control
     {
         try
         {
-            // Advance calendar
-            for (int i = 0; i < hours; i++)
-            {
-                _calendar.AdvanceTimeTick();
-                _currentTimeHour++;
-            }
-
-            // Process any due events during advancement
-            ProcessDueEventsUntilSlotEmpty();
+            // Use TestGameWorld's unified time advancement - no manual sync needed!
+            var result = _testWorld.AdvanceTime(hours);
             
-            GD.Print($"Advanced time by {hours} hours to {_currentTimeHour}");
-            UpdateAllDisplays();
+            GD.Print($"Advanced time: {result.Summary}");
+            
+            // UI update is handled automatically via OnSystemsUpdated event
         }
         catch (Exception e)
         {
@@ -403,33 +406,13 @@ public partial class IntegratedSystemTest : Control
         }
     }
 
+    // This method is no longer needed - TestGameWorld handles event processing automatically
+    // Keeping it as a stub for compatibility
     private void ProcessDueEventsUntilSlotEmpty()
     {
-        try
-        {
-            while (!_timeWheel.IsCurrentSlotEmpty())
-            {
-                var dueEvent = _timeWheel.PopDueEvent();
-                if (dueEvent.HasValue)
-                {
-                    AddCTBLogEntry($"已执行: {dueEvent.Value.Value}", true);
-                }
-                else
-                {
-                    break;
-                }
-            }
-            
-            // Advance time wheel if current slot is empty
-            if (_timeWheel.IsCurrentSlotEmpty())
-            {
-                _timeWheel.AdvanceWheel();
-            }
-        }
-        catch (Exception e)
-        {
-            GD.PrintErr($"Error processing due events: {e.Message}");
-        }
+        // Event processing is now handled automatically by TestGameWorld
+        // This method exists for backwards compatibility but does nothing
+        GD.Print("ProcessDueEventsUntilSlotEmpty called - now handled by TestGameWorld");
     }
 
     private void OnAddRandomAction()
@@ -444,10 +427,10 @@ public partial class IntegratedSystemTest : Control
             var eventKey = $"{character}_{action}_{DateTime.Now.Ticks}";
             var eventValue = $"{character}执行{action}";
             
-            _timeWheel.ScheduleWithDelay(eventKey, eventValue, delay);
+            _testWorld.ScheduleEvent(eventKey, eventValue, delay);
             AddCTBLogEntry($"已安排: {eventValue} (延迟{delay}小时)", false);
             
-            UpdateAllDisplays();
+            // UI update is handled automatically via OnSystemsUpdated event
         }
         catch (Exception e)
         {
@@ -457,19 +440,30 @@ public partial class IntegratedSystemTest : Control
 
     private void OnExecuteNextAction()
     {
-        // 先处理当前槽位的所有事件
-        ProcessDueEventsUntilSlotEmpty();
-        
-        // 如果没有当前事件，推进1小时时间（Calendar 和 TimeWheel 同步）
-        if (_timeWheel.IsCurrentSlotEmpty())
+        try
         {
-            _calendar.AdvanceTimeTick();
-            _currentTimeHour++;
-            _timeWheel.AdvanceWheel();
-            AddCTBLogEntry($"时间推进到 {_currentTimeHour} 小时", false);
+            // Use TestGameWorld's advance-to-next-event functionality
+            var result = _testWorld.AdvanceToNextEvent(maxHours: 10);
+            
+            if (result.EventsExecuted.Count > 0)
+            {
+                AddCTBLogEntry($"执行了 {result.EventsExecuted.Count} 个事件", false);
+            }
+            else if (result.HoursAdvanced > 0)
+            {
+                AddCTBLogEntry($"推进了 {result.HoursAdvanced} 小时寻找事件", false);
+            }
+            else
+            {
+                AddCTBLogEntry("没有找到任何事件", false);
+            }
+            
+            // UI update is handled automatically via OnSystemsUpdated event
         }
-        
-        UpdateAllDisplays();
+        catch (Exception e)
+        {
+            GD.PrintErr($"Error executing next action: {e.Message}");
+        }
     }
 
     private void OnAnchorEra()
@@ -481,11 +475,11 @@ public partial class IntegratedSystemTest : Control
             
             if (eraName?.Text?.Trim() != "" && int.TryParse(anchorYear?.Text, out int year))
             {
-                _calendar.AnchorEra(eraName.Text.Trim(), year);
+                _testWorld.AnchorEra(eraName.Text.Trim(), year);
                 AddCTBLogEntry($"锚定纪元: {eraName.Text}元年 = 公元{year}年", false);
                 eraName.Text = "";
                 anchorYear.Text = "";
-                UpdateAllDisplays();
+                // UI update is handled automatically via OnSystemsUpdated event
             }
         }
         catch (Exception e)
@@ -503,10 +497,10 @@ public partial class IntegratedSystemTest : Control
             
             if (newEraInput?.Text?.Trim() != "")
             {
-                _calendar.StartNewEra(newEraInput.Text.Trim());
+                _testWorld.StartNewEra(newEraInput.Text.Trim());
                 AddCTBLogEntry($"改元: {newEraInput.Text}元年 = 当前年份", false);
                 newEraInput.Text = "";
-                UpdateAllDisplays();
+                // UI update is handled automatically via OnSystemsUpdated event
             }
         }
         catch (Exception e)
@@ -518,23 +512,22 @@ public partial class IntegratedSystemTest : Control
 
     private void OnResetCalendar()
     {
-        _calendar.Reset();
-        _currentTimeHour = 0;
-        AddCTBLogEntry("日历已重置", false);
-        UpdateAllDisplays();
+        _testWorld.Reset();
+        AddCTBLogEntry("游戏世界已重置", false);
+        // UI update is handled automatically via OnSystemsUpdated event
     }
 
     private void OnBasicTest()
     {
         AddCTBLogEntry("开始基础测试...", false);
         
-        // Add basic events
-        _timeWheel.ScheduleWithDelay("基础测试1", "基础事件1", 2);
-        _timeWheel.ScheduleWithDelay("基础测试2", "基础事件2", 5);
-        _timeWheel.ScheduleWithDelay("基础测试3", "基础事件3", 2);
+        // Add basic events using TestGameWorld API
+        _testWorld.ScheduleEvent("基础测试1", "基础事件1", 2);
+        _testWorld.ScheduleEvent("基础测试2", "基础事件2", 5);
+        _testWorld.ScheduleEvent("基础测试3", "基础事件3", 2);
         
         AddCTBLogEntry("基础测试事件已安排", false);
-        UpdateAllDisplays();
+        // UI update is handled automatically via OnSystemsUpdated event
     }
 
     private void OnCombatTest()
@@ -545,11 +538,11 @@ public partial class IntegratedSystemTest : Control
         foreach (var character in _characterNames.Take(3))
         {
             var delay = _random.Next(1, 20);
-            _timeWheel.ScheduleWithDelay($"{character}_combat", $"{character}战斗行动", delay);
+            _testWorld.ScheduleEvent($"{character}_combat", $"{character}战斗行动", delay);
         }
         
         AddCTBLogEntry("战斗测试场景已创建", false);
-        UpdateAllDisplays();
+        // UI update is handled automatically via OnSystemsUpdated event
     }
 
     private void OnLongTermTest()
@@ -557,21 +550,21 @@ public partial class IntegratedSystemTest : Control
         AddCTBLogEntry("开始长期事件测试...", false);
         
         // Add future events beyond buffer
-        _timeWheel.ScheduleWithDelay("春节", "春节庆典", 250);
-        _timeWheel.ScheduleWithDelay("收获节", "秋收庆典", 400);
-        _timeWheel.ScheduleWithDelay("年终", "年终总结", 500);
+        _testWorld.ScheduleEvent("春节", "春节庆典", 250);
+        _testWorld.ScheduleEvent("收获节", "秋收庆典", 400);
+        _testWorld.ScheduleEvent("年终", "年终总结", 500);
         
         AddCTBLogEntry("长期事件已安排到远期池", false);
-        UpdateAllDisplays();
+        // UI update is handled automatically via OnSystemsUpdated event
     }
 
     private void OnClearAll()
     {
-        // Recreate time wheel to clear it
-        _timeWheel = new IndexedTimeWheel<string>(180, () => _currentTimeHour);
+        // Use TestGameWorld's clear functionality
+        _testWorld.ClearAllEvents();
         
         AddCTBLogEntry("所有事件已清空", false);
-        UpdateAllDisplays();
+        // UI update is handled automatically via OnSystemsUpdated event
     }
 
     private void UpdateCTBQueue()
@@ -583,7 +576,7 @@ public partial class IntegratedSystemTest : Control
         }
         
         // 获取即将到来的事件（作为队列显示）
-        var upcomingEvents = _timeWheel.PeekUpcomingEvents(20, 15);
+        var upcomingEvents = _testWorld.GetUpcomingEvents(20, 15);
         
         if (upcomingEvents.Count == 0)
         {
@@ -711,10 +704,11 @@ public partial class IntegratedSystemTest : Control
     {
         try
         {
-            var gregorianTime = _calendar.FormatDateGregorian(true);
-            var eraTime = _calendar.FormatDateEra(true);
+            var gregorianTime = _testWorld.CurrentCalendarTime;
+            var eraTime = _testWorld.CurrentEraTime;
+            var currentTime = _testWorld.CurrentTime;
             
-            _currentTimeLabel.Text = $"📅 {eraTime}\n🌍 {gregorianTime}\n⏰ 总计: {_currentTimeHour}小时";
+            _currentTimeLabel.Text = $"📅 {eraTime}\n🌍 {gregorianTime}\n⏰ 总计: {currentTime}小时";
         }
         catch (Exception e)
         {
@@ -726,7 +720,7 @@ public partial class IntegratedSystemTest : Control
     {
         try
         {
-            var timeInfo = _calendar.GetTimeInfo();
+            var timeInfo = _testWorld.GetCalendarInfo();
             var statusText = $"公历年份: {timeInfo["gregorian_year"]}\n";
             statusText += $"月份: {timeInfo["month"]}, 日期: {timeInfo["day_in_month"]}\n";
             statusText += $"年内第 {timeInfo["day_in_year"]} 天\n";
@@ -763,13 +757,13 @@ public partial class IntegratedSystemTest : Control
 
         try
         {
-            // Show wheel statistics
+            // Show wheel statistics using TestGameWorld properties
             var statsLabel = new Label();
-            statsLabel.Text = $"总事件: {_timeWheel.Count} | 有事件: {_timeWheel.HasAnyEvents()} | 当前槽空: {_timeWheel.IsCurrentSlotEmpty()}";
+            statsLabel.Text = $"总事件: {_testWorld.EventCount} | 有事件: {_testWorld.HasAnyEvents} | 当前槽空: {_testWorld.IsCurrentSlotEmpty}";
             _wheelEventsList.AddChild(statsLabel);
 
             // Show upcoming events in wheel
-            var upcomingEvents = _timeWheel.PeekUpcomingEvents(50, 30);
+            var upcomingEvents = _testWorld.GetUpcomingEvents(50, 30);
             if (upcomingEvents.Count > 0)
             {
                 foreach (var (key, value) in upcomingEvents)
@@ -787,10 +781,9 @@ public partial class IntegratedSystemTest : Control
                 _wheelEventsList.AddChild(noEventsLabel);
             }
 
-            // Show future events (this would need access to internal future events list)
-            // For now, just show a placeholder
+            // Show future events status
             var futureInfoLabel = new Label();
-            futureInfoLabel.Text = "远期事件信息需要访问内部数据结构";
+            futureInfoLabel.Text = $"系统状态: {_testWorld.GetStatusSummary()}";
             _futureEventsList.AddChild(futureInfoLabel);
 
         }

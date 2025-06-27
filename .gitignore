@@ -149,6 +149,9 @@ $RECYCLE.BIN/
 *.local.*
 local_config.*
 
+# Local Claude instructions (WSL-specific, not for sharing)
+CLAUDE.local.md
+
 # Ignore any build artifacts that might be generated
 build/
 dist/
