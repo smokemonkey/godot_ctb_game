@@ -65,26 +65,6 @@ class Calendar:
         total_days = self._timestamp_hour // self.HOURS_PER_DAY
         return self.base_year + (total_days // self.DAYS_PER_YEAR)
 
-    @property
-    def current_day_in_year(self) -> int:
-        """当前年中的第几天（1-360）"""
-        total_days = self._timestamp_hour // self.HOURS_PER_DAY
-        return (total_days % self.DAYS_PER_YEAR) + 1
-
-    @property
-    def current_hour_in_day(self) -> int:
-        """当前小时（0-23）"""
-        return self._timestamp_hour % self.HOURS_PER_DAY
-
-    @property
-    def current_month(self) -> int:
-        """当前月份（1-12，每月30天）"""
-        return ((self.current_day_in_year - 1) // 30) + 1
-
-    @property
-    def current_day_in_month(self) -> int:
-        """当前月中的第几天（1-30）"""
-        return ((self.current_day_in_year - 1) % 30) + 1
 
     def anchor_era(self, era_name: str, gregorian_year: int) -> None:
         """锚定纪元
@@ -132,29 +112,6 @@ class Calendar:
         # 改元就是锚定当前年份为新纪元的元年
         self.anchor_era(name, self.current_gregorian_year)
 
-    def get_current_era_name(self) -> Optional[str]:
-        """获取当前纪元名称"""
-        if self._current_anchor:
-            era_name, gregorian_year = self._current_anchor
-            current_year = self.current_gregorian_year
-
-            # 如果当前年份在纪元范围内
-            if current_year >= gregorian_year:
-                return era_name
-
-        raise ValueError("current year earlier than anchor year")
-
-    def get_current_era_year(self) -> Optional[int]:
-        """获取当前纪元年份"""
-        if self._current_anchor:
-            era_name, gregorian_year = self._current_anchor
-            current_year = self.current_gregorian_year
-
-            # 如果当前年份在纪元范围内
-            if current_year >= gregorian_year:
-                return current_year - gregorian_year + 1
-
-        raise ValueError("current year earlier than anchor year")
 
     def get_timestamp(self) -> int:
         """获取当前时间戳（小时数）
@@ -170,15 +127,31 @@ class Calendar:
 
     def get_time_info(self) -> dict:
         """获取当前时间信息"""
+        total_days = self._timestamp_hour // self.HOURS_PER_DAY
+        day_in_year = (total_days % self.DAYS_PER_YEAR) + 1
+        hour_in_day = self._timestamp_hour % self.HOURS_PER_DAY
+        month = ((day_in_year - 1) // 30) + 1
+        day_in_month = ((day_in_year - 1) % 30) + 1
+        
+        # 获取纪元信息
+        era_name = None
+        era_year = None
+        if self._current_anchor:
+            anchor_era_name, gregorian_year = self._current_anchor
+            current_year = self.current_gregorian_year
+            if current_year >= gregorian_year:
+                era_name = anchor_era_name
+                era_year = current_year - gregorian_year + 1
+        
         return {
             'timestamp': self._timestamp_hour,
             'gregorian_year': self.current_gregorian_year,
-            'month': self.current_month,
-            'day_in_month': self.current_day_in_month,
-            'day_in_year': self.current_day_in_year,
-            'hour_in_day': self.current_hour_in_day,
-            'current_era_name': self.get_current_era_name(),
-            'current_era_year': self.get_current_era_year(),
+            'month': month,
+            'day_in_month': day_in_month,
+            'day_in_year': day_in_year,
+            'hour_in_day': hour_in_day,
+            'current_era_name': era_name,
+            'current_era_year': era_year,
             'current_anchor': self._current_anchor
         }
 
@@ -197,9 +170,11 @@ class Calendar:
             格式化的日期字符串
         """
         year = self.current_gregorian_year
-        month = self.current_month
-        day = self.current_day_in_month
-        hour = self.current_hour_in_day
+        total_days = self._timestamp_hour // self.HOURS_PER_DAY
+        day_in_year = (total_days % self.DAYS_PER_YEAR) + 1
+        month = ((day_in_year - 1) // 30) + 1
+        day = ((day_in_year - 1) % 30) + 1
+        hour = self._timestamp_hour % self.HOURS_PER_DAY
 
         # 处理公元前年份
         if year < 0:
@@ -221,19 +196,24 @@ class Calendar:
         Returns:
             格式化的日期字符串
         """
-        try:
-            era_name = self.get_current_era_name()
-            era_year = self.get_current_era_year()
-        except ValueError:
-            # 如果纪元未设置或当前年份早于锚定年份，回退到公历显示
-            return self.format_date_gregorian(show_hour)
-
+        # 获取纪元信息
+        era_name = None
+        era_year = None
+        if self._current_anchor:
+            anchor_era_name, gregorian_year = self._current_anchor
+            current_year = self.current_gregorian_year
+            if current_year >= gregorian_year:
+                era_name = anchor_era_name
+                era_year = current_year - gregorian_year + 1
+        
         if era_name is None or era_year is None:
             return self.format_date_gregorian(show_hour)
 
-        month = self.current_month
-        day = self.current_day_in_month
-        hour = self.current_hour_in_day
+        total_days = self._timestamp_hour // self.HOURS_PER_DAY
+        day_in_year = (total_days % self.DAYS_PER_YEAR) + 1
+        month = ((day_in_year - 1) // 30) + 1
+        day = ((day_in_year - 1) % 30) + 1
+        hour = self._timestamp_hour % self.HOURS_PER_DAY
 
         if show_hour:
             return f"{era_name}{era_year}年{month}月{day}日{hour}点"

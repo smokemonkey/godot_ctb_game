@@ -211,7 +211,25 @@ The Python prototypes serve as the reference implementation, with the C# version
 - **Unified Testing**: GUT framework provides cross-language testing in Godot
 - **Automation**: sync_code.py enables automated code synchronization
 
-## Latest Updates (2024-06-26)
+## Latest Updates (2025-06-27)
+
+### Calendar System Streamlining
+1. **Method Reduction**: Removed redundant Calendar methods to focus on core functionality
+   - **Deleted**: All computed properties (`current_month`, `current_day_in_month`, etc.)
+   - **Deleted**: Separate era query methods (`get_current_era_name`, `get_current_era_year`)
+   - **Inlined**: Time calculations directly into display and info methods
+   - **Preserved**: Core functionality (timestamp, time advancement, era anchoring, formatting)
+
+2. **Test Updates**: Updated all test files to use `get_time_info()` for computed values
+   - Python tests: 62 test cases, 100% pass rate maintained
+   - Removed direct property access in favor of info dictionary access
+
+3. **Documentation Maintenance**: 
+   - Added critical reminder to update documentation before commits
+   - Regenerated API documentation to reflect streamlined Calendar interface
+   - Updated both Python and C# implementations consistently
+
+### Previous Updates (2024-06-26)
 
 ### New Features Added
 1. **GUT Testing Framework**:
@@ -291,3 +309,8 @@ The Python prototypes serve as the reference implementation, with the C# version
 4. Review and update file paths if changed
 5. Ensure commands and examples are current and tested
 6. **Verify encoding consistency across all edited files**
+7. **⚠️ CRITICAL: Always update documentation files before committing:**
+   - Regenerate API documentation: `python3 python_prototypes/generate_docs.py`
+   - Update mapping files if code structure changed
+   - Update this CLAUDE.md file to reflect any significant changes
+   - Review and update PROJECT_STATUS.md if milestones completed

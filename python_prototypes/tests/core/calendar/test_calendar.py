@@ -19,8 +19,10 @@ class TestTimeManager(unittest.TestCase):
     def test_initial_state(self):
         """测试初始状态"""
         self.assertEqual(self.calendar.current_gregorian_year, EPOCH_START_YEAR)
-        self.assertEqual(self.calendar.current_month, 1)
-        self.assertEqual(self.calendar.current_day_in_month, 1)
+        # 验证时间信息通过get_time_info获取
+        info = self.calendar.get_time_info()
+        self.assertEqual(info['month'], 1)
+        self.assertEqual(info['day_in_month'], 1)
 
     def test_advance_one_year(self):
         """测试推进一整年"""
@@ -28,8 +30,10 @@ class TestTimeManager(unittest.TestCase):
         for _ in range(360 * 24):
             self.calendar.advance_time_tick()
         self.assertEqual(self.calendar.current_gregorian_year, EPOCH_START_YEAR + 1)
-        self.assertEqual(self.calendar.current_month, 1)
-        self.assertEqual(self.calendar.current_day_in_month, 1)
+        # 验证时间信息通过get_time_info获取
+        info = self.calendar.get_time_info()
+        self.assertEqual(info['month'], 1)
+        self.assertEqual(info['day_in_month'], 1)
 
     def test_get_time_info(self):
         """测试获取时间信息"""
@@ -57,8 +61,10 @@ class TestTimeManager(unittest.TestCase):
             self.calendar.advance_time_tick()
         self.calendar.reset()
         self.assertEqual(self.calendar.current_gregorian_year, EPOCH_START_YEAR)
-        self.assertEqual(self.calendar.current_day_in_year, 1)
-        self.assertEqual(self.calendar.current_hour_in_day, 0)
+        # 验证时间信息通过get_time_info获取
+        info = self.calendar.get_time_info()
+        self.assertEqual(info['day_in_year'], 1)
+        self.assertEqual(info['hour_in_day'], 0)
 
 
 class TestEraSystem(unittest.TestCase):
@@ -76,8 +82,9 @@ class TestEraSystem(unittest.TestCase):
     def test_era_anchor(self):
         """测试设置年号锚点"""
         self.calendar.anchor_era("大汉", -140) # This is in the past, so it's valid
-        self.assertEqual(self.calendar.get_current_era_name(), "大汉")
-        self.assertEqual(self.calendar.get_current_era_year(), 37) # -104 - (-140) + 1
+        info = self.calendar.get_time_info()
+        self.assertEqual(info['current_era_name'], "大汉")
+        self.assertEqual(info['current_era_year'], 37) # -104 - (-140) + 1
 
     def test_era_anchor_validation(self):
         """测试锚点年份验证"""
@@ -142,7 +149,9 @@ class TestCalendarIntegration(unittest.TestCase):
             self.calendar.advance_time_tick()
         # After 365 days from start of -2000, it's year -1999, day 6
         self.assertEqual(self.calendar.current_gregorian_year, EPOCH_START_YEAR + 1)
-        self.assertEqual(self.calendar.current_day_in_year, 6)
+        # 验证时间信息通过get_time_info获取
+        info = self.calendar.get_time_info()
+        self.assertEqual(info['day_in_year'], 6)
         date_str = self.calendar.format_date_gregorian()
         self.assertEqual(date_str, f"公元前{abs(EPOCH_START_YEAR) - 1}年1月6日")
 
@@ -188,7 +197,8 @@ class TestTimeManagerWithDifferentStart(unittest.TestCase):
             calendar.advance_time_tick()
         # 我们的年份是360天，所以365天后是2年第6天 (day 1 to 5 are in year 2)
         self.assertEqual(calendar.current_gregorian_year, 2)
-        self.assertEqual(calendar.current_day_in_year, 6)
+        info = calendar.get_time_info()
+        self.assertEqual(info['day_in_year'], 6)
 
     def test_start_from_bc_era(self):
         """测试从其他公元前年份开始"""

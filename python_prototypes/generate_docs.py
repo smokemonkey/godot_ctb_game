@@ -87,9 +87,9 @@ def analyze_module(module_path: str) -> Dict[str, Any]:
 def generate_markdown_doc(modules_info: List[Dict[str, Any]]) -> str:
     """生成Markdown格式的文档"""
     doc = []
-    doc.append("# Game Time API 文档")
+    doc.append("# Core System API 文档")
     doc.append("")
-    doc.append("此文档由自动生成器创建，包含game_time包的完整API参考。")
+    doc.append("此文档由自动生成器创建，包含core包的完整API参考。")
     doc.append("")
     doc.append("## 目录")
     doc.append("")
@@ -159,23 +159,24 @@ def generate_markdown_doc(modules_info: List[Dict[str, Any]]) -> str:
 
 def main():
     """主函数"""
-    # 扫描game_time包
-    game_time_dir = "game_time"
-    if not os.path.exists(game_time_dir):
-        print("错误: 未找到game_time目录")
+    # 扫描core包
+    core_dir = "core"
+    if not os.path.exists(core_dir):
+        print("错误: 未找到core目录")
         return
     
     modules_info = []
     
-    # 扫描Python文件
-    for filename in sorted(os.listdir(game_time_dir)):
-        if filename.endswith('.py') and not filename.startswith('__'):
-            module_path = os.path.join(game_time_dir, filename)
-            print(f"分析模块: {module_path}")
-            
-            module_info = analyze_module(module_path)
-            if module_info:
-                modules_info.append(module_info)
+    # 扫描Python文件和子目录
+    for root, dirs, files in os.walk(core_dir):
+        for filename in sorted(files):
+            if filename.endswith('.py') and not filename.startswith('__'):
+                module_path = os.path.join(root, filename)
+                print(f"分析模块: {module_path}")
+                
+                module_info = analyze_module(module_path)
+                if module_info:
+                    modules_info.append(module_info)
     
     # 生成文档
     if modules_info:

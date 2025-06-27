@@ -78,50 +78,6 @@ namespace Core
 			}
 		}
 
-		/// <summary>
-		/// 当前年中的第几天（1-360）
-		/// </summary>
-		public int CurrentDayInYear
-		{
-			get
-			{
-				int totalDays = _timestampHour / HOURS_PER_DAY;
-				return (totalDays % DAYS_PER_YEAR) + 1;
-			}
-		}
-
-		/// <summary>
-		/// 当前小时（0-23）
-		/// </summary>
-		public int CurrentHourInDay
-		{
-			get
-			{
-				return _timestampHour % HOURS_PER_DAY;
-			}
-		}
-
-		/// <summary>
-		/// 当前月份（1-12，每月30天）
-		/// </summary>
-		public int CurrentMonth
-		{
-			get
-			{
-				return ((CurrentDayInYear - 1) / 30) + 1;
-			}
-		}
-
-		/// <summary>
-		/// 当前月中的第几天（1-30）
-		/// </summary>
-		public int CurrentDayInMonth
-		{
-			get
-			{
-				return ((CurrentDayInYear - 1) % 30) + 1;
-			}
-		}
 
 		/// <summary>
 		/// 锚定纪元
@@ -184,49 +140,6 @@ namespace Core
 			AnchorEra(name, CurrentGregorianYear);
 		}
 
-		/// <summary>
-		/// 获取当前纪元名称
-		/// </summary>
-		/// <returns>当前纪元名称</returns>
-		public string GetCurrentEraName()
-		{
-			if (_currentAnchor != null)
-			{
-				string eraName = _currentAnchor.Item1;
-				int gregorianYear = _currentAnchor.Item2;
-				int currentYear = CurrentGregorianYear;
-
-				// 如果当前年份在纪元范围内
-				if (currentYear >= gregorianYear)
-				{
-					return eraName;
-				}
-			}
-
-			throw new InvalidOperationException("current year earlier than anchor year");
-		}
-
-		/// <summary>
-		/// 获取当前纪元年份
-		/// </summary>
-		/// <returns>当前纪元年份</returns>
-		public int GetCurrentEraYear()
-		{
-			if (_currentAnchor != null)
-			{
-				string eraName = _currentAnchor.Item1;
-				int gregorianYear = _currentAnchor.Item2;
-				int currentYear = CurrentGregorianYear;
-
-				// 如果当前年份在纪元范围内
-				if (currentYear >= gregorianYear)
-				{
-					return currentYear - gregorianYear + 1;
-				}
-			}
-
-			throw new InvalidOperationException("current year earlier than anchor year");
-		}
 
 		/// <summary>
 		/// 获取当前时间戳（小时数）
@@ -254,27 +167,39 @@ namespace Core
 		/// <returns>时间信息字典</returns>
 		public Dictionary<string, object> GetTimeInfo()
 		{
+			int totalDays = _timestampHour / HOURS_PER_DAY;
+			int dayInYear = (totalDays % DAYS_PER_YEAR) + 1;
+			int hourInDay = _timestampHour % HOURS_PER_DAY;
+			int month = ((dayInYear - 1) / 30) + 1;
+			int dayInMonth = ((dayInYear - 1) % 30) + 1;
+			
+			// 获取纪元信息
+			string eraName = null;
+			int? eraYear = null;
+			if (_currentAnchor != null)
+			{
+				string anchorEraName = _currentAnchor.Item1;
+				int gregorianYear = _currentAnchor.Item2;
+				int currentYear = CurrentGregorianYear;
+				if (currentYear >= gregorianYear)
+				{
+					eraName = anchorEraName;
+					eraYear = currentYear - gregorianYear + 1;
+				}
+			}
+			
 			var info = new Dictionary<string, object>
 			{
 				["timestamp"] = _timestampHour,
 				["gregorian_year"] = CurrentGregorianYear,
-				["month"] = CurrentMonth,
-				["day_in_month"] = CurrentDayInMonth,
-				["day_in_year"] = CurrentDayInYear,
-				["hour_in_day"] = CurrentHourInDay,
+				["month"] = month,
+				["day_in_month"] = dayInMonth,
+				["day_in_year"] = dayInYear,
+				["hour_in_day"] = hourInDay,
+				["current_era_name"] = eraName,
+				["current_era_year"] = eraYear,
 				["current_anchor"] = _currentAnchor
 			};
-
-			try
-			{
-				info["current_era_name"] = GetCurrentEraName();
-				info["current_era_year"] = GetCurrentEraYear();
-			}
-			catch (InvalidOperationException)
-			{
-				info["current_era_name"] = null;
-				info["current_era_year"] = null;
-			}
 
 			return info;
 		}
@@ -302,9 +227,11 @@ namespace Core
 		public string FormatDateGregorian(bool showHour = false)
 		{
 			int year = CurrentGregorianYear;
-			int month = CurrentMonth;
-			int day = CurrentDayInMonth;
-			int hour = CurrentHourInDay;
+			int totalDays = _timestampHour / HOURS_PER_DAY;
+			int dayInYear = (totalDays % DAYS_PER_YEAR) + 1;
+			int month = ((dayInYear - 1) / 30) + 1;
+			int day = ((dayInYear - 1) % 30) + 1;
+			int hour = _timestampHour % HOURS_PER_DAY;
 
 			// 处理公元前年份
 			string yearStr;
@@ -340,34 +267,39 @@ namespace Core
 		/// <returns>格式化的日期字符串</returns>
 		public string FormatDateEra(bool showHour = false)
 		{
-			try
+			// 获取纪元信息
+			string eraName = null;
+			int? eraYear = null;
+			if (_currentAnchor != null)
 			{
-				string eraName = GetCurrentEraName();
-				int eraYear = GetCurrentEraYear();
-
-				if (eraName == null)
+				string anchorEraName = _currentAnchor.Item1;
+				int gregorianYear = _currentAnchor.Item2;
+				int currentYear = CurrentGregorianYear;
+				if (currentYear >= gregorianYear)
 				{
-					// 如果纪元未设置或当前年份早于锚定年份，回退到公历显示
-					return FormatDateGregorian(showHour);
-				}
-
-				int month = CurrentMonth;
-				int day = CurrentDayInMonth;
-				int hour = CurrentHourInDay;
-
-				if (showHour)
-				{
-					return $"{eraName}{eraYear}年{month}月{day}日{hour}点";
-				}
-				else
-				{
-					return $"{eraName}{eraYear}年{month}月{day}日";
+					eraName = anchorEraName;
+					eraYear = currentYear - gregorianYear + 1;
 				}
 			}
-			catch (InvalidOperationException)
+			
+			if (eraName == null || eraYear == null)
 			{
-				// 如果纪元未设置或当前年份早于锚定年份，回退到公历显示
 				return FormatDateGregorian(showHour);
+			}
+
+			int totalDays = _timestampHour / HOURS_PER_DAY;
+			int dayInYear = (totalDays % DAYS_PER_YEAR) + 1;
+			int month = ((dayInYear - 1) / 30) + 1;
+			int day = ((dayInYear - 1) % 30) + 1;
+			int hour = _timestampHour % HOURS_PER_DAY;
+
+			if (showHour)
+			{
+				return $"{eraName}{eraYear}年{month}月{day}日{hour}点";
+			}
+			else
+			{
+				return $"{eraName}{eraYear}年{month}月{day}日";
 			}
 		}
 
