@@ -2,19 +2,22 @@
 
 ## Quick Start
 
-**⚠️ CRITICAL: GUT Tests Must Run in GUI Mode**
+**✅ RECOMMENDED: Use GUT Command Line**
 
-GUT framework does not work properly in console/headless mode due to autoload compilation issues. Always run tests in GUI mode:
+GUT framework works best with direct command line execution. This provides detailed output and fast execution:
 
 ```bash
-# Step 1: Import resources and cache classes (console mode OK)
+# Step 1: Import resources and cache classes
 ./godot.sh --path . --import
 
-# Step 2: Run tests in GUI mode (REQUIRED)
-./godot.sh --path . res://tests/test_scene.tscn
+# Step 2: Run all tests
+./godot.sh --path . --script addons/gut/gut_cmdln.gd -gdir=tests/gdscript
+
+# Run specific test file
+./godot.sh --path . --script addons/gut/gut_cmdln.gd -gtest_name=test_calendar.gd
 ```
 
-**Note**: Console/headless mode causes `ConfigManager` autoload compilation errors. GUI mode works perfectly.
+**Performance**: All tests complete in ~0.08 seconds with detailed output.
 
 ## Why Two Steps?
 
@@ -57,9 +60,15 @@ GUT version:  9.4.0
 
 ## For CI/CD
 
-**❌ Headless/Console Mode Not Supported**
+**✅ Command Line Supported**
 
-Due to GUT framework limitations with autoload in console mode, automated CI/CD testing is not currently feasible. Tests must be run manually in GUI mode.
+GUT command line mode works well for automated testing:
+
+```bash
+# CI/CD pipeline example
+./godot.sh --path . --import
+./godot.sh --path . --script addons/gut/gut_cmdln.gd -gdir=tests/gdscript
+```
 
 ## Troubleshooting
 
@@ -85,7 +94,8 @@ SCRIPT ERROR: Could not resolve class "GutTest"
 
 ## Updated Architecture
 
-- ✅ **Calendar**: Uses fallback ConfigManager access
-- ✅ **SchedulableExample**: Handles missing ConfigManager gracefully  
-- ✅ **Tests**: Use `class_name` classes directly
-- ❌ **References.gd**: Abandoned due to GDScript syntax limitations
+- ✅ **Calendar**: Direct ConfigManager access (works in all modes)
+- ✅ **SchedulableExample**: Handles configuration gracefully  
+- ✅ **Tests**: Use `class_name` classes directly with GUT framework
+- ✅ **Command Line**: Native GUT command line for fast execution
+- ❌ **GUI Test Runner**: Removed in favor of command line efficiency

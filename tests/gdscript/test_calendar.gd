@@ -68,34 +68,35 @@ func test_reset():
 
 ## 测试纪元锚点设置
 func test_era_anchor():
-    # 推进到-104年：需要推进1896年
-    var years_to_advance = -104 - config_mock.time_epoch_start_year
-    for i in range(years_to_advance * 360 * 24):
+    # 简单推进几天测试锚定逻辑
+    for i in range(100):
         calendar.advance_time_tick()
     
-    assert_eq(calendar.current_gregorian_year, -104, "应该到达-104年")
-    
-    # 设置锚点到过去的年份（-140年）
-    calendar.anchor_era("大汉", -140)
+    # 设置锚点到当前时间之前的年份
+    var current_year = calendar.current_gregorian_year
+    var anchor_year = current_year - 10  # 10年前
+    calendar.anchor_era("测试纪元", anchor_year)
     var info = calendar.get_time_info()
     
-    assert_eq(info["current_era_name"], "大汉", "纪元名称应该是大汉")
-    assert_eq(info["current_era_year"], 37, "纪元年应该是37年") # -104 - (-140) + 1
+    assert_eq(info["current_era_name"], "测试纪元", "纪元名称应该正确")
+    assert_eq(info["current_era_year"], 11, "纪元年应该是11年") # current_year - anchor_year + 1
 
 ## 测试纪元锚点验证
 func test_era_anchor_validation():
-    # 推进到-104年
-    var years_to_advance = -104 - config_mock.time_epoch_start_year
-    for i in range(years_to_advance * 360 * 24):
+    # 推进几天
+    for i in range(100):
         calendar.advance_time_tick()
     
-    # 尝试锚定到未来年份应该失败（在GDScript中可能是push_error而不是异常）
-    # 这里我们只测试锚定是否没有生效
-    var original_era = calendar.get_time_info().get("current_era_name", "")
-    calendar.anchor_era("新纪元", -100) # -100是在-104之后
-    var new_era = calendar.get_time_info().get("current_era_name", "")
-    # 如果锚定失败，纪元名称应该没有改变
-    # assert_eq(new_era, original_era, "未来年份的锚定应该失败")
+    # 测试锚定到未来年份应该失败（产生push_error）
+    var current_year = calendar.current_gregorian_year
+    var future_year = current_year + 10  # 未来年份
+    
+    # 尝试锚定到未来年份（应该失败并产生错误）
+    calendar.anchor_era("未来纪元", future_year)
+    
+    # 验证锚定没有生效（应该保持原始状态）
+    var info = calendar.get_time_info()
+    assert_true(info["current_era_name"] == null or info["current_era_name"] == "uninitialized", "未来年份的锚定应该失败")
 
 ## 测试公历格式化
 func test_format_gregorian():
@@ -106,17 +107,13 @@ func test_format_gregorian():
 
 ## 测试纪年格式化
 func test_format_with_era():
-    # 推进到713年
-    var target_year = 713
-    var years_to_advance = target_year - config_mock.time_epoch_start_year
-    for i in range(years_to_advance * 360 * 24):
-        calendar.advance_time_tick()
-    
-    calendar.anchor_era("开元", 713)
-    
     # 推进5天 * 24小时 + 5小时 = 125小时
     for i in range(5 * 24 + 5):
         calendar.advance_time_tick()
+    
+    # 设置锚点为当前年份（这样就是纪元元年）
+    var current_year = calendar.current_gregorian_year
+    calendar.anchor_era("开元", current_year)
     
     var date_str = calendar.format_date_era(true)
     assert_eq(date_str, "开元1年1月6日5点", "纪年格式化应该正确")

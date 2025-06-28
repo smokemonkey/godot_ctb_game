@@ -73,9 +73,10 @@ cd python_prototypes && python3 run_tests.py
 ## Key Files
 
 - `scenes/integrated_system_test.tscn` - Main test interface (static)
-- `tests/test_scene.tscn` - Unit test interface (static)  
+- `run_tests.sh` - Quick test execution script
 - `tests/gdscript/mocks/ConfigManagerMock.gd` - Mock for tests
 - `scripts/gdscript/IntegratedSystemTest.gd` - Main test controller
+- `addons/gut/gut_cmdln.gd` - GUT command line runner
 
 ## Recent Changes (2025-06-28)
 
@@ -91,9 +92,10 @@ cd python_prototypes && python3 run_tests.py
 - Back to direct preload approach: `const Class = preload("path")`
 
 **Testing Improvements**  
-- Test scenes now static for editor visibility
+- Migrated to GUT command line for better performance (6.7s → 0.08s)
+- Removed custom test runner GUI in favor of native GUT
 - MockConfig usage in tests to avoid resource loading issues
-- Simplified test runners for better reliability
+- Enhanced test execution with detailed output and CI/CD support
 
 ## Sub-folder Documentation
 

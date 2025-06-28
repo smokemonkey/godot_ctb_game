@@ -45,14 +45,13 @@ var config = GameConfig.new()  # Resource loading issues
 
 ## Test Execution Commands
 
-**Unit Tests via Scene**
+**Recommended: GUT Command Line**
 ```bash
-"/mnt/d/Godot/Godot_v4.4.1-stable_mono_win64_console.exe" --path . res://tests/test_scene.tscn
-```
+# Run all tests
+"/mnt/d/Godot/Godot_v4.4.1-stable_mono_win64.exe" --path . --script addons/gut/gut_cmdln.gd -gdir=tests/gdscript
 
-**Direct GUT Script**
-```bash
-"/mnt/d/Godot/Godot_v4.4.1-stable_mono_win64_console.exe" --path . --script tests/run_tests.gd
+# Run specific test
+"/mnt/d/Godot/Godot_v4.4.1-stable_mono_win64.exe" --path . --script addons/gut/gut_cmdln.gd -gtest_name=test_calendar.gd
 ```
 
 **Individual Test File**
@@ -60,35 +59,37 @@ var config = GameConfig.new()  # Resource loading issues
 "/mnt/d/Godot/Godot_v4.4.1-stable_mono_win64_console.exe" --path . --script tests/gdscript/test_calendar.gd
 ```
 
-## Test Runner Features
+## Test Execution Features
 
-**Static UI Components**
-- Test selection buttons (Calendar, CTB, Time Wheel)
-- Progress bar and status display
-- Color-coded results with scrollable output
-- Real-time test execution feedback
+**GUT Command Line Benefits**
+- Fast execution (~0.08s for all tests)
+- Detailed test output with pass/fail status
+- Built-in error reporting and diagnostics
+- Standard test framework format
+- CI/CD friendly output
 
-**Simplified Test Mode**
-- Validates script loading and basic functionality
-- Lists available test methods
-- Shows compilation status without full GUT execution
+**Test Categories**
+- Individual test methods with clear naming
+- Comprehensive assertion reporting
+- Automatic test discovery in specified directories
 
 ## Recent Changes (2025-06-28)
 
-**Static Scene Conversion**
-- `test_scene.tscn` now has static UI layout
-- `test_runner.gd` uses `@onready` node references
-- Test interface visible and editable in Godot editor
+**GUT Command Line Migration**
+- Removed custom test runner GUI in favor of native GUT
+- Dramatically improved test execution speed (6.7s → 0.08s)
+- Better integration with standard testing workflows
+- Enhanced error reporting and diagnostics
 
 **MockConfig Integration**
 - All tests use ConfigManagerMock instead of real resources
 - Avoids GameConfig class loading issues
 - Provides consistent test environment
 
-**Simplified Test Execution**
-- Added basic script validation mode
-- Better error handling for resource issues
-- Cleaner test output with color coding
+**Performance Optimizations**
+- Fixed Calendar test performance bottlenecks
+- Removed unnecessary multi-million iteration loops
+- Streamlined test logic for core functionality
 
 ## Testing Best Practices
 

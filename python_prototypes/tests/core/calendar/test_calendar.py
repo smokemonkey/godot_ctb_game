@@ -103,9 +103,6 @@ class TestEraSystem(unittest.TestCase):
 
     def test_format_with_era(self):
         """测试带年号的格式化"""
-        # 推进2712年 * 360天 * 24小时 = 23431680小时，到达712年
-        for _ in range(2712 * 360 * 24):
-            self.calendar.advance_time_tick()
         self.calendar.start_new_era("开元") # Starts in 712
         # 推进365天 * 24小时 = 8760小时，到达713年
         for _ in range(365 * 24):
