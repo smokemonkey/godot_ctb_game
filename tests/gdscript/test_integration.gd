@@ -11,7 +11,7 @@ extends RefCounted
 ## - 完整游戏流程测试
 
 func _init():
-	print("集成测试 - 待实现")
+    print("集成测试 - 待实现")
 
 # TODO: 添加具体的测试方法
 # func test_systems_integration():

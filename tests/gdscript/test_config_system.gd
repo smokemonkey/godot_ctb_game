@@ -11,7 +11,7 @@ extends RefCounted
 ## - 错误处理
 
 func _init():
-	print("配置系统单元测试 - 待实现")
+    print("配置系统单元测试 - 待实现")
 
 # TODO: 添加具体的测试方法
 # func test_config_loading():

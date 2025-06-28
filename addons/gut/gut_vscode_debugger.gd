@@ -9,8 +9,8 @@
 extends 'res://addons/gut/gut_cmdln.gd'
 
 func run_tests(runner):
-	runner.get_gut().get_logger().disable_printer('console', false)
-	runner.run_tests()
+    runner.get_gut().get_logger().disable_printer('console', false)
+    runner.run_tests()
 
 
 # ##############################################################################

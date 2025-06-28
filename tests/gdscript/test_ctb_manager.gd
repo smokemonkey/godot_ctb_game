@@ -11,7 +11,7 @@ extends RefCounted
 ## - 角色活跃状态管理
 
 func _init():
-	print("CTBManager单元测试 - 待实现")
+    print("CTBManager单元测试 - 待实现")
 
 # TODO: 添加具体的测试方法
 # func test_add_character():

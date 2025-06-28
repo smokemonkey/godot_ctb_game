@@ -27,8 +27,8 @@ class_name GameConfig
 @export var display_show_hour_by_default: bool = false
 ## 月份名称（用于显示，按1-12月顺序）
 @export var display_month_names: Array[String] = [
-	"正月", "二月", "三月", "四月", "五月", "六月",
-	"七月", "八月", "九月", "十月", "冬月", "腊月"
+    "正月", "二月", "三月", "四月", "五月", "六月",
+    "七月", "八月", "九月", "十月", "冬月", "腊月"
 ]
 
 @export_group("Debug Settings", "debug_")
@@ -41,41 +41,41 @@ class_name GameConfig
 
 ## 验证配置的合理性
 func validate() -> bool:
-	if time_hours_per_day <= 0:
-		push_error("time_hours_per_day must be positive")
-		return false
-	if time_days_per_year <= 0:
-		push_error("time_days_per_year must be positive")
-		return false
-	if ctb_time_wheel_buffer_size <= 0:
-		push_error("ctb_time_wheel_buffer_size must be positive")
-		return false
-	if ctb_action_delay_min_days < 0:
-		push_error("ctb_action_delay_min_days must be non-negative")
-		return false
-	if ctb_action_delay_max_days < ctb_action_delay_min_days:
-		push_error("ctb_action_delay_max_days must be >= ctb_action_delay_min_days")
-		return false
-	if ctb_action_delay_peak_days < ctb_action_delay_min_days or ctb_action_delay_peak_days > ctb_action_delay_max_days:
-		push_error("ctb_action_delay_peak_days must be between min and max")
-		return false
-	if display_month_names.size() != 12:
-		push_error("display_month_names must contain exactly 12 month names")
-		return false
-	
-	return true
+    if time_hours_per_day <= 0:
+        push_error("time_hours_per_day must be positive")
+        return false
+    if time_days_per_year <= 0:
+        push_error("time_days_per_year must be positive")
+        return false
+    if ctb_time_wheel_buffer_size <= 0:
+        push_error("ctb_time_wheel_buffer_size must be positive")
+        return false
+    if ctb_action_delay_min_days < 0:
+        push_error("ctb_action_delay_min_days must be non-negative")
+        return false
+    if ctb_action_delay_max_days < ctb_action_delay_min_days:
+        push_error("ctb_action_delay_max_days must be >= ctb_action_delay_min_days")
+        return false
+    if ctb_action_delay_peak_days < ctb_action_delay_min_days or ctb_action_delay_peak_days > ctb_action_delay_max_days:
+        push_error("ctb_action_delay_peak_days must be between min and max")
+        return false
+    if display_month_names.size() != 12:
+        push_error("display_month_names must contain exactly 12 month names")
+        return false
+    
+    return true
 
 ## 获取配置摘要文本
 func get_summary() -> String:
-	var lines = [
-		"=== 游戏配置摘要 ===",
-		"时间系统:",
-		"  每天%d小时，每年%d天" % [time_hours_per_day, time_days_per_year],
-		"  起始年份: 公元%d年" % time_epoch_start_year,
-		"CTB系统:",
-		"  时间轮缓冲区: %d小时" % ctb_time_wheel_buffer_size,
-		"  行动间隔: %d-%d天 (峰值%d天)" % [ctb_action_delay_min_days, ctb_action_delay_max_days, ctb_action_delay_peak_days],
-		"调试设置:",
-		"  日志输出: %s" % ("启用" if debug_enable_logging else "禁用")
-	]
-	return "\n".join(lines)
+    var lines = [
+        "=== 游戏配置摘要 ===",
+        "时间系统:",
+        "  每天%d小时，每年%d天" % [time_hours_per_day, time_days_per_year],
+        "  起始年份: 公元%d年" % time_epoch_start_year,
+        "CTB系统:",
+        "  时间轮缓冲区: %d小时" % ctb_time_wheel_buffer_size,
+        "  行动间隔: %d-%d天 (峰值%d天)" % [ctb_action_delay_min_days, ctb_action_delay_max_days, ctb_action_delay_peak_days],
+        "调试设置:",
+        "  日志输出: %s" % ("启用" if debug_enable_logging else "禁用")
+    ]
+    return "\n".join(lines)

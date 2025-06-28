@@ -11,7 +11,7 @@ extends RefCounted
 ## - 线程安全 (Mutex)
 
 func _init():
-	print("IndexedTimeWheel单元测试 - 待实现")
+    print("IndexedTimeWheel单元测试 - 待实现")
 
 # TODO: 添加具体的测试方法
 # func test_schedule_with_delay():
