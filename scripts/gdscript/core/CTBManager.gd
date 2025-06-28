@@ -14,9 +14,7 @@ var _pop_callback: Callable
 var _is_slot_empty_callback: Callable
 
 # 状态
-var scheduled_objects: Dictionary  # 替换原来的characters
 var is_initialized: bool
-var action_history: Array[Dictionary]
 
 # 事件执行回调
 var on_event_executed: Callable
@@ -39,61 +37,16 @@ func _init(
     _pop_callback = pop_callback
     _is_slot_empty_callback = is_slot_empty_callback
     
-    scheduled_objects = {}
     is_initialized = false
-    action_history = []
 
-## 添加可调度对象到系统
-func add_schedulable(schedulable: Schedulable) -> void:
-    if scheduled_objects.has(schedulable.id):
-        push_error("Schedulable with ID %s already exists" % schedulable.id)
-        return
-    
-    scheduled_objects[schedulable.id] = schedulable
-    print("已添加可调度对象: %s" % schedulable.name)
 
-## 从系统中移除可调度对象
+## 从时间轮中移除对象
 func remove_schedulable(schedulable_id: String) -> bool:
-    if not scheduled_objects.has(schedulable_id):
-        return false
-    
-    # 从时间轮中移除对象的事件
-    _remove_callback.call(schedulable_id)
-    
-    # 从对象字典中移除
-    var removed_obj = scheduled_objects[schedulable_id]
-    scheduled_objects.erase(schedulable_id)
-    print("已移除可调度对象: %s" % removed_obj.name)
-    return true
+    return _remove_callback.call(schedulable_id)
 
-## 获取可调度对象
-func get_schedulable(schedulable_id: String) -> Schedulable:
-    if scheduled_objects.has(schedulable_id):
-        return scheduled_objects[schedulable_id]
-    return null
 
-## 初始化CTB系统
-## 为所有可调度对象排程初始调度时间
+## 标记CTB系统为已初始化
 func initialize_ctb() -> void:
-    if scheduled_objects.is_empty():
-        push_error("Cannot initialize CTB without schedulable objects")
-        return
-    
-    var current_time = _get_time_callback.call()
-    print("初始化CTB系统，当前时间: %d" % current_time)
-    
-    # 为每个可调度对象排程初始调度
-    for obj in scheduled_objects.values():
-        if obj.should_reschedule():
-            # 计算初始调度时间
-            var next_time = obj.calculate_next_schedule_time(current_time)
-            obj.trigger_time = next_time
-            
-            # 添加到时间轮
-            var delay = next_time - current_time
-            _schedule_callback.call(obj.id, obj, delay)
-            print("已为 %s 安排初始调度，延迟: %d 小时" % [obj.name, delay])
-    
     is_initialized = true
     print("CTB系统初始化完成")
 
@@ -111,7 +64,7 @@ func process_next_turn() -> Dictionary:
     
     var due_schedulable = get_due_schedulable()
     if due_schedulable != null:
-        execute_schedulable(due_schedulable)
+        _execute_schedulable(due_schedulable)
         return {
             "type": "SCHEDULABLE_EXECUTED",
             "ticks_advanced": ticks_advanced,
@@ -145,15 +98,10 @@ func get_due_schedulable() -> Schedulable:
     
     return result["value"]
 
-## 执行可调度对象列表
-func execute_schedulables(schedulables: Array[Schedulable]) -> void:
-    for schedulable in schedulables:
-        execute_schedulable(schedulable)
-
 ## 执行单个可调度对象，包括更新内部逻辑、记录下次调度等
-func execute_schedulable(schedulable: Schedulable) -> void:
+# 私有方法：执行单个可调度对象
+func _execute_schedulable(schedulable: Schedulable) -> void:
     var result = schedulable.execute()
-    record_action(schedulable)
     
     if on_event_executed.is_valid():
         on_event_executed.call(schedulable)
@@ -166,41 +114,7 @@ func execute_schedulable(schedulable: Schedulable) -> void:
         var delay = next_time - current_time
         schedule_with_delay(schedulable.id, schedulable, delay)
 
-## 记录行动历史
-func record_action(schedulable: Schedulable) -> void:
-    var current_time = _get_time_callback.call()
-    var record = {
-        "schedulable_name": schedulable.name,
-        "schedulable_type": schedulable.get_type_identifier(),
-        "timestamp": current_time
-    }
-    action_history.append(record)
 
-## 设置可调度对象的活跃状态（仅对SchedulableExample有效）
-func set_schedulable_active(schedulable_id: String, active: bool) -> bool:
-    var schedulable = get_schedulable(schedulable_id)
-    if schedulable == null:
-        return false
-    
-    # 检查是否是SchedulableExample类型
-    if schedulable is SchedulableExample:
-        var combat_actor = schedulable as SchedulableExample
-        combat_actor.set_active(active)
-        
-        # 如果设置为非活跃，从时间轮中移除其尚未执行的调度
-        if not active:
-            _remove_callback.call(schedulable_id)
-        # 如果重新激活，需要手动为其安排下一次调度
-        elif active:
-            var current_time = _get_time_callback.call()
-            var next_time = combat_actor.calculate_next_schedule_time(current_time)
-            combat_actor.trigger_time = next_time
-            var delay = next_time - current_time
-            schedule_with_delay(combat_actor.id, combat_actor, delay)
-        
-        return true
-    
-    return false
 
 ## 获取系统当前状态的文本描述
 func get_status_text() -> String:
@@ -208,16 +122,9 @@ func get_status_text() -> String:
         return "CTB系统未初始化"
     
     var current_time = _get_time_callback.call()
-    var active_count = 0
-    for obj in scheduled_objects.values():
-        if obj.should_reschedule():
-            active_count += 1
-    
     var status_lines = [
         "=== CTB系统状态 ===",
-        "  当前时间: %d 小时" % current_time,
-        "  对象总数: %d" % scheduled_objects.size(),
-        "  活跃对象: %d" % active_count
+        "  当前时间: %d 小时" % current_time
     ]
     
     # 获取下一个对象
@@ -235,38 +142,6 @@ func get_status_text() -> String:
     
     return "\n".join(status_lines)
 
-## 获取所有可调度对象信息
-func get_schedulable_info() -> Array[Dictionary]:
-    var info_list: Array[Dictionary] = []
-    var current_time = _get_time_callback.call()
-    
-    for obj in scheduled_objects.values():
-        var info = {
-            "id": obj.id,
-            "name": obj.name,
-            "type": obj.get_type_identifier(),
-            "should_reschedule": obj.should_reschedule()
-        }
-        
-        # 尝试从时间轮中获取下次调度时间
-        var events = _peek_callback.call(1, 1)
-        for event_data in events:
-            var key = event_data["key"]
-            var event = event_data["value"]
-            if key == obj.id:
-                info["next_schedule_time"] = event.trigger_time
-                info["time_until_schedule"] = event.trigger_time - current_time
-                break
-        
-        # 如果是SchedulableExample，添加额外信息
-        if obj is SchedulableExample:
-            var combat_actor = obj as SchedulableExample
-            info["faction"] = combat_actor.faction
-            info["is_active"] = combat_actor.is_active
-        
-        info_list.append(info)
-    
-    return info_list
 
 ## 获取下一个调度的时间信息
 func get_next_schedule_time_info() -> String:

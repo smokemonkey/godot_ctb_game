@@ -16,13 +16,13 @@ func _ready():
     # 创建GUT实例
     gut = load("res://addons/gut/gut.gd").new()
     add_child(gut)
-    
+
     # 配置GUT
     gut.add_directory("res://tests/gdscript/", "test_", ".gd")
     gut.include_subdirectories = true
     gut.log_level = gut.LOG_LEVEL_ALL_ASSERTS
     print("GUT配置：查找路径 res://tests/gdscript/ 下的 test_*.gd 文件")
-    
+
     # 连接GUT的信号
     gut.start_run.connect(_on_start_run)
     gut.end_run.connect(_on_end_run)
@@ -30,13 +30,13 @@ func _ready():
     gut.end_script.connect(_on_end_script)
     gut.start_test.connect(_on_start_test)
     gut.end_test.connect(_on_end_test)
-    
+
     # 连接按钮信号
     run_all_button.connect("pressed", _on_run_all_pressed)
     run_csharp_button.connect("pressed", _on_run_csharp_pressed)
     run_gdscript_button.connect("pressed", _on_run_gdscript_pressed)
     clear_button.connect("pressed", _on_clear_pressed)
-    
+
     _update_status("测试运行器已准备就绪")
 
 func _on_run_all_pressed():
@@ -77,7 +77,7 @@ func _update_status(message: String):
 func _append_result(message: String, color: String = "white"):
     var formatted_message = "[color=" + color + "]" + message + "[/color]\n"
     results_text.text += formatted_message
-    
+
     # 滚动到底部
     await get_tree().process_frame
     var scroll_container = $VBoxContainer/ScrollContainer
@@ -91,18 +91,18 @@ func _on_start_run():
 func _on_end_run():
     var passed = gut.get_pass_count()
     var failed = gut.get_fail_count()
-    
+
     _append_result("\n=== 测试完成 ===", "white")
     _append_result("通过: " + str(passed), "green")
     _append_result("失败: " + str(failed), "red")
-    
+
     if failed == 0:
         _update_status("🎉 所有测试通过!")
         _append_result("🎉 所有测试通过!", "green")
     else:
         _update_status("❌ 有 " + str(failed) + " 个测试失败")
         _append_result("❌ 有测试失败，请检查", "red")
-    
+
     progress_bar.value = 100
 
 func _on_start_script(test_script_obj):
@@ -118,7 +118,7 @@ func _on_start_test(test_name: String):
 func _on_end_test():
     completed_tests += 1
     _update_progress()
-    
+
     # 检查最后一个测试的结果
     var last_result = gut.get_current_test_object()
     if last_result and last_result.is_failing():

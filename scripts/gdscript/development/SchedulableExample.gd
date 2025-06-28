@@ -12,13 +12,11 @@ class_name SchedulableExample
 ## - 展示时间计算和状态管理的基本模式
 
 var faction: String
-var is_active: bool
 var action_list: Array[String]
 
 func _init(p_id: String, p_name: String, p_faction: String = "中立"):
     super._init(p_id, p_name, "%s的战斗行动" % p_name)
     faction = p_faction
-    is_active = true
     
     # 预定义行动列表
     action_list = [
@@ -34,10 +32,6 @@ func _init(p_id: String, p_name: String, p_faction: String = "中立"):
 
 ## 执行角色行动
 func execute() -> Variant:
-    if not is_active:
-        print("角色 %s 处于非活跃状态，跳过行动" % name)
-        return null
-    
     # 随机选择一个行动
     var random_action = action_list[randi() % action_list.size()]
     print("角色 %s 执行行动: %s" % [name, random_action])
@@ -60,15 +54,8 @@ func calculate_next_schedule_time(current_time: int) -> int:
 
 ## 是否需要重复调度
 func should_reschedule() -> bool:
-    return is_active
+    return true  # 示例类默认持续调度
 
-## 设置活跃状态
-func set_active(active: bool) -> void:
-    is_active = active
-    if not active:
-        print("角色 %s 已设置为非活跃状态" % name)
-    else:
-        print("角色 %s 已激活" % name)
 
 ## 三角分布实现
 func _triangular_distribution(min_val: float, max_val: float, mode: float) -> float:
@@ -86,7 +73,6 @@ func get_character_info() -> Dictionary:
         "id": id,
         "name": name,
         "faction": faction,
-        "is_active": is_active,
         "trigger_time": trigger_time,
         "description": description
     }

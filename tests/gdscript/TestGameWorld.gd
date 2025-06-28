@@ -128,7 +128,7 @@ func advance_time(hours: int) -> Dictionary:
                 var event_data = time_wheel.pop_due_event()
                 if not event_data.is_empty():
                     var event = event_data["value"]
-                    ctb_manager.execute_schedulable(event)
+                    ctb_manager._execute_schedulable(event)
         
         # 推进时间轮
         time_wheel.advance_wheel()
@@ -157,7 +157,7 @@ func advance_to_next_event(max_hours: int = 100) -> Dictionary:
                 var event_data = time_wheel.pop_due_event()
                 if not event_data.is_empty():
                     var event = event_data["value"]
-                    ctb_manager.execute_schedulable(event)
+                    ctb_manager._execute_schedulable(event)
                     events_executed.append(str(event))
             break
         
@@ -186,7 +186,9 @@ func schedule_event(key: String, description: String, delay_hours: int) -> void:
 ## 添加示例角色（开发用）
 func add_example_actor(id: String, name: String, faction: String = "中立") -> SchedulableExample:
     var actor = SchedulableExample.new(id, name, faction)
-    ctb_manager.add_schedulable(actor)
+    var current_time = calendar.get_timestamp()
+    var delay = actor.calculate_next_schedule_time(current_time) - current_time
+    ctb_manager.schedule_with_delay(id, actor, delay)
     return actor
 
 ## 初始化CTB系统（为角色安排初始行动）

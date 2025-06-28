@@ -127,6 +127,13 @@ python3 sync_code.py py cs --dry-run
 - Include type hints and docstrings
 - Web demos use modern HTML5/CSS3/JavaScript
 
+### GDScript Code
+- **Private Methods**: Use `_` prefix for private/internal methods (e.g., `_calculate_delay()`, `_update_internal_state()`)
+- **Public API**: Methods without `_` prefix are considered public interface
+- **Documentation**: Use `##` for public method documentation, `#` for private method comments
+- **Naming**: Use snake_case for all methods and variables
+- **Indentation**: Always use 4 spaces, never tabs
+
 ### C# Code
 - Use PascalCase for public members
 - Include XML documentation comments

@@ -67,7 +67,7 @@ func test_schedulable_example_creation():
     assert_eq(actor.id, "test_actor", "Actor ID should be set correctly")
     assert_eq(actor.name, "测试战士", "Actor name should be set correctly")
     assert_eq(actor.faction, "测试阵营", "Actor faction should be set correctly")
-    assert_true(actor.is_active, "Actor should be active by default")
+    # Active state removed from design
     assert_eq(actor.get_type_identifier(), "SchedulableExample", "Type identifier should be correct")
 
 ## 测试SchedulableExample执行行动
@@ -83,16 +83,14 @@ func test_schedulable_example_execute():
     assert_eq(result["actor"], actor, "Result actor should be the same")
     assert_true(result["success"], "Action should be successful")
 
-## 测试SchedulableExample非活跃状态
-func test_schedulable_example_inactive():
+## 测试SchedulableExample重复调度
+func test_schedulable_example_reschedule():
     var actor = SchedulableExample.new("test_actor", "测试战士")
-    actor.set_active(false)
     
-    assert_false(actor.is_active, "Actor should be inactive")
-    assert_false(actor.should_reschedule(), "Inactive actor should not reschedule")
+    assert_true(actor.should_reschedule(), "Example actor should reschedule by default")
     
     var result = actor.execute()
-    assert_null(result, "Inactive actor should not execute")
+    assert_not_null(result, "Actor should execute successfully")
 
 ## 测试SchedulableExample调度时间计算
 func test_schedulable_example_schedule_time():
@@ -115,46 +113,38 @@ func test_schedulable_example_schedule_time():
             break
     assert_false(all_same, "Schedule times should have randomness")
 
-## 测试CTBManager添加可调度对象
-func test_ctb_manager_add_schedulable():
+## 测试CTBManager直接调度
+func test_ctb_manager_direct_scheduling():
     var actor = SchedulableExample.new("test_actor", "测试战士")
+    var current_time = mock_calendar.current_time
     
-    ctb_manager.add_schedulable(actor)
-    assert_true(ctb_manager.scheduled_objects.has("test_actor"), "Actor should be added to CTB manager")
+    # 直接调度对象
+    var result = ctb_manager.schedule_with_delay("test_actor", actor, 10)
+    assert_true(result, "Should successfully schedule actor")
     
-    var retrieved = ctb_manager.get_schedulable("test_actor")
-    assert_eq(retrieved, actor, "Retrieved actor should be the same")
+    # 检查是否被正确调度
+    var count = time_wheel.get_count()
+    assert_gt(count, 0, "Should have scheduled events")
 
-## 测试CTBManager移除可调度对象
-func test_ctb_manager_remove_schedulable():
+## 测试CTBManager移除调度
+func test_ctb_manager_remove_scheduled():
     var actor = SchedulableExample.new("test_actor", "测试战士")
     
-    ctb_manager.add_schedulable(actor)
-    assert_true(ctb_manager.scheduled_objects.has("test_actor"), "Actor should be added")
+    # 先调度对象
+    ctb_manager.schedule_with_delay("test_actor", actor, 10)
+    var count_before = time_wheel.get_count()
+    assert_gt(count_before, 0, "Should have scheduled events")
     
+    # 然后移除
     var removed = ctb_manager.remove_schedulable("test_actor")
     assert_true(removed, "Remove should return true")
-    assert_false(ctb_manager.scheduled_objects.has("test_actor"), "Actor should be removed")
-    
-    var retrieved = ctb_manager.get_schedulable("test_actor")
-    assert_null(retrieved, "Retrieved actor should be null after removal")
 
 ## 测试CTBManager初始化
 func test_ctb_manager_initialization():
-    var actor1 = SchedulableExample.new("actor1", "战士1")
-    var actor2 = SchedulableExample.new("actor2", "战士2")
-    
-    ctb_manager.add_schedulable(actor1)
-    ctb_manager.add_schedulable(actor2)
-    
     assert_false(ctb_manager.is_initialized, "CTB should not be initialized yet")
     
     ctb_manager.initialize_ctb()
     assert_true(ctb_manager.is_initialized, "CTB should be initialized")
-    
-    # 检查是否有事件被安排
-    var count = time_wheel.get_count()
-    assert_gt(count, 0, "Should have scheduled events after initialization")
 
 ## 测试CTBManager执行可调度对象
 func test_ctb_manager_execute_schedulable():
@@ -163,20 +153,15 @@ func test_ctb_manager_execute_schedulable():
     # 设置执行回调
     ctb_manager.on_event_executed = Callable(self, "_test_execute_callback")
     
-    ctb_manager.execute_schedulable(actor)
+    ctb_manager._execute_schedulable(actor)
     
     assert_eq(executed_count, 1, "Execute callback should be called once")
-    assert_eq(ctb_manager.action_history.size(), 1, "Action should be recorded in history")
-    
-    var history_entry = ctb_manager.action_history[0]
-    assert_eq(history_entry["schedulable_name"], "测试战士", "History should record correct name")
-    assert_eq(history_entry["schedulable_type"], "SchedulableExample", "History should record correct type")
 
 ## 测试CTBManager回合处理
 func test_ctb_manager_process_turn():
     var actor = SchedulableExample.new("test_actor", "测试战士")
     
-    ctb_manager.add_schedulable(actor)
+    ctb_manager.schedule_with_delay("test_actor", actor, 5)
     ctb_manager.initialize_ctb()
     
     # 推进时间直到有事件可执行
@@ -187,42 +172,28 @@ func test_ctb_manager_process_turn():
     assert_true(result.has("schedulable_name"), "Result should have schedulable name")
     assert_true(result.has("ticks_advanced"), "Result should have ticks advanced")
 
-## 测试CTBManager活跃状态设置
-func test_ctb_manager_set_active():
+## 测试CTBManager基本调度功能
+func test_ctb_manager_basic_scheduling():
     var actor = SchedulableExample.new("test_actor", "测试战士")
     
-    ctb_manager.add_schedulable(actor)
-    assert_true(actor.is_active, "Actor should be active initially")
+    assert_true(actor.should_reschedule(), "Actor should be schedulable")
     
-    var result = ctb_manager.set_schedulable_active("test_actor", false)
-    assert_true(result, "Set active should return true")
-    assert_false(actor.is_active, "Actor should be inactive")
-    
-    result = ctb_manager.set_schedulable_active("test_actor", true)
-    assert_true(result, "Set active should return true")
-    assert_true(actor.is_active, "Actor should be active again")
+    # 测试直接调度
+    ctb_manager.schedule_with_delay("test_actor", actor, 10)
+    var count = time_wheel.get_count()
+    assert_gt(count, 0, "Should have scheduled events after scheduling")
 
 ## 测试CTBManager状态信息
 func test_ctb_manager_status_info():
     var actor1 = SchedulableExample.new("actor1", "战士1")
     var actor2 = SchedulableExample.new("actor2", "战士2")
     
-    ctb_manager.add_schedulable(actor1)
-    ctb_manager.add_schedulable(actor2)
+    ctb_manager.schedule_with_delay("actor1", actor1, 5)
+    ctb_manager.schedule_with_delay("actor2", actor2, 10)
     ctb_manager.initialize_ctb()
     
     var status_text = ctb_manager.get_status_text()
     assert_true(status_text.contains("CTB系统状态"), "Status should contain system status")
-    assert_true(status_text.contains("对象总数: 2"), "Status should show correct object count")
-    
-    var info_list = ctb_manager.get_schedulable_info()
-    assert_eq(info_list.size(), 2, "Info list should contain 2 objects")
-    
-    for info in info_list:
-        assert_true(info.has("id"), "Info should have id")
-        assert_true(info.has("name"), "Info should have name")
-        assert_true(info.has("type"), "Info should have type")
-        assert_eq(info["type"], "SchedulableExample", "Type should be SchedulableExample")
 
 ## 测试简单事件类
 func test_simple_event():
@@ -242,7 +213,7 @@ func test_mixed_scheduling_system():
     var actor = SchedulableExample.new("test_actor", "测试战士")
     var event = TestGameWorld.SimpleEvent.new("test_event", "测试事件", mock_calendar.current_time + 5)
     
-    ctb_manager.add_schedulable(actor)
+    ctb_manager.schedule_with_delay("test_actor", actor, 10)
     ctb_manager.schedule_with_delay("test_event", event, 5)
     ctb_manager.initialize_ctb()
     
@@ -252,11 +223,10 @@ func test_mixed_scheduling_system():
         if not time_wheel._is_current_slot_empty():
             var due = ctb_manager.get_due_schedulable()
             if due != null:
-                ctb_manager.execute_schedulable(due)
+                ctb_manager._execute_schedulable(due)
                 processed_count += 1
         else:
             mock_calendar.advance_time_tick()
             time_wheel.advance_wheel()
     
     assert_gt(processed_count, 0, "Should have processed some schedulables")
-    assert_gt(ctb_manager.action_history.size(), 0, "Should have action history")
