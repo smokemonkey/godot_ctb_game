@@ -6,19 +6,31 @@
 
 ```
 scripts/
-├── gdscript/            # GDScript 实现 (主要开发语言)
-│   ├── core/           # 核心游戏系统
-│   │   ├── Schedulable.gd       # 可调度接口
-│   │   ├── CombatActor.gd       # 战斗角色系统
-│   │   ├── CTBManager.gd        # 重构后的CTB管理器
-│   │   ├── Calendar.gd          # 日历系统
-│   │   ├── IndexedTimeWheel.gd  # 时间轮实现
-│   │   └── ConfigManager.gd     # 配置管理
-│   └── IntegratedSystemTest.gd  # UI集成测试
-├── csharp/              # C# 实现 (已弃用，保留作参考)
-│   ├── core/           # 原C#核心系统
-│   └── PYTHON_MAPPING.md  # 历史对应关系文档
-└── README.md           # 本文件
+├── gdscript/                    # GDScript 实现 (主要开发语言)
+│   ├── core/                   # 核心游戏系统
+│   │   ├── Calendar.gd         # 日历系统
+│   │   ├── CTBManager.gd       # CTB管理器
+│   │   └── IndexedTimeWheel.gd # 时间轮实现
+│   ├── shared/                 # 共享组件
+│   │   └── interfaces/
+│   │       └── Schedulable.gd  # 可调度接口基类
+│   ├── development/            # 开发示例
+│   │   └── SchedulableExample.gd # 可调度对象示例
+│   ├── managers/               # 系统管理器
+│   │   ├── ConfigManager.gd    # 配置管理
+│   │   ├── AudioManager.gd     # 音频管理
+│   │   └── SceneManager.gd     # 场景管理
+│   ├── resources/              # 资源类
+│   │   └── GameConfig.gd       # 游戏配置资源
+│   └── IntegratedSystemTest.gd # UI集成测试
+├── csharp/                     # C# 实现 (已弃用，保留作参考)
+│   ├── core/                   # 原C#核心系统
+│   │   ├── Calendar.cs         # 日历系统 (过时)
+│   │   ├── CTBManager.cs       # CTB管理器 (过时)
+│   │   └── IndexedTimeWheel.cs # 时间轮实现 (过时)
+│   └── PYTHON_MAPPING.md       # 历史对应关系文档
+├── CLAUDE.md                   # 开发指导文档
+└── README.md                   # 本文件
 ```
 
 ## 语言架构现状
@@ -47,13 +59,15 @@ scripts/
 
 ### 实现对应关系
 
-| 系统模块 | Python 原型 | GDScript 实现 | C# (弃用) |
-|----------|-------------|---------------|-----------|
-| 可调度接口 | `schedulable.py` | `Schedulable.gd` | N/A |
-| 战斗角色 | `combat_actor.py` | `CombatActor.gd` | N/A |
-| CTB管理器 | `ctb_manager_v2.py` | `CTBManager.gd` | `CTBManager.cs` (过时) |
-| 日历系统 | `calendar.py` | `Calendar.gd` | `Calendar.cs` (过时) |
-| 时间轮 | `indexed_time_wheel.py` | `IndexedTimeWheel.gd` | `IndexedTimeWheel.cs` (过时) |
+| 系统模块 | Python 原型 | GDScript 实现 | 文件位置 |
+|----------|-------------|---------------|----------|
+| 可调度接口 | `schedulable.py` | `Schedulable.gd` | `shared/interfaces/` |
+| 战斗角色 | `combat_actor.py` | `SchedulableExample.gd` | `development/` |
+| CTB管理器 | `ctb_manager_v2.py` | `CTBManager.gd` | `core/` |
+| 日历系统 | `calendar.py` | `Calendar.gd` | `core/` |
+| 时间轮 | `indexed_time_wheel.py` | `IndexedTimeWheel.gd` | `core/` |
+| 配置管理 | N/A | `ConfigManager.gd` | `managers/` |
+| 游戏配置 | N/A | `GameConfig.gd` | `resources/` |
 
 ## 开发流程
 

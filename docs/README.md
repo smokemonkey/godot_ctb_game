@@ -10,7 +10,7 @@
   - 功能完成度
   - 重要提醒和约定
 
-### 📚 API文档  
+### 📚 API文档
 - **API_DOCS.md** - 自动生成的API参考文档
   - Python原型的完整API
   - 由 `python_prototypes/generate_docs.py` 生成
@@ -27,7 +27,6 @@
 ### 新Schedulable架构
 - **重构完成**: CTB系统已重构为基于Schedulable接口
 - **双语言实现**: Python和GDScript版本完全对应
-- **CombatActor**: 新的角色系统实现
 
 ### 代码对应关系 (历史参考)
 - `../python_prototypes/CSHARP_MAPPING.md` - Python → C# 对应关系 (已弃用)

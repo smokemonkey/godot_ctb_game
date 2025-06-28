@@ -28,12 +28,11 @@ This project uses **GDScript-first testing** with Python reference implementatio
 
 ### Schedulable System Tests
 - **Location**: `gdscript/test_event_system.gd`
-- **Coverage**: Schedulable interface, CombatActor, CTBManager v2
+- **Coverage**: Schedulable interface, SchedulableExample, CTBManager v2
 - **Features**: Interface testing, character actions, mixed scheduling
 
 ### Key Test Cases
 1. **Schedulable Interface**: Abstract methods, type identification
-2. **CombatActor**: Creation, execution, active state management
 3. **CTBManager**: Adding/removing schedulables, initialization, turn processing
 4. **Mixed Scheduling**: Characters and events in same system
 
@@ -80,7 +79,7 @@ func test_custom_event():
 ### For CTB Integration
 ```gdscript
 func test_mixed_scheduling():
-    var actor = CombatActor.new("test", "测试角色")
+    var actor = SchedulableExample.new("test", "测试角色")
     var event = SimpleEvent.new("event", "测试事件")
 
     ctb_manager.add_event(actor)
@@ -98,7 +97,7 @@ func test_mixed_scheduling():
 
 ### Test Categories
 1. **Interface Tests**: Schedulable abstract methods
-2. **Implementation Tests**: CombatActor specific functionality
+2. **Implementation Tests**: SchedulableExample specific functionality
 3. **System Tests**: CTBManager operations
 4. **Integration Tests**: Multiple objects working together
 

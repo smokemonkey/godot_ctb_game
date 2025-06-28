@@ -46,7 +46,7 @@ func execute() -> Variant:
 func calculate_next_schedule_time(current_time: int) -> int:
     # 使用配置中的三角分布参数
     var min_days = ConfigManager.ctb_action_delay_min_days
-    var max_days = ConfigManager.ctb_action_delay_max_days  
+    var max_days = ConfigManager.ctb_action_delay_max_days
     var peak_days = ConfigManager.ctb_action_delay_peak_days
     var days = _triangular_distribution(min_days, max_days, peak_days)
     var hours = int(days * ConfigManager.time_hours_per_day)

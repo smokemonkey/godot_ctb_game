@@ -7,7 +7,6 @@
 
 ### 重大架构升级 ✅ 完成
 - **Schedulable接口**: 统一的可调度对象接口，解耦CTB系统
-- **CombatActor系统**: 灵活的战斗角色实现
 - **接口标准化**: Python和GDScript版本完全对应
 - **混合调度**: 角色、事件、任何对象都可以被调度
 
@@ -39,10 +38,10 @@ func calculate_next_schedule_time(current_time: int) -> int:  # 计算下次时�
 func should_reschedule() -> bool:    # 是否重复调度
 ```
 
-### CombatActor实现
+### SchedulableExample实现
 ```gdscript
 # 战斗角色示例
-var actor = CombatActor.new("zhang_fei", "张飞", "蜀国")
+var actor = SchedulableExample.new("zhang_fei", "张飞", "蜀国")
 ctb_manager.add_event(actor)
 ctb_manager.initialize_ctb()
 
@@ -61,7 +60,7 @@ ctb_manager.initialize_ctb()
 ```
 scripts/gdscript/core/
 ├── Schedulable.gd              # 可调度接口基类
-├── CombatActor.gd              # 战斗角色实现
+├── SchedulableExample.gd              # 战斗角色实现
 ├── CTBManager.gd               # 重构后的CTB管理器
 ├── Calendar.gd                 # 日历系统
 ├── IndexedTimeWheel.gd         # 时间轮实现
@@ -92,7 +91,7 @@ tests/
 
 ### ✅ 架构重构阶段 (2025-06-27)
 1. **接口设计**: 创建Schedulable基础接口
-2. **角色重构**: Character → CombatActor，实现Schedulable
+2. **角色重构**: Character → SchedulableExample，实现Schedulable
 3. **CTB解耦**: 移除Character依赖，使用Schedulable接口
 4. **测试迁移**: 创建新的测试套件验证架构
 5. **双语言同步**: Python和GDScript版本保持一致
@@ -113,8 +112,8 @@ tests/
 ### 基础使用 (GDScript)
 ```gdscript
 # 创建角色
-var zhang_fei = CombatActor.new("zhang_fei", "张飞", "蜀国")
-var guan_yu = CombatActor.new("guan_yu", "关羽", "蜀国")
+var zhang_fei = SchedulableExample.new("zhang_fei", "张飞", "蜀国")
+var guan_yu = SchedulableExample.new("guan_yu", "关羽", "蜀国")
 
 # 添加到CTB系统
 ctb_manager.add_event(zhang_fei)

@@ -1,9 +1,9 @@
-[gd_resource type="GameConfig" script_class="GameConfig" format=3 uid="uid://bqxrvn8gidtxx"]
+[gd_resource type="Resource" script_class="GameConfig" load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://scripts/gdscript/resources/GameConfig.gd" id="1_abc123"]
+[ext_resource type="Script" path="res://scripts/gdscript/resources/GameConfig.gd" id="1_l8lsh"]
 
 [resource]
-script = ExtResource("1_abc123")
+script = ExtResource("1_l8lsh")
 time_hours_per_day = 24
 time_days_per_year = 360
 time_epoch_start_year = -2000
