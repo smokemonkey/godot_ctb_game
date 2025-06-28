@@ -1,6 +1,13 @@
 extends RefCounted
 class_name TestGameWorld
 
+# 预加载需要的类
+const Schedulable = preload("res://scripts/gdscript/shared/interfaces/Schedulable.gd")
+const Calendar = preload("res://scripts/gdscript/core/Calendar.gd")
+const IndexedTimeWheel = preload("res://scripts/gdscript/core/IndexedTimeWheel.gd")
+const CTBManager = preload("res://scripts/gdscript/core/CTBManager.gd")
+const SchedulableExample = preload("res://scripts/gdscript/development/SchedulableExample.gd")
+
 ## 简单事件类 - 用于测试
 class SimpleEvent extends Schedulable:
     func _init(p_id: String, p_description: String, p_trigger_time: int):
@@ -26,9 +33,9 @@ class SimpleEvent extends Schedulable:
 ## 统一的测试接口，简化了集成测试。
 
 # 核心系统组件
-var calendar: Calendar
-var time_wheel: IndexedTimeWheel
-var ctb_manager: CTBManager
+var calendar
+var time_wheel  
+var ctb_manager
 
 # 事件回调信号
 signal event_executed(event_description: String)
@@ -38,7 +45,10 @@ signal systems_updated()
 ## 初始化测试世界
 func _init(time_wheel_size: int = 0):
     # 如果没有指定大小，使用配置中的默认值
-    var actual_size = time_wheel_size if time_wheel_size > 0 else ConfigManager.ctb_time_wheel_buffer_size
+    var default_size = 180  # 默认缓冲区大小
+    if ConfigManager != null and ConfigManager.config != null:
+        default_size = ConfigManager.ctb_time_wheel_buffer_size
+    var actual_size = time_wheel_size if time_wheel_size > 0 else default_size
 
     # 初始化日历
     calendar = Calendar.new()

@@ -3,6 +3,9 @@ extends Node
 ## 配置管理器 - Autoload单例
 ## 提供全局配置访问和热重载功能
 
+# 预加载GameConfig类
+const GameConfig = preload("res://scripts/gdscript/resources/GameConfig.gd")
+
 signal config_changed()
 
 ## 当前配置实例

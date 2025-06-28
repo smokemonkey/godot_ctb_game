@@ -10,3 +10,208 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_xb8wv")
+
+[node name="MainContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LeftPanel" type="VBoxContainer" parent="MainContainer"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="CTBTitle" type="Label" parent="MainContainer/LeftPanel"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "⚔️ CTB行动条"
+horizontal_alignment = 1
+
+[node name="CTBScrollContainer" type="ScrollContainer" parent="MainContainer/LeftPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="CTBEventsList" type="VBoxContainer" parent="MainContainer/LeftPanel/CTBScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ButtonsContainer" type="HBoxContainer" parent="MainContainer/LeftPanel"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+
+[node name="AddActionButton" type="Button" parent="MainContainer/LeftPanel/ButtonsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "添加行动"
+
+[node name="ExecuteActionButton" type="Button" parent="MainContainer/LeftPanel/ButtonsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "执行行动"
+
+[node name="CenterPanel" type="VBoxContainer" parent="MainContainer"]
+custom_minimum_size = Vector2(450, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="CurrentTimeLabel" type="Label" parent="MainContainer/CenterPanel"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+text = "当前时间: 初始化中..."
+horizontal_alignment = 1
+
+[node name="CalendarStatusLabel" type="Label" parent="MainContainer/CenterPanel"]
+layout_mode = 2
+text = "日历状态: 初始化中..."
+autowrap_mode = 3
+
+[node name="ControlsContainer" type="VBoxContainer" parent="MainContainer/CenterPanel"]
+layout_mode = 2
+
+[node name="TimeGroup" type="VBoxContainer" parent="MainContainer/CenterPanel/ControlsContainer"]
+layout_mode = 2
+
+[node name="TimeGroupLabel" type="Label" parent="MainContainer/CenterPanel/ControlsContainer/TimeGroup"]
+layout_mode = 2
+text = "⏰ 时间控制"
+
+[node name="TimeButtonRow1" type="HBoxContainer" parent="MainContainer/CenterPanel/ControlsContainer/TimeGroup"]
+layout_mode = 2
+
+[node name="AdvanceHourButton" type="Button" parent="MainContainer/CenterPanel/ControlsContainer/TimeGroup/TimeButtonRow1"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "推进1小时"
+
+[node name="AdvanceDayButton" type="Button" parent="MainContainer/CenterPanel/ControlsContainer/TimeGroup/TimeButtonRow1"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "推进1天"
+
+[node name="TimeButtonRow2" type="HBoxContainer" parent="MainContainer/CenterPanel/ControlsContainer/TimeGroup"]
+layout_mode = 2
+
+[node name="AdvanceWeekButton" type="Button" parent="MainContainer/CenterPanel/ControlsContainer/TimeGroup/TimeButtonRow2"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "推进7天"
+
+[node name="AdvanceMonthButton" type="Button" parent="MainContainer/CenterPanel/ControlsContainer/TimeGroup/TimeButtonRow2"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "推进1月"
+
+[node name="CalendarGroup" type="VBoxContainer" parent="MainContainer/CenterPanel/ControlsContainer"]
+layout_mode = 2
+
+[node name="CalendarGroupLabel" type="Label" parent="MainContainer/CenterPanel/ControlsContainer/CalendarGroup"]
+layout_mode = 2
+text = "📅 日历控制"
+
+[node name="AnchorContainer" type="HBoxContainer" parent="MainContainer/CenterPanel/ControlsContainer/CalendarGroup"]
+layout_mode = 2
+
+[node name="EraNameInput" type="LineEdit" parent="MainContainer/CenterPanel/ControlsContainer/CalendarGroup/AnchorContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "纪元名 (如: 开元)"
+
+[node name="AnchorYearInput" type="LineEdit" parent="MainContainer/CenterPanel/ControlsContainer/CalendarGroup/AnchorContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "元年 (如: 713)"
+
+[node name="AnchorButton" type="Button" parent="MainContainer/CenterPanel/ControlsContainer/CalendarGroup/AnchorContainer"]
+layout_mode = 2
+text = "锚定"
+
+[node name="ChangeEraContainer" type="HBoxContainer" parent="MainContainer/CenterPanel/ControlsContainer/CalendarGroup"]
+layout_mode = 2
+
+[node name="NewEraInput" type="LineEdit" parent="MainContainer/CenterPanel/ControlsContainer/CalendarGroup/ChangeEraContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "新纪元名"
+
+[node name="ChangeEraButton" type="Button" parent="MainContainer/CenterPanel/ControlsContainer/CalendarGroup/ChangeEraContainer"]
+layout_mode = 2
+text = "改元"
+
+[node name="ResetButton" type="Button" parent="MainContainer/CenterPanel/ControlsContainer/CalendarGroup/ChangeEraContainer"]
+layout_mode = 2
+text = "重置日历"
+
+[node name="TestGroup" type="VBoxContainer" parent="MainContainer/CenterPanel/ControlsContainer"]
+layout_mode = 2
+
+[node name="TestGroupLabel" type="Label" parent="MainContainer/CenterPanel/ControlsContainer/TestGroup"]
+layout_mode = 2
+text = "🧪 测试场景"
+
+[node name="TestButtonRow1" type="HBoxContainer" parent="MainContainer/CenterPanel/ControlsContainer/TestGroup"]
+layout_mode = 2
+
+[node name="BasicTestButton" type="Button" parent="MainContainer/CenterPanel/ControlsContainer/TestGroup/TestButtonRow1"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "基础测试"
+
+[node name="CombatTestButton" type="Button" parent="MainContainer/CenterPanel/ControlsContainer/TestGroup/TestButtonRow1"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "战斗测试"
+
+[node name="TestButtonRow2" type="HBoxContainer" parent="MainContainer/CenterPanel/ControlsContainer/TestGroup"]
+layout_mode = 2
+
+[node name="LongTermTestButton" type="Button" parent="MainContainer/CenterPanel/ControlsContainer/TestGroup/TestButtonRow2"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "长期事件"
+
+[node name="ClearAllButton" type="Button" parent="MainContainer/CenterPanel/ControlsContainer/TestGroup/TestButtonRow2"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "清空所有"
+
+[node name="RightPanel" type="VBoxContainer" parent="MainContainer"]
+custom_minimum_size = Vector2(350, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="TimeWheelTitle" type="Label" parent="MainContainer/RightPanel"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "⚙️ 时间轮检查器"
+horizontal_alignment = 1
+
+[node name="WheelLabel" type="Label" parent="MainContainer/RightPanel"]
+layout_mode = 2
+text = "🎯 主时间轮事件:"
+
+[node name="WheelScrollContainer" type="ScrollContainer" parent="MainContainer/RightPanel"]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="WheelEventsList" type="VBoxContainer" parent="MainContainer/RightPanel/WheelScrollContainer"]
+layout_mode = 2
+
+[node name="FutureLabel" type="Label" parent="MainContainer/RightPanel"]
+layout_mode = 2
+text = "🔮 远期事件池:"
+
+[node name="FutureScrollContainer" type="ScrollContainer" parent="MainContainer/RightPanel"]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="FutureEventsList" type="VBoxContainer" parent="MainContainer/RightPanel/FutureScrollContainer"]
+layout_mode = 2

@@ -4,6 +4,9 @@ class_name CTBManager
 ## CTB系统管理器
 ## 负责管理可调度对象的调度和执行，通过回调函数处理时间管理。
 
+# 预加载Schedulable接口
+const Schedulable = preload("res://scripts/gdscript/shared/interfaces/Schedulable.gd")
+
 # 时间管理回调
 var _get_time_callback: Callable
 var _advance_time_callback: Callable

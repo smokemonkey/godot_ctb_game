@@ -1,4 +1,4 @@
-extends Schedulable
+extends "res://scripts/gdscript/shared/interfaces/Schedulable.gd"
 class_name SchedulableExample
 
 ## Schedulable接口的示例实现类

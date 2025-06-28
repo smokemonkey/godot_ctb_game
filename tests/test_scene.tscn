@@ -1,8 +1,8 @@
 [gd_scene load_steps=2 format=3 uid="uid://cf8vl5gw84t2y"]
 
-[ext_resource type="Script" uid="uid://d32mm5tim4ecn" path="res://tests/test_runner_ui.gd" id="1_n5q3v"]
+[ext_resource type="Script" uid="uid://dy16ms0v56ejj" path="res://tests/test_runner.gd" id="1_n5q3v"]
 
-[node name="TestScene" type="Control"]
+[node name="TestRunner" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -25,7 +25,7 @@ grow_vertical = 2
 
 [node name="Title" type="Label" parent="VBoxContainer"]
 layout_mode = 2
-text = "Godot 统一测试运行器"
+text = "CTB游戏系统单元测试"
 horizontal_alignment = 1
 
 [node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
@@ -34,31 +34,35 @@ layout_mode = 2
 [node name="ButtonContainer" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
 
-[node name="RunAllButton" type="Button" parent="VBoxContainer/ButtonContainer"]
+[node name="RunTestsButton" type="Button" parent="VBoxContainer/ButtonContainer"]
 layout_mode = 2
+size_flags_horizontal = 3
 text = "运行所有测试"
 
-[node name="RunCSharpButton" type="Button" parent="VBoxContainer/ButtonContainer"]
+[node name="RunCalendarButton" type="Button" parent="VBoxContainer/ButtonContainer"]
 layout_mode = 2
-text = "仅运行C#测试"
+size_flags_horizontal = 3
+text = "日历测试"
 
-[node name="RunGDScriptButton" type="Button" parent="VBoxContainer/ButtonContainer"]
+[node name="RunCTBButton" type="Button" parent="VBoxContainer/ButtonContainer"]
 layout_mode = 2
-text = "仅运行GDScript测试"
+size_flags_horizontal = 3
+text = "CTB测试"
 
-[node name="ClearButton" type="Button" parent="VBoxContainer/ButtonContainer"]
+[node name="RunTimeWheelButton" type="Button" parent="VBoxContainer/ButtonContainer"]
 layout_mode = 2
-text = "清空结果"
+size_flags_horizontal = 3
+text = "时间轮测试"
 
 [node name="HSeparator2" type="HSeparator" parent="VBoxContainer"]
 layout_mode = 2
 
-[node name="ProgressBar" type="ProgressBar" parent="VBoxContainer"]
-layout_mode = 2
-
 [node name="StatusLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2
-text = "准备就绪"
+text = "准备运行测试..."
+
+[node name="ProgressBar" type="ProgressBar" parent="VBoxContainer"]
+layout_mode = 2
 
 [node name="HSeparator3" type="HSeparator" parent="VBoxContainer"]
 layout_mode = 2
@@ -72,4 +76,4 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 bbcode_enabled = true
-text = "测试结果将在这里显示..."
+text = "测试结果将显示在这里..."
