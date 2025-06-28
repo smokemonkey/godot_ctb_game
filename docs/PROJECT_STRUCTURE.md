@@ -18,7 +18,7 @@ scripts/gdscript/
 │   └── interfaces/
 │       └── Schedulable.gd   # 可调度接口
 ├── development/             # 开发用临时代码
-│   └── SchedulableExample.gd  # 可调度接口示例
+│   └── EventExample.gd  # 可调度接口示例
 └── gameplay/                # 游戏玩法相关
     └── actors/              # 角色和实体 (预留)
 ```

@@ -6,26 +6,14 @@ const Schedulable = preload("res://scripts/gdscript/shared/interfaces/Schedulabl
 const Calendar = preload("res://scripts/gdscript/core/Calendar.gd")
 const IndexedTimeWheel = preload("res://scripts/gdscript/core/IndexedTimeWheel.gd")
 const CTBManager = preload("res://scripts/gdscript/core/CTBManager.gd")
-const SchedulableExample = preload("res://scripts/gdscript/development/SchedulableExample.gd")
+const EventExample = preload("res://scripts/gdscript/development/EventExample.gd")
 
-## 简单事件类 - 用于测试
-class SimpleEvent extends Schedulable:
-    func _init(p_id: String, p_description: String, p_trigger_time: int):
-        super._init(p_id, p_description, p_description)
-        trigger_time = p_trigger_time
-
-    func execute() -> Variant:
-        print("执行事件: %s" % description)
-        return self
-
-    func calculate_next_schedule_time(current_time: int) -> int:
-        return current_time  # 简单事件不重复
-
-    func should_reschedule() -> bool:
-        return false
-
-    func get_type_identifier() -> String:
-        return "SimpleEvent"
+## 简单事件创建函数 - 使用EventExample替代SimpleEvent
+static func create_simple_event(p_id: String, p_description: String) -> EventExample:
+    var event = EventExample.new(p_id, p_description, "事件")
+    # 设置为不重复调度的事件
+    event.reschedule_enabled = false
+    return event
 
 ## 统一的游戏世界测试协调器 - GDScript版本
 ##
@@ -34,7 +22,7 @@ class SimpleEvent extends Schedulable:
 
 # 核心系统组件
 var calendar
-var time_wheel  
+var time_wheel
 var ctb_manager
 
 # 事件回调信号
@@ -189,13 +177,15 @@ func advance_to_next_event(max_hours: int = 100) -> Dictionary:
 ## 安排事件
 func schedule_event(key: String, description: String, delay_hours: int) -> void:
     # 创建一个简单的可调度对象
-    var event = SimpleEvent.new(key, description, current_time + delay_hours)
+    var event = create_simple_event(key, description)
+    # 手动设置触发时间
+    event.trigger_time = current_time + delay_hours
     time_wheel.schedule_with_delay(key, event, delay_hours)
     systems_updated.emit()
 
 ## 添加示例角色（开发用）
-func add_example_actor(id: String, name: String, faction: String = "中立") -> SchedulableExample:
-    var actor = SchedulableExample.new(id, name, faction)
+func add_example_event(id: String, name: String, faction: String = "中立") -> EventExample:
+    var actor = EventExample.new(id, name, faction)
     var current_time = calendar.get_timestamp()
     var delay = actor.calculate_next_schedule_time(current_time) - current_time
     ctb_manager.schedule_with_delay(id, actor, delay)

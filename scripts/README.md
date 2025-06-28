@@ -15,7 +15,7 @@ scripts/
 │   │   └── interfaces/
 │   │       └── Schedulable.gd  # 可调度接口基类
 │   ├── development/            # 开发示例
-│   │   └── SchedulableExample.gd # 可调度对象示例
+│   │   └── EventExample.gd # 可调度对象示例
 │   ├── managers/               # 系统管理器
 │   │   ├── ConfigManager.gd    # 配置管理
 │   │   ├── AudioManager.gd     # 音频管理
@@ -62,7 +62,7 @@ scripts/
 | 系统模块 | Python 原型 | GDScript 实现 | 文件位置 |
 |----------|-------------|---------------|----------|
 | 可调度接口 | `schedulable.py` | `Schedulable.gd` | `shared/interfaces/` |
-| 战斗角色 | `combat_actor.py` | `SchedulableExample.gd` | `development/` |
+| 战斗角色 | `combat_actor.py` | `EventExample.gd` | `development/` |
 | CTB管理器 | `ctb_manager_v2.py` | `CTBManager.gd` | `core/` |
 | 日历系统 | `calendar.py` | `Calendar.gd` | `core/` |
 | 时间轮 | `indexed_time_wheel.py` | `IndexedTimeWheel.gd` | `core/` |

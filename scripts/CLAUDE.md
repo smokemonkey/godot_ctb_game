@@ -40,7 +40,7 @@ extends Refs.Schedulable            # Syntax error
 - `core/` - Core game systems (Calendar, CTBManager, IndexedTimeWheel)
 - `resources/` - Resource classes (GameConfig)
 - `shared/interfaces/` - Interface definitions (Schedulable)
-- `development/` - Development examples (SchedulableExample)
+- `development/` - Development examples (EventExample)
 - `managers/` - Autoload managers (ConfigManager)
 
 **csharp/** (Legacy - To be phased out)

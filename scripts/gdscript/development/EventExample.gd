@@ -1,5 +1,5 @@
 extends "res://scripts/gdscript/shared/interfaces/Schedulable.gd"
-class_name SchedulableExample
+class_name EventExample
 
 ## Schedulable接口的示例实现类
 ## 
@@ -13,6 +13,7 @@ class_name SchedulableExample
 
 var faction: String
 var action_list: Array[String]
+var reschedule_enabled: bool = true  # 是否允许重复调度
 
 func _init(p_id: String, p_name: String, p_faction: String = "中立"):
     super._init(p_id, p_name, "%s的战斗行动" % p_name)
@@ -54,7 +55,7 @@ func calculate_next_schedule_time(current_time: int) -> int:
 
 ## 是否需要重复调度
 func should_reschedule() -> bool:
-    return true  # 示例类默认持续调度
+    return reschedule_enabled  # 可配置的重复调度
 
 
 ## 三角分布实现
@@ -78,4 +79,4 @@ func get_character_info() -> Dictionary:
     }
 
 func get_type_identifier() -> String:
-    return "SchedulableExample"
+    return "EventExample"

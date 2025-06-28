@@ -5,6 +5,6 @@
 """
 
 from .schedulable import Schedulable
-from .schedulable_example import SchedulableExample
+from .schedulable_example import EventExample
 
-__all__ = ['Schedulable', 'SchedulableExample']
+__all__ = ['Schedulable', 'EventExample']

@@ -95,7 +95,7 @@ SCRIPT ERROR: Could not resolve class "GutTest"
 ## Updated Architecture
 
 - ✅ **Calendar**: Direct ConfigManager access (works in all modes)
-- ✅ **SchedulableExample**: Handles configuration gracefully  
+- ✅ **EventExample**: Handles configuration gracefully  
 - ✅ **Tests**: Use `class_name` classes directly with GUT framework
 - ✅ **Command Line**: Native GUT command line for fast execution
 - ❌ **GUI Test Runner**: Removed in favor of command line efficiency

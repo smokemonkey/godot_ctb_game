@@ -1,7 +1,7 @@
 extends "res://addons/gut/test.gd"
 
 ## 新架构的可调度系统单元测试
-## 测试Schedulable接口、SchedulableExample和重构后的CTBManager
+## 测试Schedulable接口、EventExample和重构后的CTBManager
 
 var time_wheel: IndexedTimeWheel
 var ctb_manager: CTBManager
@@ -60,19 +60,19 @@ func _is_slot_empty_callback() -> bool:
 func _test_execute_callback(schedulable):
     executed_count += 1
 
-## 测试SchedulableExample基本功能
+## 测试EventExample基本功能
 func test_event_example_creation():
-    var actor = SchedulableExample.new("test_actor", "测试战士", "测试阵营")
+    var actor = EventExample.new("test_actor", "测试战士", "测试阵营")
 
     assert_eq(actor.id, "test_actor", "Actor ID should be set correctly")
     assert_eq(actor.name, "测试战士", "Actor name should be set correctly")
     assert_eq(actor.faction, "测试阵营", "Actor faction should be set correctly")
     # Active state removed from design
-    assert_eq(actor.get_type_identifier(), "SchedulableExample", "Type identifier should be correct")
+    assert_eq(actor.get_type_identifier(), "EventExample", "Type identifier should be correct")
 
-## 测试SchedulableExample执行行动
+## 测试EventExample执行行动
 func test_event_example_execute():
-    var actor = SchedulableExample.new("test_actor", "测试战士")
+    var actor = EventExample.new("test_actor", "测试战士")
 
     # 测试执行行动
     var result = actor.execute()
@@ -83,18 +83,18 @@ func test_event_example_execute():
     assert_eq(result["actor"], actor, "Result actor should be the same")
     assert_true(result["success"], "Action should be successful")
 
-## 测试SchedulableExample重复调度
+## 测试EventExample重复调度
 func test_event_example_reschedule():
-    var actor = SchedulableExample.new("test_actor", "测试战士")
+    var actor = EventExample.new("test_actor", "测试战士")
 
     assert_true(actor.should_reschedule(), "Example actor should reschedule by default")
 
     var result = actor.execute()
     assert_not_null(result, "Actor should execute successfully")
 
-## 测试SchedulableExample调度时间计算
+## 测试EventExample调度时间计算
 func test_event_example_schedule_time():
-    var actor = SchedulableExample.new("test_actor", "测试战士")
+    var actor = EventExample.new("test_actor", "测试战士")
     var current_time = 100
 
     var next_time = actor.calculate_next_schedule_time(current_time)
@@ -115,7 +115,7 @@ func test_event_example_schedule_time():
 
 ## 测试CTBManager直接调度
 func test_ctb_manager_direct_scheduling():
-    var actor = SchedulableExample.new("test_actor", "测试战士")
+    var actor = EventExample.new("test_actor", "测试战士")
     var current_time = mock_calendar.current_time
 
     # 直接调度对象
@@ -128,7 +128,7 @@ func test_ctb_manager_direct_scheduling():
 
 ## 测试CTBManager移除调度
 func test_ctb_manager_remove_scheduled():
-    var actor = SchedulableExample.new("test_actor", "测试战士")
+    var actor = EventExample.new("test_actor", "测试战士")
 
     # 先调度对象
     ctb_manager.schedule_with_delay("test_actor", actor, 10)
@@ -148,7 +148,7 @@ func test_ctb_manager_initialization():
 
 ## 测试CTBManager执行可调度对象
 func test_ctb_manager_execute_event():
-    var actor = SchedulableExample.new("test_actor", "测试战士")
+    var actor = EventExample.new("test_actor", "测试战士")
 
     # 设置执行回调
     ctb_manager.on_event_executed = Callable(self, "_test_execute_callback")
@@ -159,7 +159,7 @@ func test_ctb_manager_execute_event():
 
 ## 测试CTBManager回合处理
 func test_ctb_manager_process_turn():
-    var actor = SchedulableExample.new("test_actor", "测试战士")
+    var actor = EventExample.new("test_actor", "测试战士")
 
     ctb_manager.schedule_with_delay("test_actor", actor, 5)
     ctb_manager.initialize_ctb()
@@ -174,7 +174,7 @@ func test_ctb_manager_process_turn():
 
 ## 测试CTBManager基本调度功能
 func test_ctb_manager_basic_scheduling():
-    var actor = SchedulableExample.new("test_actor", "测试战士")
+    var actor = EventExample.new("test_actor", "测试战士")
 
     assert_true(actor.should_reschedule(), "Actor should be schedulable")
 
@@ -185,8 +185,8 @@ func test_ctb_manager_basic_scheduling():
 
 ## 测试CTBManager状态信息
 func test_ctb_manager_status_info():
-    var actor1 = SchedulableExample.new("actor1", "战士1")
-    var actor2 = SchedulableExample.new("actor2", "战士2")
+    var actor1 = EventExample.new("actor1", "战士1")
+    var actor2 = EventExample.new("actor2", "战士2")
 
     ctb_manager.schedule_with_delay("actor1", actor1, 5)
     ctb_manager.schedule_with_delay("actor2", actor2, 10)
@@ -195,23 +195,24 @@ func test_ctb_manager_status_info():
     var status_text = ctb_manager.get_status_text()
     assert_true(status_text.contains("CTB系统状态"), "Status should contain system status")
 
-## 测试简单事件类
+## 测试简单事件创建 (使用EventExample)
 func test_simple_event():
-    var event = TestGameWorld.SimpleEvent.new("test_event", "测试事件", 100)
+    var event = TestGameWorld.create_simple_event("test_event", "测试事件")
+    event.trigger_time = 100
 
-    assert_eq(event.id, "test_event", "Event ID should be correct")
-    assert_eq(event.description, "测试事件", "Event description should be correct")
+    assert_eq(event.get_id(), "test_event", "Event ID should be correct")
+    assert_eq(event.get_name(), "测试事件", "Event description should be correct")
     assert_eq(event.trigger_time, 100, "Trigger time should be correct")
-    assert_eq(event.get_type_identifier(), "SimpleEvent", "Type identifier should be correct")
     assert_false(event.should_reschedule(), "Simple event should not reschedule")
 
     var result = event.execute()
-    assert_eq(result, event, "Execute should return the event itself")
+    assert_not_null(result, "Execute should return a valid result")
 
 ## 测试混合调度系统
 func test_mixed_scheduling_system():
-    var actor = SchedulableExample.new("test_actor", "测试战士")
-    var event = TestGameWorld.SimpleEvent.new("test_event", "测试事件", mock_calendar.current_time + 5)
+    var actor = EventExample.new("test_actor", "测试战士")
+    var event = TestGameWorld.create_simple_event("test_event", "测试事件")
+    event.trigger_time = mock_calendar.current_time + 5
 
     ctb_manager.schedule_with_delay("test_actor", actor, 10)
     ctb_manager.schedule_with_delay("test_event", event, 5)

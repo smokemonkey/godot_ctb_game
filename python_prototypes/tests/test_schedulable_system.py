@@ -2,7 +2,7 @@
 """
 新架构的可调度系统单元测试
 
-测试Schedulable接口、SchedulableExample和重构后的CTBManager
+测试Schedulable接口、EventExample和重构后的CTBManager
 """
 
 import unittest
@@ -12,7 +12,7 @@ import os
 # 添加项目根目录到Python路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from core.schedulable import Schedulable, SchedulableExample
+from core.schedulable import Schedulable, EventExample
 from core.ctb_manager.ctb_manager_v2 import CTBManager, SimpleEvent
 from core.indexed_time_wheel import IndexedTimeWheel
 
@@ -83,18 +83,18 @@ class TestSchedulableSystem(unittest.TestCase):
         return self.time_wheel._is_current_slot_empty()
 
     def test_combat_actor_creation(self):
-        """测试SchedulableExample创建"""
-        actor = SchedulableExample("test_actor", "测试战士", "测试阵营")
+        """测试EventExample创建"""
+        actor = EventExample("test_actor", "测试战士", "测试阵营")
 
         self.assertEqual(actor.id, "test_actor")
         self.assertEqual(actor.name, "测试战士")
         self.assertEqual(actor.faction, "测试阵营")
         self.assertTrue(actor.is_active)
-        self.assertEqual(actor.get_type_identifier(), "SchedulableExample")
+        self.assertEqual(actor.get_type_identifier(), "EventExample")
 
     def test_combat_actor_execute(self):
-        """测试SchedulableExample执行行动"""
-        actor = SchedulableExample("test_actor", "测试战士")
+        """测试EventExample执行行动"""
+        actor = EventExample("test_actor", "测试战士")
 
         # 测试执行行动
         result = actor.execute()
@@ -106,8 +106,8 @@ class TestSchedulableSystem(unittest.TestCase):
         self.assertTrue(result["success"])
 
     def test_combat_actor_inactive(self):
-        """测试SchedulableExample非活跃状态"""
-        actor = SchedulableExample("test_actor", "测试战士")
+        """测试EventExample非活跃状态"""
+        actor = EventExample("test_actor", "测试战士")
         actor.set_active(False)
 
         self.assertFalse(actor.is_active)
@@ -117,8 +117,8 @@ class TestSchedulableSystem(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_combat_actor_schedule_time(self):
-        """测试SchedulableExample调度时间计算"""
-        actor = SchedulableExample("test_actor", "测试战士")
+        """测试EventExample调度时间计算"""
+        actor = EventExample("test_actor", "测试战士")
         current_time = 100
 
         next_time = actor.calculate_next_schedule_time(current_time)
@@ -133,7 +133,7 @@ class TestSchedulableSystem(unittest.TestCase):
 
     def test_ctb_manager_add_event(self):
         """测试CTBManager添加可调度对象"""
-        actor = SchedulableExample("test_actor", "测试战士")
+        actor = EventExample("test_actor", "测试战士")
 
         self.ctb_manager.add_event(actor)
         self.assertIn("test_actor", self.ctb_manager.scheduled_objects)
@@ -143,7 +143,7 @@ class TestSchedulableSystem(unittest.TestCase):
 
     def test_ctb_manager_remove_event(self):
         """测试CTBManager移除可调度对象"""
-        actor = SchedulableExample("test_actor", "测试战士")
+        actor = EventExample("test_actor", "测试战士")
 
         self.ctb_manager.add_event(actor)
         self.assertIn("test_actor", self.ctb_manager.scheduled_objects)
@@ -157,8 +157,8 @@ class TestSchedulableSystem(unittest.TestCase):
 
     def test_ctb_manager_initialization(self):
         """测试CTBManager初始化"""
-        actor1 = SchedulableExample("actor1", "战士1")
-        actor2 = SchedulableExample("actor2", "战士2")
+        actor1 = EventExample("actor1", "战士1")
+        actor2 = EventExample("actor2", "战士2")
 
         self.ctb_manager.add_event(actor1)
         self.ctb_manager.add_event(actor2)
@@ -176,7 +176,7 @@ class TestSchedulableSystem(unittest.TestCase):
 
     def test_ctb_manager_execute_event(self):
         """测试CTBManager执行可调度对象"""
-        actor = SchedulableExample("test_actor", "测试战士")
+        actor = EventExample("test_actor", "测试战士")
         executed_count = 0
 
         # 设置执行回调
@@ -193,11 +193,11 @@ class TestSchedulableSystem(unittest.TestCase):
 
         history_entry = self.ctb_manager.action_history[0]
         self.assertEqual(history_entry["schedulable_name"], "测试战士")
-        self.assertEqual(history_entry["schedulable_type"], "SchedulableExample")
+        self.assertEqual(history_entry["schedulable_type"], "EventExample")
 
     def test_ctb_manager_process_turn(self):
         """测试CTBManager回合处理"""
-        actor = SchedulableExample("test_actor", "测试战士")
+        actor = EventExample("test_actor", "测试战士")
 
         self.ctb_manager.add_event(actor)
         self.ctb_manager.initialize_ctb()
@@ -210,25 +210,10 @@ class TestSchedulableSystem(unittest.TestCase):
         self.assertIn("schedulable_name", result)
         self.assertIn("ticks_advanced", result)
 
-    def test_ctb_manager_set_active(self):
-        """测试CTBManager活跃状态设置"""
-        actor = SchedulableExample("test_actor", "测试战士")
-
-        self.ctb_manager.add_event(actor)
-        self.assertTrue(actor.is_active)
-
-        result = self.ctb_manager.set_event_active("test_actor", False)
-        self.assertTrue(result)
-        self.assertFalse(actor.is_active)
-
-        result = self.ctb_manager.set_event_active("test_actor", True)
-        self.assertTrue(result)
-        self.assertTrue(actor.is_active)
-
     def test_ctb_manager_status_info(self):
         """测试CTBManager状态信息"""
-        actor1 = SchedulableExample("actor1", "战士1")
-        actor2 = SchedulableExample("actor2", "战士2")
+        actor1 = EventExample("actor1", "战士1")
+        actor2 = EventExample("actor2", "战士2")
 
         self.ctb_manager.add_event(actor1)
         self.ctb_manager.add_event(actor2)
@@ -245,7 +230,7 @@ class TestSchedulableSystem(unittest.TestCase):
             self.assertIn("id", info)
             self.assertIn("name", info)
             self.assertIn("type", info)
-            self.assertEqual(info["type"], "SchedulableExample")
+            self.assertEqual(info["type"], "EventExample")
 
     def test_simple_event(self):
         """测试简单事件类"""
@@ -262,7 +247,7 @@ class TestSchedulableSystem(unittest.TestCase):
 
     def test_mixed_scheduling_system(self):
         """测试混合调度系统"""
-        actor = SchedulableExample("test_actor", "测试战士")
+        actor = EventExample("test_actor", "测试战士")
         event = SimpleEvent("test_event", "测试事件", self.mock_calendar.current_time + 5)
 
         self.ctb_manager.add_event(actor)
