@@ -74,23 +74,23 @@ class WeatherEvent extends Schedulable:
     func execute() -> Variant:
         print("天气变化: 开始下雨")
         return self
-    
+
     func should_reschedule() -> bool:
         return true
 
 # 添加到CTB系统
 var weather = WeatherEvent.new("weather", "天气系统")
-ctb_manager.add_schedulable(weather)
+ctb_manager.add_event(weather)
 ```
 
 ## 测试体系
 
 ### GDScript测试
-- `../tests/gdscript/test_schedulable_system.gd` - 新架构测试
+- `../tests/gdscript/test_event_system.gd` - 新架构测试
 - `../tests/gdscript/TestGameWorld.gd` - 统一测试协调器
 
 ### Python测试
-- `../python_prototypes/tests/test_schedulable_system.py` - 对应测试
+- `../python_prototypes/tests/test_event_system.py` - 对应测试
 
 ### 集成测试
 - `../scenes/integrated_system_test.tscn` - 可视化集成测试

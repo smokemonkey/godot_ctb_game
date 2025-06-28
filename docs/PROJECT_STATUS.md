@@ -5,7 +5,7 @@
 
 ## 当前状态：🚀 新架构完成 (2025-06-27)
 
-### 重大架构升级 ✅ 完成 
+### 重大架构升级 ✅ 完成
 - **Schedulable接口**: 统一的可调度对象接口，解耦CTB系统
 - **CombatActor系统**: 灵活的战斗角色实现
 - **接口标准化**: Python和GDScript版本完全对应
@@ -43,7 +43,7 @@ func should_reschedule() -> bool:    # 是否重复调度
 ```gdscript
 # 战斗角色示例
 var actor = CombatActor.new("zhang_fei", "张飞", "蜀国")
-ctb_manager.add_schedulable(actor)
+ctb_manager.add_event(actor)
 ctb_manager.initialize_ctb()
 
 # 输出: "角色 张飞 执行行动: 攻击"
@@ -69,7 +69,7 @@ scripts/gdscript/core/
 
 tests/gdscript/
 ├── TestGameWorld.gd            # 统一测试协调器
-├── test_schedulable_system.gd  # Schedulable系统测试
+├── test_event_system.gd  # Schedulable系统测试
 └── IntegratedSystemTest.gd     # UI集成测试
 ```
 
@@ -85,7 +85,7 @@ python_prototypes/core/
 └── (calendar, indexed_time_wheel等保持不变)
 
 tests/
-└── test_schedulable_system.py  # 新架构测试
+└── test_event_system.py  # 新架构测试
 ```
 
 ## 开发进程
@@ -117,8 +117,8 @@ var zhang_fei = CombatActor.new("zhang_fei", "张飞", "蜀国")
 var guan_yu = CombatActor.new("guan_yu", "关羽", "蜀国")
 
 # 添加到CTB系统
-ctb_manager.add_schedulable(zhang_fei)
-ctb_manager.add_schedulable(guan_yu)
+ctb_manager.add_event(zhang_fei)
+ctb_manager.add_event(guan_yu)
 
 # 初始化并运行
 ctb_manager.initialize_ctb()
@@ -133,13 +133,13 @@ class WeatherEvent extends Schedulable:
     func execute() -> Variant:
         print("天气变化: 开始下雨")
         return self
-    
+
     func should_reschedule() -> bool:
         return true  # 天气会重复变化
 
 # 添加到系统
 var weather = WeatherEvent.new("weather", "天气系统")
-ctb_manager.add_schedulable(weather)
+ctb_manager.add_event(weather)
 ```
 
 ## 运行方式

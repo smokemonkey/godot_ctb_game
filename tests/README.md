@@ -9,7 +9,7 @@ tests/
 ├── README.md           # This file
 ├── gdscript/          # GDScript tests (primary)
 │   ├── TestGameWorld.gd            # Unified test coordinator
-│   ├── test_schedulable_system.gd  # New architecture tests
+│   ├── test_event_system.gd  # New architecture tests
 │   └── CSHARP_MAPPING.md          # Historical mapping (deprecated)
 ├── test_scene.tscn     # Visual GUT test runner scene (if used)
 └── run_gut_tests.gd    # Project status checker
@@ -27,7 +27,7 @@ This project uses **GDScript-first testing** with Python reference implementatio
 ## New Architecture Testing
 
 ### Schedulable System Tests
-- **Location**: `gdscript/test_schedulable_system.gd`
+- **Location**: `gdscript/test_event_system.gd`
 - **Coverage**: Schedulable interface, CombatActor, CTBManager v2
 - **Features**: Interface testing, character actions, mixed scheduling
 
@@ -51,7 +51,7 @@ godot --headless --script run_gut_tests.gd
 ### Python Reference Tests
 ```bash
 cd python_prototypes
-python3 tests/test_schedulable_system.py
+python3 tests/test_event_system.py
 # All 13 tests should pass ✅
 ```
 
@@ -67,10 +67,10 @@ python3 tests/test_schedulable_system.py
 ```gdscript
 extends "res://addons/gut/test.gd"  # If using GUT
 
-func test_custom_schedulable():
+func test_custom_event():
     # Create custom schedulable
     var weather = WeatherEvent.new("weather", "天气系统")
-    
+
     # Test interface implementation
     assert_not_null(weather.execute())
     assert_true(weather.should_reschedule())
@@ -82,30 +82,30 @@ func test_custom_schedulable():
 func test_mixed_scheduling():
     var actor = CombatActor.new("test", "测试角色")
     var event = SimpleEvent.new("event", "测试事件")
-    
-    ctb_manager.add_schedulable(actor)
-    ctb_manager.add_schedulable(event)
-    
+
+    ctb_manager.add_event(actor)
+    ctb_manager.add_event(event)
+
     assert_eq(ctb_manager.scheduled_objects.size(), 2)
 ```
 
 ## Test Organization
 
 ### Current Test Files
-- `test_schedulable_system.gd` - New architecture comprehensive tests
+- `test_event_system.gd` - New architecture comprehensive tests
 - `TestGameWorld.gd` - Unified test coordinator for integration
-- Python: `test_schedulable_system.py` - Reference implementation tests
+- Python: `test_event_system.py` - Reference implementation tests
 
 ### Test Categories
 1. **Interface Tests**: Schedulable abstract methods
-2. **Implementation Tests**: CombatActor specific functionality  
+2. **Implementation Tests**: CombatActor specific functionality
 3. **System Tests**: CTBManager operations
 4. **Integration Tests**: Multiple objects working together
 
 ## Python Reference Testing
 
 Python tests serve as algorithmic reference:
-- **Location**: `../python_prototypes/tests/test_schedulable_system.py`
+- **Location**: `../python_prototypes/tests/test_event_system.py`
 - **Framework**: unittest
 - **Status**: 13/13 tests passing ✅
 - **Purpose**: Validate architecture before GDScript implementation

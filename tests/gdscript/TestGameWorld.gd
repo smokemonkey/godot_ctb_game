@@ -6,22 +6,22 @@ class SimpleEvent extends Schedulable:
     func _init(p_id: String, p_description: String, p_trigger_time: int):
         super._init(p_id, p_description, p_description)
         trigger_time = p_trigger_time
-    
+
     func execute() -> Variant:
         print("执行事件: %s" % description)
         return self
-    
+
     func calculate_next_schedule_time(current_time: int) -> int:
         return current_time  # 简单事件不重复
-    
+
     func should_reschedule() -> bool:
         return false
-    
+
     func get_type_identifier() -> String:
         return "SimpleEvent"
 
 ## 统一的游戏世界测试协调器 - GDScript版本
-## 
+##
 ## 这个类将Calendar、IndexedTimeWheel和CTBManager整合为一个
 ## 统一的测试接口，简化了集成测试。
 
@@ -39,13 +39,13 @@ signal systems_updated()
 func _init(time_wheel_size: int = 0):
     # 如果没有指定大小，使用配置中的默认值
     var actual_size = time_wheel_size if time_wheel_size > 0 else ConfigManager.ctb_time_wheel_buffer_size
-    
+
     # 初始化日历
     calendar = Calendar.new()
-    
+
     # 初始化时间轮，使用日历的获取时间方法
     time_wheel = IndexedTimeWheel.new(actual_size, calendar.get_timestamp)
-    
+
     # 初始化CTB管理器，连接到时间轮
     ctb_manager = CTBManager.new(
         calendar.get_timestamp,          # get_time_callback
@@ -56,7 +56,7 @@ func _init(time_wheel_size: int = 0):
         _pop_callback,                   # pop_callback
         _is_slot_empty_callback          # is_slot_empty_callback
     )
-    
+
     # 连接CTB管理器的事件执行回调
     ctb_manager.on_event_executed = _on_event_executed
 
@@ -93,7 +93,7 @@ func _on_event_executed(event) -> void:
         description = event._to_string()
     else:
         description = str(event)
-    
+
     event_executed.emit(description)
     systems_updated.emit()
 
@@ -117,10 +117,10 @@ var current_era_time: String:
 ## 推进时间
 func advance_time(hours: int) -> Dictionary:
     var initial_time = current_time
-    
+
     for i in range(hours):
         calendar.advance_time_tick()
-        
+
         # 检查是否有事件需要从future pool移动到主时间轮
         if not time_wheel._is_current_slot_empty():
             # 处理当前时间槽的所有事件
@@ -128,15 +128,15 @@ func advance_time(hours: int) -> Dictionary:
                 var event_data = time_wheel.pop_due_event()
                 if not event_data.is_empty():
                     var event = event_data["value"]
-                    ctb_manager._execute_schedulable(event)
-        
+                    ctb_manager._execute_event(event)
+
         # 推进时间轮
         time_wheel.advance_wheel()
-    
+
     var hours_advanced = current_time - initial_time
     time_advanced.emit(hours_advanced)
     systems_updated.emit()
-    
+
     return {
         "hours_advanced": hours_advanced,
         "current_time": current_time,
@@ -148,7 +148,7 @@ func advance_to_next_event(max_hours: int = 100) -> Dictionary:
     var initial_time = current_time
     var events_executed = []
     var hours_advanced = 0
-    
+
     # 最多推进max_hours小时寻找事件
     while hours_advanced < max_hours:
         if not time_wheel._is_current_slot_empty():
@@ -157,19 +157,19 @@ func advance_to_next_event(max_hours: int = 100) -> Dictionary:
                 var event_data = time_wheel.pop_due_event()
                 if not event_data.is_empty():
                     var event = event_data["value"]
-                    ctb_manager._execute_schedulable(event)
+                    ctb_manager._execute_event(event)
                     events_executed.append(str(event))
             break
-        
+
         # 推进一小时
         calendar.advance_time_tick()
         time_wheel.advance_wheel()
         hours_advanced += 1
-    
+
     if events_executed.size() > 0:
         time_advanced.emit(hours_advanced)
         systems_updated.emit()
-    
+
     return {
         "hours_advanced": hours_advanced,
         "events_executed": events_executed,
@@ -212,7 +212,7 @@ func reset() -> void:
     # 重新初始化时间轮
     var buffer_size = time_wheel._buffer_size
     time_wheel = IndexedTimeWheel.new(buffer_size, calendar.get_timestamp)
-    
+
     # 重新初始化CTB管理器
     ctb_manager = CTBManager.new(
         calendar.get_timestamp,
@@ -224,7 +224,7 @@ func reset() -> void:
         _is_slot_empty_callback
     )
     ctb_manager.on_event_executed = _on_event_executed
-    
+
     systems_updated.emit()
 
 ## 清空所有事件
@@ -232,14 +232,14 @@ func clear_all_events() -> void:
     # 重新创建时间轮以清空所有事件
     var buffer_size = time_wheel._buffer_size
     time_wheel = IndexedTimeWheel.new(buffer_size, calendar.get_timestamp)
-    
+
     # 重新连接CTB管理器
     ctb_manager._schedule_callback = _schedule_callback
     ctb_manager._remove_callback = _remove_callback
     ctb_manager._peek_callback = _peek_callback
     ctb_manager._pop_callback = _pop_callback
     ctb_manager._is_slot_empty_callback = _is_slot_empty_callback
-    
+
     systems_updated.emit()
 
 ## 获取即将到来的事件
