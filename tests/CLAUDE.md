@@ -18,7 +18,7 @@ Testing-specific guidance for this project.
 - `mocks/ConfigManagerMock.gd` - Mock configuration for tests
 
 **Scenes**
-- `test_scene.tscn` - Static test runner UI
+- `run_tests.sh` - Quick test execution script
 - `test_runner.gd` - Test execution controller
 
 ## MockConfig Usage

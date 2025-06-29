@@ -41,7 +41,7 @@ Godot 4.4 turn-based game with GDScript (primary), legacy C#, and Python prototy
 "/mnt/d/Godot/Godot_v4.4.1-stable_mono_win64_console.exe" --path . res://scenes/integrated_system_test.tscn
 
 # Unit tests  
-"/mnt/d/Godot/Godot_v4.4.1-stable_mono_win64_console.exe" --path . res://tests/test_scene.tscn
+./run_tests.sh
 
 # Direct script test
 "/mnt/d/Godot/Godot_v4.4.1-stable_mono_win64_console.exe" --path . --script tests/run_tests.gd

@@ -11,7 +11,7 @@ tests/
 │   ├── TestGameWorld.gd            # Unified test coordinator
 │   ├── test_event_system.gd  # New architecture tests
 │   └── CSHARP_MAPPING.md          # Historical mapping (deprecated)
-├── test_scene.tscn     # Visual GUT test runner scene (if used)
+├── run_tests.sh        # Quick test execution script
 └── run_gut_tests.gd    # Project status checker
 ```
 
@@ -28,7 +28,7 @@ This project uses **GDScript-first testing** with Python reference implementatio
 
 ### Schedulable System Tests
 - **Location**: `gdscript/test_event_system.gd`
-- **Coverage**: Schedulable interface, SchedulableExample, CTBManager v2
+- **Coverage**: Schedulable interface, EventExample, CTBManager v2
 - **Features**: Interface testing, character actions, mixed scheduling
 
 ### Key Test Cases
@@ -79,7 +79,7 @@ func test_custom_event():
 ### For CTB Integration
 ```gdscript
 func test_mixed_scheduling():
-    var actor = SchedulableExample.new("test", "测试角色")
+    var actor = EventExample.new("test", "测试角色")
     var event = SimpleEvent.new("event", "测试事件")
 
     ctb_manager.add_event(actor)
@@ -97,7 +97,7 @@ func test_mixed_scheduling():
 
 ### Test Categories
 1. **Interface Tests**: Schedulable abstract methods
-2. **Implementation Tests**: SchedulableExample specific functionality
+2. **Implementation Tests**: EventExample specific functionality
 3. **System Tests**: CTBManager operations
 4. **Integration Tests**: Multiple objects working together
 
