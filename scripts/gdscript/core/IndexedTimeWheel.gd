@@ -248,7 +248,9 @@ func peek_upcoming_events(count: int, max_hours: int = -1) -> Array[Dictionary]:
     _lock.lock()
 
     var events: Array[Dictionary] = []
+    # 限制搜索范围不超过buffer_size，避免重复访问同一槽位
     var hours_to_search = max_hours if max_hours > 0 else _buffer_size
+    hours_to_search = min(hours_to_search, _buffer_size)
 
     # 遍历指定小时数的槽位
     for i in range(hours_to_search):

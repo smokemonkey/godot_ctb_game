@@ -61,7 +61,7 @@ func _ready():
     # 更新显示
     update_all_displays()
 
-    # 添加初始测试事件
+    # 添加初始测试事件（注释掉自动添加，改为手动添加）
     add_initial_test_events()
 
 func setup_ui_styling():
@@ -141,8 +141,10 @@ func create_colored_style_box(color: Color) -> StyleBoxFlat:
 
 # 所有其他方法与原版相同，只是不需要创建UI
 func add_initial_test_events():
-    for character_name in character_names:
-        test_world.add_example_event(character_name, character_name, "测试阵营")
+    # for character_name in character_names:
+    #     var actor = test_world.add_example_event(character_name, character_name, "测试阵营")
+    #     # 禁用自动重调度，避免执行后自动重新出现
+    #     actor.reschedule_enabled = false
     test_world.initialize_ctb()
     test_world.schedule_event("季节变化", "春季到来", 200)
     test_world.schedule_event("节日庆典", "中秋节庆典", 300)
@@ -245,9 +247,10 @@ func on_clear_all():
 
 func update_ctb_queue():
     for child in ctb_events_list.get_children():
+        ctb_events_list.remove_child(child)
         child.queue_free()
 
-    var upcoming_events = test_world.get_upcoming_events(15, 20)
+    var upcoming_events = test_world.get_upcoming_events(15, 180*24)
     if upcoming_events.size() == 0:
         var no_events_label = Label.new()
         no_events_label.text = "暂无待执行行动"
@@ -342,8 +345,10 @@ func update_calendar_status():
 
 func update_time_wheel_inspector():
     for child in wheel_events_list.get_children():
+        wheel_events_list.remove_child(child)
         child.queue_free()
     for child in future_events_list.get_children():
+        future_events_list.remove_child(child)
         child.queue_free()
 
     var stats_label = Label.new()
