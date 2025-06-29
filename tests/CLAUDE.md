@@ -13,13 +13,12 @@ Testing-specific guidance for this project.
 
 **gdscript/** - GDScript unit tests
 - `test_calendar.gd` - Calendar system tests
-- `test_ctb_manager.gd` - CTB battle system tests  
+- `test_ctb_manager.gd` - CTB battle system tests
 - `test_time_wheel.gd` - IndexedTimeWheel tests
 - `mocks/ConfigManagerMock.gd` - Mock configuration for tests
 
 **Scenes**
 - `run_tests.sh` - Quick test execution script
-- `test_runner.gd` - Test execution controller
 
 ## MockConfig Usage
 

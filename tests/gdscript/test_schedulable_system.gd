@@ -200,8 +200,8 @@ func test_simple_event():
     var event = TestGameWorld.create_simple_event("test_event", "测试事件")
     event.trigger_time = 100
 
-    assert_eq(event.get_id(), "test_event", "Event ID should be correct")
-    assert_eq(event.get_name(), "测试事件", "Event description should be correct")
+    assert_eq(event.id, "test_event", "Event ID should be correct")
+    assert_eq(event.name, "测试事件", "Event description should be correct")
     assert_eq(event.trigger_time, 100, "Trigger time should be correct")
     assert_false(event.should_reschedule(), "Simple event should not reschedule")
 
