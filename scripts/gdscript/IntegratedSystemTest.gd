@@ -47,19 +47,19 @@ var character_names = ["张飞", "关羽", "刘备", "曹操", "孙权"]
 
 func _ready():
     print("Initializing GDScript Integrated System Test (Static UI)")
-    
+
     # 设置UI样式
     setup_ui_styling()
-    
+
     # 初始化系统
     initialize_systems()
-    
+
     # 连接按钮信号
     connect_signals()
-    
+
     # 更新显示
     update_all_displays()
-    
+
     # 添加初始测试事件
     add_initial_test_events()
 
@@ -68,11 +68,11 @@ func setup_ui_styling():
     ctb_title.add_theme_stylebox_override("normal", create_colored_style_box(Color(0.2, 0.3, 0.5)))
     ctb_title.add_theme_color_override("font_color", Color.WHITE)
     ctb_title.add_theme_font_size_override("font_size", 18)
-    
+
     current_time_label.add_theme_stylebox_override("normal", create_colored_style_box(Color(0.1, 0.5, 0.2)))
     current_time_label.add_theme_color_override("font_color", Color.WHITE)
     current_time_label.add_theme_font_size_override("font_size", 16)
-    
+
     time_wheel_title.add_theme_stylebox_override("normal", create_colored_style_box(Color(0.5, 0.2, 0.3)))
     time_wheel_title.add_theme_color_override("font_color", Color.WHITE)
     time_wheel_title.add_theme_font_size_override("font_size", 18)
@@ -80,30 +80,30 @@ func setup_ui_styling():
 func initialize_systems():
     # 初始化测试世界
     test_world = TestGameWorld.new()
-    
+
     # 订阅事件
     test_world.event_executed.connect(_on_event_executed)
     test_world.time_advanced.connect(_on_time_advanced)
     test_world.systems_updated.connect(_on_systems_updated)
-    
+
     print("TestGameWorld initialized - Calendar: ", test_world.current_calendar_time)
 
 func connect_signals():
     # CTB按钮
     add_action_button.pressed.connect(on_add_random_action)
     execute_action_button.pressed.connect(on_execute_next_action)
-    
+
     # 时间控制按钮
     advance_hour_button.pressed.connect(func(): advance_time(1))
     advance_day_button.pressed.connect(func(): advance_time(24))
     advance_week_button.pressed.connect(func(): advance_time(168))
     advance_month_button.pressed.connect(func(): advance_time(720))
-    
+
     # 日历控制按钮
     anchor_button.pressed.connect(on_anchor_era)
     change_era_button.pressed.connect(on_change_era)
     reset_button.pressed.connect(on_reset_calendar)
-    
+
     # 测试按钮
     basic_test_button.pressed.connect(on_basic_test)
     combat_test_button.pressed.connect(on_combat_test)
@@ -140,7 +140,7 @@ func create_colored_style_box(color: Color) -> StyleBoxFlat:
 # 所有其他方法与原版相同，只是不需要创建UI
 func add_initial_test_events():
     for character_name in character_names:
-        test_world.add_example_actor(character_name, character_name, "测试阵营")
+        test_world.add_example_event(character_name, character_name, "测试阵营")
     test_world.initialize_ctb()
     test_world.schedule_event("季节变化", "春季到来", 200)
     test_world.schedule_event("节日庆典", "中秋节庆典", 300)
@@ -155,10 +155,10 @@ func on_add_random_action():
     var actions = ["攻击", "防御", "技能", "移动", "休息"]
     var action = actions[randi() % actions.size()]
     var delay = randi_range(1, 50)
-    
+
     var event_key = "%s_%s_%d" % [character, action, Time.get_ticks_msec()]
     var event_value = "%s执行%s" % [character, action]
-    
+
     test_world.schedule_event(event_key, event_value, delay)
     add_ctb_log_entry("已安排: %s (延迟%d小时)" % [event_value, delay], false)
 
@@ -220,8 +220,8 @@ func on_clear_all():
 func update_ctb_queue():
     for child in ctb_events_list.get_children():
         child.queue_free()
-    
-    var upcoming_events = test_world.get_upcoming_events(20, 15)
+
+    var upcoming_events = test_world.get_upcoming_events(15, 20)
     if upcoming_events.size() == 0:
         var no_events_label = Label.new()
         no_events_label.text = "暂无待执行行动"
@@ -230,21 +230,21 @@ func update_ctb_queue():
         no_events_label.modulate = Color(0.7, 0.7, 0.7)
         ctb_events_list.add_child(no_events_label)
         return
-    
+
     for i in range(upcoming_events.size()):
         var event_tuple = upcoming_events[i]
         var key = event_tuple[0]
         var value = event_tuple[1]
-        
+
         var event_container = HBoxContainer.new()
         var position_label = Label.new()
         position_label.text = "%02d" % (i + 1)
         position_label.custom_minimum_size = Vector2(30, 0)
-        
+
         var event_label = Label.new()
         event_label.text = str(value)
         event_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-        
+
         if i == 0:
             event_label.add_theme_stylebox_override("normal", create_colored_style_box(Color(1.0, 0.7, 0, 0.6)))
             event_label.add_theme_color_override("font_color", Color.BLACK)
@@ -253,7 +253,7 @@ func update_ctb_queue():
             if intensity < 0.4: intensity = 0.4
             event_label.add_theme_stylebox_override("normal", create_colored_style_box(Color(0.3, 0.5, 0.8, intensity * 0.4)))
             event_label.add_theme_color_override("font_color", Color(1, 1, 1, intensity))
-        
+
         event_container.add_child(position_label)
         event_container.add_child(event_label)
         ctb_events_list.add_child(event_container)
@@ -263,26 +263,26 @@ func add_ctb_log_entry(message: String, is_executed: bool):
     log_label.text = "📝 %s" % message
     log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     log_label.add_theme_font_size_override("font_size", 12)
-    
+
     if is_executed:
         log_label.modulate = Color(0, 0.8, 0)
     else:
         log_label.modulate = Color(0.8, 0.8, 0.8)
-    
+
     ctb_events_list.add_child(log_label)
-    
+
     # 限制日志条目数量
     var log_entries = 0
     for child in ctb_events_list.get_children():
         if child is Label and child.text.begins_with("📝"):
             log_entries += 1
-    
+
     if log_entries > 5:
         for child in ctb_events_list.get_children():
             if child is Label and child.text.begins_with("📝"):
                 child.queue_free()
                 break
-    
+
     call_deferred("scroll_ctb_to_bottom")
 
 func scroll_ctb_to_bottom():
@@ -306,12 +306,12 @@ func update_calendar_status():
     status_text += "月份: %s, 日期: %s\n" % [time_info["month"], time_info["day_in_month"]]
     status_text += "年内第 %s 天\n" % time_info["day_in_year"]
     status_text += "当前纪年: %s\n" % (time_info["current_era_name"] if time_info["current_era_name"] else "无")
-    
+
     if time_info.has("current_anchor") and time_info["current_anchor"] != null:
         var anchor = time_info["current_anchor"]
         if anchor.size() >= 2:
             status_text += "锚定: %s元年 = 公元%s年" % [anchor[0], anchor[1]]
-    
+
     calendar_status_label.text = status_text
 
 func update_time_wheel_inspector():
@@ -319,16 +319,16 @@ func update_time_wheel_inspector():
         child.queue_free()
     for child in future_events_list.get_children():
         child.queue_free()
-    
+
     var stats_label = Label.new()
     stats_label.text = "总事件: %d | 有事件: %s | 当前槽空: %s" % [
-        test_world.event_count, 
+        test_world.event_count,
         "是" if test_world.has_any_events else "否",
         "是" if test_world.is_current_slot_empty else "否"
     ]
     wheel_events_list.add_child(stats_label)
-    
-    var upcoming_events = test_world.get_upcoming_events(50, 30)
+
+    var upcoming_events = test_world.get_upcoming_events(30, 50)
     if upcoming_events.size() > 0:
         for event_tuple in upcoming_events:
             var key = event_tuple[0]
@@ -341,7 +341,7 @@ func update_time_wheel_inspector():
         var no_events_label = Label.new()
         no_events_label.text = "暂无即将到来的事件"
         wheel_events_list.add_child(no_events_label)
-    
+
     var future_info_label = Label.new()
     future_info_label.text = "系统状态: %s" % test_world.get_status_summary()
     future_events_list.add_child(future_info_label)

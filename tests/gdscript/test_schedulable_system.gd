@@ -44,8 +44,8 @@ func _remove_callback(key: String) -> bool:
     var removed = time_wheel.remove(key)
     return removed != null
 
-func _peek_callback(count: int, max_events: int) -> Array:
-    var upcoming = time_wheel.peek_upcoming_events(count, max_events)
+func _peek_callback(count: int, max_hours: int) -> Array:
+    var upcoming = time_wheel.peek_upcoming_events(count, max_hours)
     var result = []
     for event_dict in upcoming:
         result.append({"key": event_dict["key"], "value": event_dict["value"]})

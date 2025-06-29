@@ -21,13 +21,13 @@ class EventNode:
     var value: Variant
     var slot_index: int  # When slot_index == -1, it indicates the event is in the _future_events list
     var absolute_hour: int
-    
+
     func _init(p_key: Variant, p_value: Variant, p_slot_index: int, p_absolute_hour: int = -1):
         key = p_key
         value = p_value
         slot_index = p_slot_index
         absolute_hour = p_absolute_hour
-    
+
     func _to_string() -> String:
         return "EventNode(Key=%s, Value=%s)" % [key, value]
 
@@ -51,17 +51,17 @@ func _init(buffer_size: int, get_time_callback: Callable):
     if buffer_size <= 0:
         push_error("Time wheel size must be positive.")
         return
-    
+
     _buffer_size = buffer_size
     _get_time_callback = get_time_callback
-    
+
     # Initialize slots
     _slots = []
     _slots.resize(_buffer_size)
     for i in range(_buffer_size):
         _slots[i] = []
     _offset = 0
-    
+
     _index = {}
     _future_events = []
     _lock = Mutex.new()
@@ -73,9 +73,9 @@ func _schedule_internal(key: Variant, value: Variant, delay: int, now: int) -> v
     # 1. 已经持有 lock 锁内。
     # 2. key 的唯一性和 delay 的非负性已经由调用方保证。
     # 3. now 是当前刚刚获取的当前时间。
-    
+
     var absolute_hour = now + delay
-    
+
     if delay >= _buffer_size:
         # 存储到未来事件
         var node = EventNode.new(key, value, -1, absolute_hour)
@@ -91,7 +91,7 @@ func _schedule_internal(key: Variant, value: Variant, delay: int, now: int) -> v
 ## 根据延迟后调度事件，这是一个线程安全的包装方法
 func schedule_with_delay(key: Variant, value: Variant, delay: int) -> void:
     _lock.lock()
-    
+
     if _index.has(key):
         _lock.unlock()
         push_error("Key '%s' already exists." % key)
@@ -100,17 +100,17 @@ func schedule_with_delay(key: Variant, value: Variant, delay: int) -> void:
         _lock.unlock()
         push_error("Delay must be non-negative.")
         return
-    
+
     var now = _get_time_callback.call()
     _schedule_internal(key, value, delay, now)
-    
+
     _lock.unlock()
     # TODO: Notify UI to re-render after data changes.
 
 ## 在指定的绝对时间点安排事件，修复了原有的静态方法命名错误。
 func schedule_at_absolute_hour(key: Variant, value: Variant, absolute_hour: int) -> void:
     _lock.lock()
-    
+
     var now = _get_time_callback.call()
     if absolute_hour < now:
         _lock.unlock()
@@ -120,10 +120,10 @@ func schedule_at_absolute_hour(key: Variant, value: Variant, absolute_hour: int)
         _lock.unlock()
         push_error("Key '%s' already exists." % key)
         return
-    
+
     var delay = absolute_hour - now
     _schedule_internal(key, value, delay, now)
-    
+
     _lock.unlock()
     # TODO: Notify UI to re-render after data changes.
 
@@ -139,7 +139,7 @@ func _insert_future_event(absolute_hour: int, node: EventNode) -> void:
         if _future_events[i][0] <= absolute_hour:
             insert_index = i + 1
             break
-    
+
     # Insert at the correct position to maintain sort order.
     _future_events.insert(insert_index, [absolute_hour, node])
 
@@ -151,16 +151,16 @@ func _is_current_slot_empty() -> bool:
 ## Returns a Dictionary with 'key' and 'value', or null if the current slot is empty.
 func pop_due_event() -> Dictionary:
     _lock.lock()
-    
+
     if _is_current_slot_empty():
         _lock.unlock()
         return {}
-    
+
     var node_to_pop: EventNode = _slots[_offset][0]
     _slots[_offset].pop_front()
-    
+
     _index.erase(node_to_pop.key)
-    
+
     _lock.unlock()
     # TODO: Notify UI to re-render after data changes.
     return {"key": node_to_pop.key, "value": node_to_pop.value}
@@ -168,15 +168,15 @@ func pop_due_event() -> Dictionary:
 ## Advances the time wheel state: updates the offset and moves upcoming future events into the main wheel.
 func advance_wheel() -> void:
     _lock.lock()
-    
+
     if not _is_current_slot_empty():
         _lock.unlock()
         push_error("Cannot advance wheel: current slot is not empty.")
         return
-    
+
     # Advance the offset by one position
     _offset = (_offset + 1) % _buffer_size
-    
+
     # Check if any future events need to be moved to the main wheel
     # Since the list is sorted by absolute_hour, we only need to check the first element
     # Only move events when they are within the range of current_time + buffer_size - 1
@@ -185,31 +185,31 @@ func advance_wheel() -> void:
         var future_event = _future_events.pop_front()
         var absolute_hour = future_event[0]
         var node: EventNode = future_event[1]
-        
+
         assert(absolute_hour == time_threshold, "This event should have been handled earlier.")
-        
+
         # Insert the due future event into the farthest slot of the time wheel (offset - 1)
         # This way, the event will be triggered at the correct time as the wheel turns
         var target_index = (_offset - 1 + _buffer_size) % _buffer_size
         node.slot_index = target_index
         _insert_to_wheel(node, target_index)
-    
-    assert(_future_events.size() == 0 or _future_events[0][0] > _get_time_callback.call(), 
+
+    assert(_future_events.size() == 0 or _future_events[0][0] > _get_time_callback.call(),
            "Future events are not correctly ordered.")
-    
+
     _lock.unlock()
 
 ## Removes an event from the time wheel or the future events list.
 ## Returns the value of the removed event, or null if the key is not found.
 func remove(key: Variant) -> Variant:
     _lock.lock()
-    
+
     if not _index.has(key):
         _lock.unlock()
         return null
-    
+
     var node_to_remove: EventNode = _index[key]
-    
+
     # Case 1: Event is in the future pool, remove it directly from the list
     if node_to_remove.slot_index == -1:
         # Remove from the future events list
@@ -224,9 +224,9 @@ func remove(key: Variant) -> Variant:
             if slot_events[i].key == key:
                 slot_events.remove_at(i)
                 break
-    
+
     _index.erase(key)
-    
+
     _lock.unlock()
     # TODO: Notify UI to re-render after data changes.
     return node_to_remove.value
@@ -237,36 +237,45 @@ func remove(key: Variant) -> Variant:
 ## It may return imprecise or incomplete event data for UI convenience.
 ## The game loop should use advance_wheel() and pop_due_event().
 ##
-## Returns an Array of Dictionaries, each containing 'key' and 'value' of an upcoming event.
-func peek_upcoming_events(count: int, max_events: int = -1) -> Array[Dictionary]:
+## Returns up to 'count' upcoming events within 'max_hours' time range
+## Parameters:
+##   count: Maximum number of events to return
+##   max_hours: Maximum hours to search (-1 for all available slots)
+func peek_upcoming_events(count: int, max_hours: int = -1) -> Array[Dictionary]:
+    if count <= 0:
+        return []
+
     _lock.lock()
-    
+
     var events: Array[Dictionary] = []
-    for i in range(count):
+    var hours_to_search = max_hours if max_hours > 0 else _buffer_size
+
+    # 遍历指定小时数的槽位
+    for i in range(hours_to_search):
         var index = (_offset + i) % _buffer_size
         var current_nodes = _slots[index]
+
         for node in current_nodes:
             events.append({"key": node.key, "value": node.value})
-        
-        if max_events > 0 and events.size() >= max_events:
-            var result = events.slice(0, max_events)
-            _lock.unlock()
-            return result
-    
+            # 达到指定事件数量就返回
+            if events.size() >= count:
+                var result = events.slice(0, count)
+                _lock.unlock()
+                return result
+
     _lock.unlock()
-    # TODO: In extreme cases, read events from _future_events as well.
     return events
 
 ## Gets the value of a scheduled event by its key.
 ## Returns the value of the event, or null if not found.
 func get_event(key: Variant) -> Variant:
     _lock.lock()
-    
+
     if _index.has(key):
         var result = _index[key].value
         _lock.unlock()
         return result
-    
+
     _lock.unlock()
     return null
 

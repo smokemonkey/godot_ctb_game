@@ -71,8 +71,8 @@ func _remove_callback(key: String) -> bool:
     var removed = time_wheel.remove(key)
     return removed != null
 
-func _peek_callback(count: int, max_events: int) -> Array:
-    var upcoming = time_wheel.peek_upcoming_events(count, max_events)
+func _peek_callback(count: int, max_hours: int) -> Array:
+    var upcoming = time_wheel.peek_upcoming_events(count, max_hours)
     var result = []
     for event_dict in upcoming:
         result.append({"key": event_dict["key"], "value": event_dict["value"]})
@@ -243,8 +243,11 @@ func clear_all_events() -> void:
     systems_updated.emit()
 
 ## 获取即将到来的事件
-func get_upcoming_events(hours: int, max_events: int = -1) -> Array:
-    var upcoming = time_wheel.peek_upcoming_events(hours, max_events)
+## 参数：
+##   count: 最多返回多少个事件
+##   max_hours: 查看多少小时内的事件（-1表示查看所有槽位）
+func get_upcoming_events(count: int, max_hours: int = -1) -> Array:
+    var upcoming = time_wheel.peek_upcoming_events(count, max_hours)
     var result = []
     for event_dict in upcoming:
         result.append([event_dict["key"], event_dict["value"]])
