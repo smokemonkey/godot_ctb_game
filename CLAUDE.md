@@ -13,7 +13,7 @@ Claude Code (claude.ai/code) guidance for this repository.
 
 ## Project Overview
 
-Godot 4.4 turn-based game with GDScript (primary), legacy C#, and Python prototypes:
+Godot 4.4 turn-based game with GDScript (primary) and legacy C#:
 - Custom calendar (360 days/year, 24 hours/day)  
 - CTB battle system with indexed time wheel
 - Static UI scenes for editor visibility
@@ -29,8 +29,6 @@ Godot 4.4 turn-based game with GDScript (primary), legacy C#, and Python prototy
 - Location: `scripts/csharp/` - To be phased out
 - Status: Disabled in project.godot
 
-**Python Prototypes**
-- Location: `python_prototypes/` - For rapid prototyping only
 
 ## Development Commands
 
@@ -50,10 +48,6 @@ Godot 4.4 turn-based game with GDScript (primary), legacy C#, and Python prototy
 # NEVER add --headless to console version
 ```
 
-**Python Tests**
-```bash
-cd python_prototypes && python3 run_tests.py
-```
 
 ## Code Conventions
 
@@ -104,7 +98,6 @@ cd python_prototypes && python3 run_tests.py
 - `scripts/CLAUDE.md` - Resource reference patterns, GDScript conventions
 - `tests/CLAUDE.md` - Testing approaches, MockConfig usage patterns  
 - `scenes/CLAUDE.md` - Scene structure, static UI patterns
-- `python_prototypes/CLAUDE.md` - Python testing and prototyping
 
 ## Documentation Maintenance
 
