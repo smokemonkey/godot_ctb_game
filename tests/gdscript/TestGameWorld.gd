@@ -33,7 +33,7 @@ signal systems_updated()
 ## 初始化测试世界
 func _init(time_wheel_size: int = 0):
     # 如果没有指定大小，使用配置中的默认值
-    var default_size = 180  # 默认缓冲区大小
+    var default_size = 180 * 24 # 默认缓冲区大小
     if ConfigManager != null and ConfigManager.config != null:
         default_size = ConfigManager.ctb_time_wheel_buffer_size
     var actual_size = time_wheel_size if time_wheel_size > 0 else default_size
@@ -276,8 +276,10 @@ func clear_all_events() -> void:
 func get_upcoming_events(count: int, max_hours: int = -1) -> Array:
     var upcoming = time_wheel.peek_upcoming_events(count, max_hours)
     var result = []
+    var current_time = calendar.get_timestamp()
     for event_dict in upcoming:
-        result.append([event_dict["key"], event_dict["value"]])
+        var delay_hours = event_dict["trigger_time"] - current_time
+        result.append([event_dict["key"], event_dict["value"], delay_hours])
     return result
 
 ## 获取日历信息

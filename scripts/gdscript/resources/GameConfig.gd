@@ -14,7 +14,7 @@ class_name GameConfig
 
 @export_group("CTB System", "ctb_")
 ## 时间轮缓冲区大小（小时）
-@export var ctb_time_wheel_buffer_size: int = 180
+@export var ctb_time_wheel_buffer_size: int = 180 * 24
 ## 角色行动间隔最小值（天）
 @export var ctb_action_delay_min_days: int = 1
 ## 角色行动间隔最大值（天）
@@ -62,7 +62,7 @@ func validate() -> bool:
     if display_month_names.size() != 12:
         push_error("display_month_names must contain exactly 12 month names")
         return false
-    
+
     return true
 
 ## 获取配置摘要文本

@@ -258,7 +258,10 @@ func peek_upcoming_events(count: int, max_hours: int = -1) -> Array[Dictionary]:
         var current_nodes = _slots[index]
 
         for node in current_nodes:
-            events.append({"key": node.key, "value": node.value})
+            if not "trigger_time" in node.value:
+                push_error("Event object missing trigger_time: %s" % node.key)
+            var trigger_time = node.value.trigger_time
+            events.append({"key": node.key, "value": node.value, "trigger_time": trigger_time})
             # 达到指定事件数量就返回
             if events.size() >= count:
                 var result = events.slice(0, count)

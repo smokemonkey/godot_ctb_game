@@ -148,7 +148,12 @@ func add_initial_test_events():
     test_world.initialize_ctb()
     test_world.schedule_event("季节变化", "春季到来", 200)
     test_world.schedule_event("节日庆典", "中秋节庆典", 300)
+    test_world.schedule_event("远期事件1", "远期事件1", 180 * 24)
+    test_world.schedule_event("远期事件2", "远期事件2", 180 * 24 + 100)
     print("Initial test actors and events added via TestGameWorld")
+
+    # 更新显示以反映添加的事件
+    update_all_displays()
 
 func advance_time(hours: int):
     var result = test_world.advance_time(hours)
@@ -264,6 +269,7 @@ func update_ctb_queue():
         var event_tuple = upcoming_events[i]
         var key = event_tuple[0]
         var value = event_tuple[1]
+        var delay_hours = event_tuple[2]
 
         var event_container = HBoxContainer.new()
         var position_label = Label.new()
@@ -271,7 +277,7 @@ func update_ctb_queue():
         position_label.custom_minimum_size = Vector2(30, 0)
 
         var event_label = Label.new()
-        event_label.text = str(value)
+        event_label.text = "%s (+%dh)" % [str(value).split(" [")[0], delay_hours]
         event_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
         if i == 0:
@@ -359,13 +365,14 @@ func update_time_wheel_inspector():
     ]
     wheel_events_list.add_child(stats_label)
 
-    var upcoming_events = test_world.get_upcoming_events(30, 50)
+    var upcoming_events = test_world.get_upcoming_events(15, 180 * 24)
     if upcoming_events.size() > 0:
         for event_tuple in upcoming_events:
             var key = event_tuple[0]
             var value = event_tuple[1]
+            var delay_hours = event_tuple[2]
             var event_label = Label.new()
-            event_label.text = "🎯 %s: %s" % [key, value]
+            event_label.text = "🎯 %s (+%dh)" % [str(value).split(" [")[0], delay_hours]
             event_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
             wheel_events_list.add_child(event_label)
     else:
