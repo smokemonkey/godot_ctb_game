@@ -23,7 +23,8 @@ var test_world
 
 # 按钮引用
 @onready var add_action_button: Button = $MainContainer/LeftPanel/ButtonsContainer/AddActionButton
-@onready var execute_action_button: Button = $MainContainer/LeftPanel/ButtonsContainer/ExecuteActionButton
+@onready var execute_current_button: Button = $MainContainer/LeftPanel/ButtonsContainer/ExecuteCurrentButton
+@onready var advance_to_next_button: Button = $MainContainer/LeftPanel/ButtonsContainer/AdvanceToNextButton
 
 @onready var advance_hour_button: Button = $MainContainer/CenterPanel/ControlsContainer/TimeGroup/TimeButtonRow1/AdvanceHourButton
 @onready var advance_day_button: Button = $MainContainer/CenterPanel/ControlsContainer/TimeGroup/TimeButtonRow1/AdvanceDayButton
@@ -91,7 +92,8 @@ func initialize_systems():
 func connect_signals():
     # CTB按钮
     add_action_button.pressed.connect(on_add_random_action)
-    execute_action_button.pressed.connect(on_execute_next_action)
+    execute_current_button.pressed.connect(on_execute_current_action)
+    advance_to_next_button.pressed.connect(on_advance_to_next_action)
 
     # 时间控制按钮
     advance_hour_button.pressed.connect(func(): advance_time(1))
@@ -149,6 +151,11 @@ func add_initial_test_events():
 func advance_time(hours: int):
     var result = test_world.advance_time(hours)
     print("Advanced time: ", result.summary)
+    if result.stopped_for_event:
+        add_ctb_log_entry("⚠️ %s" % result.summary, false)
+    else:
+        add_ctb_log_entry("⏰ %s" % result.summary, false)
+    update_all_displays()  # 更新显示
 
 func on_add_random_action():
     var character = character_names[randi() % character_names.size()]
@@ -161,15 +168,27 @@ func on_add_random_action():
 
     test_world.schedule_event(event_key, event_value, delay)
     add_ctb_log_entry("已安排: %s (延迟%d小时)" % [event_value, delay], false)
+    update_all_displays()  # 更新显示
 
-func on_execute_next_action():
-    var result = test_world.advance_to_next_event(10)
-    if result.events_executed.size() > 0:
-        add_ctb_log_entry("执行了 %d 个事件" % result.events_executed.size(), false)
-    elif result.hours_advanced > 0:
-        add_ctb_log_entry("推进了 %d 小时寻找事件" % result.hours_advanced, false)
+func on_execute_current_action():
+    # 执行当前到期事件，不推进时间（一次只执行一个事件）
+    var result = test_world.execute_due_event()
+    if result.found_event:
+        add_ctb_log_entry("已执行: %s" % result.event_executed, true)
+        update_all_displays()  # 更新显示
     else:
-        add_ctb_log_entry("没有找到任何事件", false)
+        add_ctb_log_entry("当前没有到期事件", false)
+
+func on_advance_to_next_action():
+    # 推进到下一个事件但不执行
+    var result = test_world.advance_to_next_event(10000)
+    if result.hours_advanced > 0:
+        add_ctb_log_entry("推进了 %d 小时到达下一个事件" % result.hours_advanced, false)
+        update_all_displays()  # 更新显示
+    elif result.found_event:
+        add_ctb_log_entry("当前就有到期事件", false)
+    else:
+        add_ctb_log_entry("在 %d 小时内没有找到任何事件" % 10000, false)
 
 func on_anchor_era():
     if era_name_input.text.strip_edges() != "" and anchor_year_input.text.is_valid_int():
@@ -179,6 +198,7 @@ func on_anchor_era():
         add_ctb_log_entry("锚定纪元: %s元年 = 公元%d年" % [era_name, year], false)
         era_name_input.text = ""
         anchor_year_input.text = ""
+        update_all_displays()  # 更新显示
 
 func on_change_era():
     if new_era_input.text.strip_edges() != "":
@@ -186,10 +206,12 @@ func on_change_era():
         test_world.start_new_era(era_name)
         add_ctb_log_entry("改元: %s元年 = 当前年份" % era_name, false)
         new_era_input.text = ""
+        update_all_displays()  # 更新显示
 
 func on_reset_calendar():
     test_world.reset()
     add_ctb_log_entry("游戏世界已重置", false)
+    update_all_displays()  # 更新显示
 
 func on_basic_test():
     add_ctb_log_entry("开始基础测试...", false)
@@ -197,6 +219,7 @@ func on_basic_test():
     test_world.schedule_event("基础测试2", "基础事件2", 5)
     test_world.schedule_event("基础测试3", "基础事件3", 2)
     add_ctb_log_entry("基础测试事件已安排", false)
+    update_all_displays()  # 更新显示
 
 func on_combat_test():
     add_ctb_log_entry("开始战斗测试...", false)
@@ -205,6 +228,7 @@ func on_combat_test():
         var delay = randi_range(1, 20)
         test_world.schedule_event("%s_combat" % character, "%s战斗行动" % character, delay)
     add_ctb_log_entry("战斗测试场景已创建", false)
+    update_all_displays()  # 更新显示
 
 func on_long_term_test():
     add_ctb_log_entry("开始长期事件测试...", false)
@@ -212,10 +236,12 @@ func on_long_term_test():
     test_world.schedule_event("收获节", "秋收庆典", 400)
     test_world.schedule_event("年终", "年终总结", 500)
     add_ctb_log_entry("长期事件已安排到远期池", false)
+    update_all_displays()  # 更新显示
 
 func on_clear_all():
     test_world.clear_all_events()
     add_ctb_log_entry("所有事件已清空", false)
+    update_all_displays()  # 更新显示
 
 func update_ctb_queue():
     for child in ctb_events_list.get_children():

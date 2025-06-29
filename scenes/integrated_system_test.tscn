@@ -49,10 +49,15 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "添加行动"
 
-[node name="ExecuteActionButton" type="Button" parent="MainContainer/LeftPanel/ButtonsContainer"]
+[node name="ExecuteCurrentButton" type="Button" parent="MainContainer/LeftPanel/ButtonsContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "执行行动"
+text = "执行当前行动"
+
+[node name="AdvanceToNextButton" type="Button" parent="MainContainer/LeftPanel/ButtonsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "推进到下一个行动"
 
 [node name="CenterPanel" type="VBoxContainer" parent="MainContainer"]
 custom_minimum_size = Vector2(450, 0)

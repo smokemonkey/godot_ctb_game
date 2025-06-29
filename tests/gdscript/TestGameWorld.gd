@@ -112,51 +112,16 @@ var current_era_time: String:
     get:
         return calendar.format_date_era(true)
 
-## 推进时间
+## 推进时间（遇到事件时停下）
 func advance_time(hours: int) -> Dictionary:
     var initial_time = current_time
+    var hours_advanced = 0
+    var stopped_for_event = false
 
     for i in range(hours):
-        calendar.advance_time_tick()
-
-        # 检查是否有事件需要从future pool移动到主时间轮
+        # 先检查当前槽是否有事件
         if not time_wheel._is_current_slot_empty():
-            # 处理当前时间槽的所有事件
-            while not time_wheel._is_current_slot_empty():
-                var event_data = time_wheel.pop_due_event()
-                if not event_data.is_empty():
-                    var event = event_data["value"]
-                    ctb_manager._execute_event(event)
-
-        # 推进时间轮
-        time_wheel.advance_wheel()
-
-    var hours_advanced = current_time - initial_time
-    time_advanced.emit(hours_advanced)
-    systems_updated.emit()
-
-    return {
-        "hours_advanced": hours_advanced,
-        "current_time": current_time,
-        "summary": "推进了%d小时" % hours_advanced
-    }
-
-## 推进到下一个事件
-func advance_to_next_event(max_hours: int = 100) -> Dictionary:
-    var initial_time = current_time
-    var events_executed = []
-    var hours_advanced = 0
-
-    # 最多推进max_hours小时寻找事件
-    while hours_advanced < max_hours:
-        if not time_wheel._is_current_slot_empty():
-            # 执行当前槽的所有事件
-            while not time_wheel._is_current_slot_empty():
-                var event_data = time_wheel.pop_due_event()
-                if not event_data.is_empty():
-                    var event = event_data["value"]
-                    ctb_manager._execute_event(event)
-                    events_executed.append(str(event))
+            stopped_for_event = true
             break
 
         # 推进一小时
@@ -164,13 +129,75 @@ func advance_to_next_event(max_hours: int = 100) -> Dictionary:
         time_wheel.advance_wheel()
         hours_advanced += 1
 
-    if events_executed.size() > 0:
+        # 推进后再次检查是否有新事件到期
+        if not time_wheel._is_current_slot_empty():
+            stopped_for_event = true
+            break
+
+    if hours_advanced > 0:
+        time_advanced.emit(hours_advanced)
+        systems_updated.emit()
+
+    var summary = ""
+    if stopped_for_event:
+        summary = "推进了%d小时后遇到事件，已停止" % hours_advanced
+    else:
+        summary = "推进了%d小时" % hours_advanced
+
+    return {
+        "hours_advanced": hours_advanced,
+        "current_time": current_time,
+        "stopped_for_event": stopped_for_event,
+        "summary": summary
+    }
+
+## 推进到下一个事件（不执行事件）
+func advance_to_next_event(max_hours: int = 100) -> Dictionary:
+    var initial_time = current_time
+    var hours_advanced = 0
+    var found_event = false
+
+    # 最多推进max_hours小时寻找事件
+    while hours_advanced < max_hours:
+        if not time_wheel._is_current_slot_empty():
+            # 找到事件，停止推进，不执行事件
+            found_event = true
+            break
+
+        # 推进一小时
+        calendar.advance_time_tick()
+        time_wheel.advance_wheel()
+        hours_advanced += 1
+
+    if hours_advanced > 0:
         time_advanced.emit(hours_advanced)
         systems_updated.emit()
 
     return {
         "hours_advanced": hours_advanced,
-        "events_executed": events_executed,
+        "found_event": found_event,
+        "current_time": current_time
+    }
+
+## 执行当前到期事件（不推进时间，一次只执行一个事件）
+func execute_due_event() -> Dictionary:
+    var event_executed = ""
+    var current_time = calendar.get_timestamp()
+    var found_event = false
+
+    # 只执行当前槽的一个事件
+    if not time_wheel._is_current_slot_empty():
+        var event_data = time_wheel.pop_due_event()
+        if not event_data.is_empty():
+            var event = event_data["value"]
+            ctb_manager._execute_event(event)
+            event_executed = str(event)
+            found_event = true
+            systems_updated.emit()
+
+    return {
+        "event_executed": event_executed,
+        "found_event": found_event,
         "current_time": current_time
     }
 
