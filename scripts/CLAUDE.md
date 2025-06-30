@@ -38,6 +38,8 @@ extends Refs.Schedulable            # Syntax error
 
 **gdscript/** (Primary Implementation)
 - `core/` - Core game systems (Calendar, CTBManager, IndexedTimeWheel)
+- `actionables/` - Schedulable game entities (Faction, House)
+- `entities/character/` - Three-layer character system (Template/Instance/Runtime)
 - `resources/` - Resource classes (GameConfig)
 - `shared/interfaces/` - Interface definitions (Schedulable)
 - `development/` - Development examples (EventExample)
@@ -47,7 +49,26 @@ extends Refs.Schedulable            # Syntax error
 - Status: Disabled in project.godot
 - Will be removed in future cleanup
 
-## Recent Changes (2025-06-28)
+## Recent Changes (2025-06-30)
+
+**Character System Restructure**
+- Moved Character system from `actionables/` to new `entities/character/` directory
+- Created three-layer character architecture:
+  - `CharacterTemplate.gd`: Static historical data with Jomini compatibility
+  - `CharacterInstance.gd`: Deterministic game-start generation
+  - `Character.gd`: Full runtime state management
+- Character no longer implements Schedulable interface
+- Updated folder structure to reflect new organization
+
+## Previous Changes (2025-06-29)
+
+**Game Entity System Added**
+- Created `actionables/` folder for Schedulable game entities
+- Faction.gd: Political entities with diplomacy, resources, and house management
+- House.gd: Schedulable family units that manage Characters and execute faction activities
+- All entities use direct preload pattern for dependencies
+
+## Previous Changes (2025-06-28)
 
 **References.gd Abandoned**
 - Attempted central reference system failed due to GDScript syntax limitations

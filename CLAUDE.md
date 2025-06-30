@@ -22,6 +22,7 @@ Godot 4.4 turn-based game with GDScript (primary) and legacy C#:
 
 **GDScript (Primary)**
 - Core: `scripts/gdscript/core/` - Calendar, CTBManager, IndexedTimeWheel
+- Actionables: `scripts/gdscript/actionables/` - Faction, Character, House (Schedulable entities)
 - UI: `scenes/integrated_system_test.tscn` - Static scene with full UI
 - Tests: `tests/gdscript/` - Uses MockConfig, not real resources
 
@@ -66,13 +67,43 @@ Godot 4.4 turn-based game with GDScript (primary) and legacy C#:
 
 ## Key Files
 
+**Core System**
 - `scenes/integrated_system_test.tscn` - Main test interface (static)
 - `run_tests.sh` - Quick test execution script
 - `tests/gdscript/mocks/ConfigManagerMock.gd` - Mock for tests
 - `scripts/gdscript/IntegratedSystemTest.gd` - Main test controller
 - `addons/gut/gut_cmdln.gd` - GUT command line runner
 
-## Recent Changes (2025-06-28)
+**Game Entities**
+- `scripts/gdscript/actionables/Faction.gd` - Political entities with diplomacy system
+- `scripts/gdscript/actionables/House.gd` - Schedulable family units managing Characters
+- `scripts/gdscript/entities/character/` - Three-layer character system (Template/Instance/Runtime)
+
+## Recent Changes (2025-06-30)
+
+**Character System Restructure**
+- Moved Character system from `actionables/` to new `entities/character/` directory
+- Implemented three-layer character system:
+  - **CharacterTemplate**: Static historical data, Jomini-compatible
+  - **CharacterInstance**: Deterministic game-start generation
+  - **Character**: Full runtime state with relationships and activities
+- Character no longer implements Schedulable (House remains the only actionable entity)
+
+**P社兼容性策略**
+- Planned Jomini syntax support for attracting Paradox mod creators
+- Plaintext data approach following P社design philosophy
+- Development priority: Core logic → Data plaintext → Format compatibility
+- Support for multi-phase character definitions (e.g., Mordred as son OR nephew)
+
+## Previous Changes (2025-06-29)
+
+**Game Entity System Implementation**
+- Added Faction class for political entities with diplomacy and resource management
+- Added House class extending Schedulable with Character management and CTB integration
+- Houses can be scheduled by CTB system to perform faction activities
+- Complete entity hierarchy: Faction → House (Schedulable) → Character
+
+## Previous Changes (2025-06-28)
 
 **Static Scene Conversion**
 - Converted dynamic UI to static Godot scenes

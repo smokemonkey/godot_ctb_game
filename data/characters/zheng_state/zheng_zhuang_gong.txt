@@ -1,0 +1,255 @@
+# 郑庄公 - 春秋小霸主，"春秋第一人"
+# 历史人物：春秋时期重要诸侯，可在游戏中登场
+# 史料来源：《左传》、《史记·郑世家》
+
+zheng_zhuang_gong = {
+    # 基础身份
+    historical_name = "郑庄公"
+    personal_name = "寤生"           # 本名
+    template_id = "zheng_zhuang_001"
+    dynasty_id = "zheng_ducal_house"
+    culture = "zhou_chinese"
+    religion = "zhou_ancestral_worship"
+    
+    # 明确的历史时间
+    birth_year = -757               # 公元前757年
+    death_year = -701               # 公元前701年，在位43年
+    
+    # 血缘关系：史料明确
+    father_id = "zheng_wu_gong"     # 郑武公
+    mother_id = "wu_jiang"          # 武姜
+    spouse_ids = ["zheng_zhuang_wife"]
+    children_ids = ["zheng_li_gong", "gong_zi_tu", "gong_zi_duan"]
+    
+    # 历史确认特质
+    confirmed_traits = [
+        "ambitious",                # 雄心勃勃
+        "strategic_genius",         # 战略天才
+        "filial_controversy",       # 孝道争议
+        "territorial_expansionist", # 领土扩张者
+        "zhou_vassal_rebel"        # 反叛周王室
+    ]
+    
+    legendary_titles = [
+        "duke_of_zheng",           # 郑公
+        "spring_autumn_hegemon",   # 春秋霸主
+        "first_of_spring_autumn"   # 春秋第一人
+    ]
+    
+    # 能力值：基于史料记载
+    abilities = {
+        diplomacy = 16,            # 史料明确：外交高手
+        martial = 18,              # 史料明确：军事天才
+        stewardship = 15,          # 史料记载：善于治国
+        intrigue = 19,             # 史料明确：权谋大师
+        learning = 12,             # 一般文治水平
+        prowess = 14               # 个人武勇中等
+    }
+    
+    # 能力值史料可靠性
+    ability_reliability = {
+        intrigue = { source = "zuo_zhuan", confidence = 0.95 }
+        martial = { source = "zuo_zhuan", confidence = 0.9 }
+        diplomacy = { source = "historical_records", confidence = 0.85 }
+        stewardship = { source = "zuo_zhuan", confidence = 0.8 }
+        learning = { source = "inference", confidence = 0.6 }
+        prowess = { source = "speculation", confidence = 0.4 }
+    }
+    
+    # 历史不确定性元数据
+    historical_uncertainty = {
+        existence_probability = 1.0        # 历史存在确定无疑
+        source_reliability = 0.9           # 《左传》等史料可靠
+        anachronism_risk = 0.1            # 时代错误风险很低
+        mythologization_degree = 0.2       # 轻微神话化
+    }
+    
+    # 重要历史事件
+    historical_events = [
+        "brother_rebellion_suppression",   # 平定共叔段之乱
+        "zhou_king_confrontation",         # 与周王室对抗
+        "territorial_expansion",           # 领土扩张战争
+        "diplomatic_maneuvering",          # 外交权谋
+        "mother_relationship_crisis"       # 与母亲武姜的冲突
+    ]
+    
+    # 多相位关系：母子关系的史学争议
+    relationship_uncertainty = true
+    possible_relationship_interpretations = {
+        wu_jiang_hatred = {
+            weight = 70
+            trait = "unloved_son"
+            source = "zuo_zhuan"
+            description = "武姜偏爱次子共叔段，厌恶庄公"
+        }
+        wu_jiang_reconciliation = {
+            weight = 30  
+            trait = "filial_son"
+            source = "later_interpretation"
+            description = "后期母子和解，庄公表现孝道"
+        }
+    }
+    
+    # 游戏中可用
+    genealogy_only = false             # 可在游戏中使用
+    playable_character = true          # 可操作角色
+    cultural_significance = "high"      # 文化重要性高
+    
+    # 政治特性
+    political_traits = {
+        state_type = "duchy"           # 公国统治者
+        vassal_status = "rebellious"   # 叛逆的封臣
+        expansion_focus = "aggressive" # 激进扩张
+        succession_method = "primogeniture"  # 长子继承
+    }
+    
+    # 军事特长
+    military_specialties = [
+        "siege_warfare",              # 攻城战
+        "diplomatic_warfare",         # 外交战
+        "internal_suppression",       # 内乱镇压
+        "border_conflicts"            # 边境冲突
+    ]
+    
+    # 外交关系网络
+    diplomatic_relations = {
+        zhou_royal_house = "hostile"   # 与周王室敌对
+        song_state = "complex"         # 与宋国关系复杂
+        lu_state = "competitive"       # 与鲁国竞争
+        qi_state = "neutral"          # 与齐国中性
+    }
+    
+    # 家族内部动态
+    family_dynamics = {
+        mother_relationship = "strained"        # 与母亲关系紧张
+        brother_relationship = "hostile"        # 与弟弟共叔段敌对
+        son_relationship = "authoritative"      # 对儿子权威
+        succession_planning = "problematic"     # 继承规划有问题
+    }
+    
+    # Jomini扩展标记
+    character_type = "major_historical_figure"
+    game_impact = "high_influence"
+    historical_period = "spring_autumn"
+    faction_affiliation = "zheng_state"
+    
+    # 特殊游戏机制
+    unique_events = [
+        "gong_shu_duan_rebellion",     # 共叔段之乱事件
+        "zhou_royal_confrontation",    # 与周王对峙事件
+        "mother_son_reconciliation",   # 母子和解事件
+        "territorial_consolidation"    # 领土整合事件
+    ]
+    
+    # 死后影响
+    legacy_effects = {
+        zheng_state_power = 3          # 提升郑国国力
+        spring_autumn_precedent = true # 开创春秋争霸先例  
+        diplomatic_innovation = 2       # 外交创新影响
+        family_conflict_example = true # 家族内斗典型案例
+    }
+}
+
+# 相关重要人物
+gong_shu_duan = {
+    historical_name = "共叔段"
+    personal_name = "段"
+    template_id = "zheng_gong_shu_duan_001"
+    father_id = "zheng_wu_gong"
+    mother_id = "wu_jiang"
+    
+    # 与哥哥郑庄公的关系
+    sibling_relationship = "hostile_rival"
+    
+    abilities = {
+        diplomacy = 12
+        martial = 14
+        stewardship = 10
+        intrigue = 15        # 善于阴谋
+        learning = 8
+        prowess = 13
+    }
+    
+    confirmed_traits = [
+        "ambitious",
+        "mother_favored", 
+        "fraternal_rival",
+        "rebellion_leader"
+    ]
+    
+    # 注定的失败结局
+    predetermined_events = [
+        {
+            year = -722
+            type = "rebellion_failure"
+            probability = 1.0
+            description = "共叔段之乱失败，流亡"
+        }
+    ]
+    
+    playable_character = true
+    cultural_significance = "medium"
+    faction_affiliation = "zheng_state"
+}
+
+wu_jiang = {
+    historical_name = "武姜"
+    template_id = "zheng_wu_jiang_001"
+    spouse_ids = ["zheng_wu_gong"]
+    children_ids = ["zheng_zhuang_gong", "gong_shu_duan"]
+    
+    # 复杂的母子关系
+    family_preference = "second_son"   # 偏爱次子
+    
+    abilities = {
+        diplomacy = 14
+        intrigue = 16        # 善于宫廷政治
+        stewardship = 8
+        learning = 6
+        prowess = 2
+    }
+    
+    confirmed_traits = [
+        "manipulative_mother",
+        "family_discord_source",
+        "political_schemer"
+    ]
+    
+    playable_character = false    # 作为背景人物存在
+    cultural_significance = "medium"
+    faction_affiliation = "zheng_state"
+}
+
+zheng_wu_gong = {
+    historical_name = "郑武公"
+    template_id = "zheng_wu_gong_001"
+    father_id = "zheng_huan_gong"
+    spouse_ids = ["wu_jiang"]
+    children_ids = ["zheng_zhuang_gong", "gong_shu_duan"]
+    
+    # 郑国的开拓者
+    abilities = {
+        diplomacy = 15
+        martial = 16
+        stewardship = 14
+        intrigue = 12
+        learning = 10
+        prowess = 13
+    }
+    
+    confirmed_traits = [
+        "state_builder",
+        "territorial_expander",
+        "diplomatic_innovator"
+    ]
+    
+    # 为郑庄公的崛起奠定基础
+    legacy_effects = {
+        zheng_foundation = true
+        territorial_base = 2
+    }
+    
+    playable_character = true
+    cultural_significance = "high"
+    faction_affiliation = "zheng_state"
+}

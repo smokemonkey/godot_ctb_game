@@ -1,0 +1,111 @@
+# 后稷 - 农业始祖，周王室血脉源头
+# 神话人物：只存在于家族树中，不会在任何一局游戏中登场
+# 史料来源：《诗经·大雅·生民》、《史记·周本纪》
+
+hou_ji = {
+    # 基础身份
+    historical_name = "后稷"
+    template_id = "legendary_hou_ji_001"
+    dynasty_id = "legendary_zhou_ancestors"
+    culture = "proto_zhou"
+    religion = "ancient_chinese_shamanism"
+    
+    # 神话时代：时间不确定
+    birth_year = -2200    # 约公元前22世纪，传说时代
+    death_year = -1       # 神话人物，死期不详
+    
+    # 血缘关系：神话血统
+    father_id = "emperor_ku"      # 帝喾
+    mother_id = "jiang_yuan"      # 姜嫄
+    spouse_ids = []               # 史料无记载
+    children_ids = ["bu_ku"]      # 不窋，周族后代
+    
+    # 神话身份确认
+    confirmed_traits = [
+        "agricultural_deity",     # 农业神
+        "grain_lord",            # 谷神
+        "zhou_ancestor",         # 周族始祖
+        "heaven_blessed"         # 天赐神童
+    ]
+    
+    legendary_titles = [
+        "lord_of_agriculture",   # 农师
+        "grain_god",            # 稷神
+        "zhou_progenitor"       # 周祖
+    ]
+    
+    # 能力值：神话人物的特殊定义
+    abilities = {
+        diplomacy = -8,         # 史料不详，推测一般
+        martial = 0,            # 完全无记载
+        stewardship = 20,       # 史料明确：农业管理天才
+        intrigue = 0,           # 神话时代无此概念
+        learning = 18,          # 史料明确：发明农业技术
+        prowess = 0             # 非军事人物
+    }
+    
+    # 能力值史料可靠性
+    ability_reliability = {
+        stewardship = { source = "shijing_daya", confidence = 0.9 }
+        learning = { source = "historical_records", confidence = 0.8 }
+        diplomacy = { source = "speculation", confidence = 0.2 }
+    }
+    
+    # 历史不确定性元数据
+    historical_uncertainty = {
+        existence_probability = 0.1        # 极可能是神话人物
+        source_reliability = 0.3           # 神话传说为主
+        anachronism_risk = 0.9            # 时代错误风险极高
+        mythologization_degree = 0.95     # 高度神话化
+    }
+    
+    # 历史事件记录
+    historical_events = [
+        "divine_birth_from_footprint",    # 踩巨人足迹而生
+        "abandoned_three_times",          # 三次被弃
+        "taught_agriculture",             # 教民稼穑
+        "appointed_by_yao",              # 尧帝册封
+        "established_sacrifice"           # 建立祭祀制度
+    ]
+    
+    # 特殊标记：家族树专用
+    genealogy_only = true              # 仅用于家族谱系
+    playable_character = false         # 不可在游戏中使用
+    cultural_significance = "extreme"   # 文化重要性极高
+    
+    # 后代影响
+    bloodline_effects = {
+        agricultural_bonus = 2          # 后代农业能力加成
+        divine_legitimacy = true        # 神圣血统合法性
+        zhou_royal_claim = true         # 周王室血统声明
+    }
+    
+    # Jomini扩展标记
+    character_type = "mythical_ancestor"
+    game_impact = "genealogy_only"
+    historical_period = "pre_history"
+    faction_affiliation = "legendary_ancestors"
+}
+
+# 相关家族成员定义
+bu_ku = {
+    historical_name = "不窋"
+    template_id = "legendary_bu_ku_001"
+    father_id = "hou_ji"
+    
+    # 继承父亲的农业天赋，但能力下降（神话→传说过渡）
+    abilities = {
+        stewardship = 16        # 继承农业才能但有所衰减
+        learning = 14          # 仍有文明传承能力
+        diplomacy = -10        # 史料更加不详
+    }
+    
+    historical_uncertainty = {
+        existence_probability = 0.2     # 比父亲稍微可信
+        mythologization_degree = 0.8   # 神话化程度稍低
+    }
+    
+    genealogy_only = true
+    playable_character = false
+    faction_affiliation = "legendary_ancestors"
+}
