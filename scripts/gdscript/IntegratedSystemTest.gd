@@ -5,14 +5,19 @@ extends Control
 
 # 预加载TestGameWorld类
 const TestGameWorld = preload("res://tests/gdscript/TestGameWorld.gd")
+const AnimatedList = preload("res://scripts/gdscript/ui/AnimatedList.gd")
 
 # 统一测试协调器
 var test_world
+# 防止循环更新
+var _updating_ctb = false
+# 退出标志
+var _exiting = false
 
 # UI组件引用 - 使用@onready连接到静态节点
 @onready var ctb_title: Label = $MainContainer/LeftPanel/CTBTitle
 @onready var ctb_scroll_container: ScrollContainer = $MainContainer/LeftPanel/CTBScrollContainer
-@onready var ctb_events_list: VBoxContainer = $MainContainer/LeftPanel/CTBScrollContainer/CTBEventsList
+@onready var animated_ctb_list: AnimatedList = $MainContainer/LeftPanel/CTBScrollContainer/AnimatedCTBList
 
 @onready var current_time_label: Label = $MainContainer/CenterPanel/CurrentTimeLabel
 @onready var calendar_status_label: Label = $MainContainer/CenterPanel/CalendarStatusLabel
@@ -48,7 +53,7 @@ var character_names = ["张飞", "关羽", "刘备", "曹操", "孙权"]
 
 func _ready():
     print("Initializing GDScript Integrated System Test (Static UI)")
-
+    
     # 设置UI样式
     setup_ui_styling()
 
@@ -63,6 +68,13 @@ func _ready():
 
     # 添加初始测试事件（注释掉自动添加，改为手动添加）
     add_initial_test_events()
+
+func _input(event):
+    if event is InputEventKey and event.pressed:
+        if event.keycode == KEY_ESCAPE:
+            print("Exiting...")
+            _exiting = true
+            get_tree().quit()
 
 func setup_ui_styling():
     # 设置标题样式
@@ -87,7 +99,25 @@ func initialize_systems():
     test_world.time_advanced.connect(_on_time_advanced)
     test_world.systems_updated.connect(_on_systems_updated)
 
+    # 初始化动画CTB队列
+    setup_animated_ctb_list()
+
     print("TestGameWorld initialized - Calendar: ", test_world.current_calendar_time)
+
+func setup_animated_ctb_list():
+    if not animated_ctb_list:
+        push_error("AnimatedCTBList not found in scene")
+        return
+    
+    # 配置动画列表
+    animated_ctb_list.set_item_layout(42.0, 4.0)  # 项目高度42px，间距4px
+    animated_ctb_list.set_animation_speed(200.0)  # 动画速度200px/s
+    
+    # 连接信号
+    animated_ctb_list.item_animation_finished.connect(_on_ctb_item_animation_finished)
+    animated_ctb_list.all_animations_finished.connect(_on_ctb_all_animations_finished)
+    
+    print("Animated CTB list setup complete")
 
 func connect_signals():
     # CTB按钮
@@ -119,7 +149,17 @@ func _on_time_advanced(hours: int):
     add_ctb_log_entry("时间推进了 %d 小时" % hours, false)
 
 func _on_systems_updated():
-    call_deferred("update_all_displays")
+    if not _exiting:
+        call_deferred("update_all_displays")
+
+func _on_ctb_item_animation_finished(item):
+    # 单个动画完成时的回调
+    pass
+
+func _on_ctb_all_animations_finished():
+    # 所有动画完成时的回调
+    print("All CTB animations finished")
+
 
 func create_colored_style_box(color: Color) -> StyleBoxFlat:
     var style_box = StyleBoxFlat.new()
@@ -138,6 +178,7 @@ func create_colored_style_box(color: Color) -> StyleBoxFlat:
     style_box.content_margin_left = 12
     style_box.content_margin_right = 12
     return style_box
+
 
 # 所有其他方法与原版相同，只是不需要创建UI
 func add_initial_test_events():
@@ -251,73 +292,167 @@ func on_clear_all():
     update_all_displays()  # 更新显示
 
 func update_ctb_queue():
-    for child in ctb_events_list.get_children():
-        ctb_events_list.remove_child(child)
-        child.queue_free()
-
+    if not animated_ctb_list or _updating_ctb or _exiting:
+        return
+    
+    _updating_ctb = true
+    
+    # 获取即将到来的事件
     var upcoming_events = test_world.get_upcoming_events(15, 180*24)
+    
     if upcoming_events.size() == 0:
+        # 清空所有项目并添加"暂无事件"提示
+        animated_ctb_list.clear_all_items()
+        var no_events_data = {
+            "key": "no_events",
+            "value": "暂无待执行行动",
+            "trigger_time": test_world.current_time,
+            "original_trigger_time": test_world.current_time
+        }
         var no_events_label = Label.new()
         no_events_label.text = "暂无待执行行动"
         no_events_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
         no_events_label.add_theme_font_size_override("font_size", 14)
         no_events_label.modulate = Color(0.7, 0.7, 0.7)
-        ctb_events_list.add_child(no_events_label)
+        no_events_label.custom_minimum_size = Vector2(280, 38)
+        animated_ctb_list.add_animated_item(no_events_data, no_events_label)
+    else:
+        # 转换事件数据格式
+        var event_data_array = []
+        for i in range(upcoming_events.size()):
+            var event_tuple = upcoming_events[i]
+            var key = event_tuple[0]
+            var value = event_tuple[1]
+            var delay_hours = event_tuple[2]
+            var trigger_time = test_world.current_time + delay_hours
+            
+            var event_data = {
+                "key": key,
+                "value": value,
+                "trigger_time": trigger_time,
+                "original_trigger_time": trigger_time
+            }
+            event_data_array.append(event_data)
+        
+        # 更新AnimatedList
+        animated_ctb_list.update_items_from_data(event_data_array)
+        
+        # 为新项目创建UI控件，为现有项目更新显示
+        for item in animated_ctb_list.items:
+            var position_index = animated_ctb_list.items.find(item)
+            if item.get_child_count() == 0:  # 新项目没有子控件
+                var event_data = item.get_data()
+                var control = create_ctb_item_control(event_data, position_index)
+                item.add_child(control)
+            else:
+                # 更新现有项目的显示
+                update_ctb_item_display(item, position_index)
+    
+    _updating_ctb = false
+
+## 创建CTB项目的UI控件
+func create_ctb_item_control(event_data: Dictionary, position_index: int) -> Control:
+    var event_container = HBoxContainer.new()
+    event_container.custom_minimum_size = Vector2(280, 38)
+    event_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    
+    var position_label = Label.new()
+    position_label.text = "%02d" % (position_index + 1)
+    position_label.custom_minimum_size = Vector2(30, 0)
+    position_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    
+    var event_label = Label.new()
+    var value_str = str(event_data.value).split(" [")[0] if "value" in event_data else "未知事件"
+    var delay_hours = event_data.get("trigger_time", 0) - test_world.current_time
+    event_label.text = "%s (+%dh)" % [value_str, delay_hours]
+    event_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    event_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    
+    # 设置样式 - 只有第一个且到期的事件才高亮
+    if position_index == 0 and delay_hours <= 0:
+        # 到期的第一个事件：橙色高亮
+        event_label.add_theme_stylebox_override("normal", create_colored_style_box(Color(1.0, 0.7, 0, 0.6)))
+        event_label.add_theme_color_override("font_color", Color.BLACK)
+    else:
+        # 其他事件：蓝色渐变
+        var intensity = 1.0 - (position_index * 0.1)
+        if intensity < 0.4: intensity = 0.4
+        event_label.add_theme_stylebox_override("normal", create_colored_style_box(Color(0.3, 0.5, 0.8, intensity * 0.4)))
+        event_label.add_theme_color_override("font_color", Color(1, 1, 1, intensity))
+    
+    event_container.add_child(position_label)
+    event_container.add_child(event_label)
+    
+    return event_container
+
+## 更新现有CTB项目的显示（时间和颜色）
+func update_ctb_item_display(item: AnimatedListItem, position_index: int):
+    if item.get_child_count() == 0:
         return
-
-    for i in range(upcoming_events.size()):
-        var event_tuple = upcoming_events[i]
-        var key = event_tuple[0]
-        var value = event_tuple[1]
-        var delay_hours = event_tuple[2]
-
-        var event_container = HBoxContainer.new()
-        var position_label = Label.new()
-        position_label.text = "%02d" % (i + 1)
-        position_label.custom_minimum_size = Vector2(30, 0)
-
-        var event_label = Label.new()
-        event_label.text = "%s (+%dh)" % [str(value).split(" [")[0], delay_hours]
-        event_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-
-        if i == 0:
+    
+    var event_data = item.get_data()
+    # 检查是否是特殊项目（无事件提示或日志）
+    if typeof(event_data) == TYPE_DICTIONARY and "key" in event_data:
+        var key_str = str(event_data.key)
+        if key_str == "no_events" or key_str.begins_with("log_"):
+            return  # 跳过特殊项目的更新
+    
+    var event_container = item.get_child(0) as HBoxContainer
+    if not event_container or event_container.get_child_count() < 2:
+        return
+    
+    var position_label = event_container.get_child(0) as Label
+    var event_label = event_container.get_child(1) as Label
+    
+    if position_label and event_label:
+        # 更新位置编号
+        position_label.text = "%02d" % (position_index + 1)
+        
+        # 更新时间显示
+        var value_str = str(event_data.value).split(" [")[0] if "value" in event_data else "未知事件"
+        var delay_hours = event_data.get("trigger_time", 0) - test_world.current_time
+        event_label.text = "%s (+%dh)" % [value_str, delay_hours]
+        
+        # 更新颜色 - 只有第一个且到期的事件才高亮
+        if position_index == 0 and delay_hours <= 0:
+            # 到期的第一个事件：橙色高亮
             event_label.add_theme_stylebox_override("normal", create_colored_style_box(Color(1.0, 0.7, 0, 0.6)))
             event_label.add_theme_color_override("font_color", Color.BLACK)
         else:
-            var intensity = 1.0 - (i * 0.1)
+            # 其他事件：蓝色渐变
+            var intensity = 1.0 - (position_index * 0.1)
             if intensity < 0.4: intensity = 0.4
             event_label.add_theme_stylebox_override("normal", create_colored_style_box(Color(0.3, 0.5, 0.8, intensity * 0.4)))
             event_label.add_theme_color_override("font_color", Color(1, 1, 1, intensity))
 
-        event_container.add_child(position_label)
-        event_container.add_child(event_label)
-        ctb_events_list.add_child(event_container)
-
 func add_ctb_log_entry(message: String, is_executed: bool):
+    if not animated_ctb_list or _updating_ctb or _exiting:
+        return
+    
+    # 将日志添加到AnimatedList
+    var log_data = {
+        "key": "log_" + str(Time.get_ticks_msec()),
+        "value": "📝 " + message,
+        "trigger_time": test_world.current_time + 999999,  # 放到最后
+        "original_trigger_time": test_world.current_time + 999999
+    }
+    
     var log_label = Label.new()
     log_label.text = "📝 %s" % message
     log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     log_label.add_theme_font_size_override("font_size", 12)
+    log_label.custom_minimum_size = Vector2(280, 20)
 
     if is_executed:
         log_label.modulate = Color(0, 0.8, 0)
     else:
         log_label.modulate = Color(0.8, 0.8, 0.8)
 
-    ctb_events_list.add_child(log_label)
-
-    # 限制日志条目数量
-    var log_entries = 0
-    for child in ctb_events_list.get_children():
-        if child is Label and child.text.begins_with("📝"):
-            log_entries += 1
-
-    if log_entries > 5:
-        for child in ctb_events_list.get_children():
-            if child is Label and child.text.begins_with("📝"):
-                child.queue_free()
-                break
-
+    # 临时设置更新标志，但不调用update_items_from_data避免循环
+    _updating_ctb = true
+    animated_ctb_list.add_animated_item(log_data, log_label)
+    _updating_ctb = false
+    
     call_deferred("scroll_ctb_to_bottom")
 
 func scroll_ctb_to_bottom():

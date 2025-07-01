@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://df6suy2frjfvs"]
+[gd_scene load_steps=3 format=3 uid="uid://df6suy2frjfvs"]
 
 [ext_resource type="Script" uid="uid://by728prit1ht4" path="res://scripts/gdscript/IntegratedSystemTest.gd" id="1_xb8wv"]
+[ext_resource type="Script" uid="uid://bt7235l6c4tre" path="res://scripts/gdscript/ui/AnimatedList.gd" id="2_animated_list"]
 
 [node name="GDScriptIntegratedTest" type="Control"]
 layout_mode = 3
@@ -36,9 +37,14 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="CTBEventsList" type="VBoxContainer" parent="MainContainer/LeftPanel/CTBScrollContainer"]
+[node name="AnimatedCTBList" type="Container" parent="MainContainer/LeftPanel/CTBScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("2_animated_list")
+item_height = 42.0
+item_spacing = 4.0
+animation_speed = 200.0
 
 [node name="ButtonsContainer" type="HBoxContainer" parent="MainContainer/LeftPanel"]
 custom_minimum_size = Vector2(0, 50)

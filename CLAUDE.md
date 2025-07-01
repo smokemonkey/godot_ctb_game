@@ -79,7 +79,31 @@ Godot 4.4 turn-based game with GDScript (primary) and legacy C#:
 - `scripts/gdscript/actionables/House.gd` - Schedulable family units managing Characters
 - `scripts/gdscript/entities/character/` - Three-layer character system (Template/Instance/Runtime)
 
-## Recent Changes (2025-06-30)
+## Recent Changes (2025-07-01)
+
+**AnimatedList CTB Queue System Implementation**
+- Implemented AnimatedList and AnimatedListItem components for smooth CTB queue animations
+- Replaced static VBoxContainer with animated queue that shows smooth transitions when actions are executed
+- Added trigger_time-based sorting and position animation system
+- Enhanced IndexedTimeWheel.peek_upcoming_events() to include original_trigger_time for future skill preview features
+
+**Real-time UI Updates**
+- Implemented dynamic updating of remaining time display (+Xh) when time advances
+- Added smart highlighting: only first event shows orange highlight when actually due (delay_hours <= 0)
+- Fixed color gradients to update based on position after animations complete
+- Preserved color diversity with blue gradient system for non-due events
+
+**Known Issues**
+- GUI退出时卡死问题（命令行版本正常退出）- 可能与事件循环或AnimatedList处理相关
+- 循环更新保护机制有效但可能需要进一步优化
+
+**Technical Implementation**
+- Used @tool annotation for editor integration of custom controls
+- Implemented shallow copy data approach for safe UI manipulation
+- Added _updating_ctb flag to prevent infinite update loops
+- Enhanced data structure with original_trigger_time for future skill preview system
+
+## Previous Changes (2025-06-30)
 
 **Character System Restructure**
 - Moved Character system from `actionables/` to new `entities/character/` directory

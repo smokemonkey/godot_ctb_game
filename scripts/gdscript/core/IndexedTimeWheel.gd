@@ -232,9 +232,10 @@ func remove(key: Variant) -> Variant:
     return node_to_remove.value
 
 ## [For UI Rendering Only] Previews upcoming events within the next 'count' hours.
+## Returns a NEW ARRAY containing references to the original event data with original_trigger_time recorded.
+## The array can be safely manipulated for UI preview without affecting the actual time wheel.
 ##
 ## Important: This method is designed for UI display or debugging and should not be used for core game loop logic.
-## It may return imprecise or incomplete event data for UI convenience.
 ## The game loop should use advance_wheel() and pop_due_event().
 ##
 ## Returns up to 'count' upcoming events within 'max_hours' time range
@@ -261,10 +262,16 @@ func peek_upcoming_events(count: int, max_hours: int = -1) -> Array[Dictionary]:
             if not "trigger_time" in node.value:
                 push_error("Event object missing trigger_time: %s" % node.key)
             var trigger_time = node.value.trigger_time
-            events.append({"key": node.key, "value": node.value, "trigger_time": trigger_time})
+            # 创建新的Dictionary，包含原始trigger_time用于UI预览和动画
+            events.append({
+                "key": node.key, 
+                "value": node.value, 
+                "trigger_time": trigger_time,
+                "original_trigger_time": trigger_time  # 记录原始时间，用于UI动画和预览取消
+            })
             # 达到指定事件数量就返回
             if events.size() >= count:
-                var result = events.slice(0, count)
+                var result = events.slice(0, count)  # slice创建新数组副本
                 _lock.unlock()
                 return result
 
